@@ -44,6 +44,13 @@ DEFAULT_SEARCH_POOL = 25
 # 우리 이슈 스키마 (demo/jira/issues.json · agent._JIRA_FIELDS 와 동일 계약)
 ISSUE_FIELDS = ("key", "summary", "description", "resolution", "customer", "created")
 
+# 이슈 상세(get_issue)에서 서버에 요청할 필드. 검색 응답에는 resolution 이 비어 오는
+# 문제(실측: top5 전부 0자)가 있어, 상세 조회로 resolution·코멘트를 보강한다.
+# "comment" 명시 필수 — mcp-atlassian 은 fields 를 커스텀으로 주면 comment_limit
+# 만으로는 코멘트를 붙여주지 않는다 (기본 필드셋/*all 일 때만 자동 추가, 소스 실측).
+DETAIL_FIELDS = "summary,description,status,resolution,comment"
+DETAIL_COMMENT_LIMIT = 5  # 최근 코멘트 포함 개수 (mcp-atlassian comment_limit)
+
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -66,7 +73,8 @@ def search_issues(query: str, limit: int = 5) -> "list[dict] | None":
     if not query or not is_configured():
         return None
     try:
-        result = _MANAGER.call({"jql": _build_jql(query), "limit": _pool_size(limit)})
+        result = _MANAGER.call(
+            "search", {"jql": _build_jql(query), "limit": _pool_size(limit)})
     except (Exception, asyncio.CancelledError):
         # 서버 crash·커맨드 부재·프로토콜 오류·타임아웃(재시도 포함) 전부 여기로 — 조용히 폴백 유도.
         return None
@@ -78,6 +86,40 @@ def search_issues(query: str, limit: int = 5) -> "list[dict] | None":
     # 넓게 받은 후보를 우리 스키마로 매핑한 뒤, 쿼리 유사도로 재정렬해 top_k(=limit)만 반환.
     mapped = [_map_issue(i) for i in issues if isinstance(i, dict)]
     return rerank.rerank(query, mapped, top_k=limit)
+
+
+def get_issue(key: str) -> "dict | None":
+    """MCP 서버의 이슈 상세 툴(jira_get_issue)로 단건 상세를 조회한다.
+
+    검색(search_issues) 응답에는 resolution 이 비어 오므로, 원격 LLM 이 유사 이슈의
+    해결 내역·처리 코멘트를 확인하려면 이 상세 경로가 필요하다 (tools.get_jira_issue).
+
+    반환 계약 (search_issues 와 일관):
+      dict — {key, summary, description, resolution, status, comments}
+             comments 는 최근 DETAIL_COMMENT_LIMIT 개 코멘트의 본문 텍스트 배열
+             (author 제외). 미해결 이슈면 resolution 은 빈 문자열.
+      None — 미설정 / 서버 실패 / 타임아웃 / 이슈 없음 / 응답 해석 불가
+             → 호출부(tools._get_jira_issue)가 목 데이터로 폴백
+    어떤 경우에도 예외를 밖으로 던지지 않는다.
+    """
+    if not key or not is_configured():
+        return None
+    try:
+        result = _MANAGER.call("get_issue", {
+            "issue_key": key,
+            "fields": DETAIL_FIELDS,
+            "comment_limit": DETAIL_COMMENT_LIMIT,
+        })
+    except (Exception, asyncio.CancelledError):
+        # 서버 실패·타임아웃·상세 툴 미노출(_ToolUnavailableError) 전부 폴백 유도.
+        return None
+    if getattr(result, "isError", False):
+        # 존재하지 않는 이슈 key 도 여기로 온다 (서버가 오류 응답) — 폴백에서 처리.
+        return None
+    issue = _extract_detail(result)
+    if issue is None:
+        return None
+    return _map_detail(issue)
 
 
 def _pool_size(limit: int) -> int:
@@ -120,6 +162,14 @@ def _project_clause() -> str:
 
 # ── 상주 세션 관리 ─────────────────────────────────────────────────────────
 
+class _ToolUnavailableError(Exception):
+    """세션은 살아 있으나 서버가 해당 역할의 툴을 노출하지 않음.
+
+    세션 자체는 정상이므로 teardown/재spawn 해봐야 결과가 같다 — call() 이
+    이 예외만은 재시도 없이 즉시 올려, 살아 있는 검색 세션을 죽이지 않는다.
+    """
+
+
 class _SessionManager:
     """데몬 스레드의 전용 이벤트 루프 + 장수 세션 task 를 관리한다.
 
@@ -137,15 +187,17 @@ class _SessionManager:
         self._task: "asyncio.Task | None" = None
         self._queue: "asyncio.Queue | None" = None
 
-    def call(self, arguments: dict):
-        """검색 툴 1회 호출 — CallToolResult 반환, 실패 시 예외."""
+    def call(self, role: str, arguments: dict):
+        """툴 1회 호출 — role 은 "search" | "get_issue". CallToolResult 반환, 실패 시 예외."""
         with self._lock:
             last_exc: "BaseException | None" = None
             for _ in range(2):  # 최초 시도 + 재spawn 재시도 1회
                 try:
                     self._ensure_loop()
                     self._ensure_session()
-                    return self._dispatch(arguments)
+                    return self._dispatch(role, arguments)
+                except _ToolUnavailableError:
+                    raise  # 세션 정상 — teardown/재시도 무의미
                 except (Exception, asyncio.CancelledError) as e:
                     last_exc = e
                     self._teardown_session_locked()
@@ -183,9 +235,10 @@ class _SessionManager:
         # 서버 spawn + initialize + 툴 목록 확인까지 대기 (실패 시 예외 전파).
         ready.result(timeout=TIMEOUT_SECONDS)
 
-    def _dispatch(self, arguments: dict):
+    def _dispatch(self, role: str, arguments: dict):
         fut: "concurrent.futures.Future" = concurrent.futures.Future()
-        self._loop.call_soon_threadsafe(self._queue.put_nowait, (arguments, fut))
+        self._loop.call_soon_threadsafe(
+            self._queue.put_nowait, (role, arguments, fut))
         deadline = time.monotonic() + TIMEOUT_SECONDS
         while True:
             try:
@@ -241,7 +294,7 @@ async def _session_worker(ready: "concurrent.futures.Future",
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    pending: "list" = []  # 현재 처리 중이거나 큐에서 꺼낸 (args, fut)
+    pending: "list" = []  # 현재 처리 중이거나 큐에서 꺼낸 (role, args, fut)
     try:
         argv = shlex.split(os.environ.get("JIRA_MCP_COMMAND", DEFAULT_MCP_COMMAND))
         if not argv:
@@ -255,16 +308,25 @@ async def _session_worker(ready: "concurrent.futures.Future",
         async with stdio_client(params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-                tool_name = await _pick_search_tool(session)
-                if tool_name is None:
+                # 역할별 툴 이름 해상. 검색은 필수(없으면 세션 무의미 → 기동 실패),
+                # 상세(get_issue)는 선택 — 없으면 해당 요청만 _ToolUnavailableError.
+                tools = await _resolve_tools(session)
+                if tools.get("search") is None:
                     raise RuntimeError("검색 툴을 찾지 못함")
-                ready.set_result(tool_name)
+                ready.set_result(tools)
                 while True:
                     item = await queue.get()
                     if item is None:  # 종료 sentinel (현재는 cancel 이 기본 경로)
                         return
                     pending.append(item)
-                    arguments, fut = item
+                    role, arguments, fut = item
+                    tool_name = tools.get(role)
+                    if tool_name is None:
+                        if not fut.cancelled():
+                            fut.set_exception(_ToolUnavailableError(
+                                f"서버가 {role} 툴을 노출하지 않음"))
+                        pending.pop()
+                        continue
                     result = await session.call_tool(tool_name, arguments)
                     if not fut.cancelled():
                         fut.set_result(result)
@@ -281,7 +343,7 @@ async def _session_worker(ready: "concurrent.futures.Future",
         for item in pending:
             if item is None:
                 continue
-            _, fut = item
+            fut = item[-1]
             if not fut.done():
                 fut.set_exception(RuntimeError("MCP 세션 종료로 요청 실패"))
 
@@ -291,14 +353,22 @@ _MANAGER = _SessionManager()
 
 # ── 응답 해석 ─────────────────────────────────────────────────────────────
 
-async def _pick_search_tool(session) -> "str | None":
-    """서버가 노출한 툴 중 Jira 검색 툴을 고른다.
+async def _resolve_tools(session) -> "dict[str, str | None]":
+    """서버가 노출한 툴 목록에서 역할별 툴 이름을 해상한다.
 
-    mcp-atlassian 의 `jira_search` 를 정확히 우선하고, 서버 교체(JIRA_MCP_COMMAND
-    오버라이드) 대비로 이름에 search 가 들어간 툴을 차선으로 허용한다.
+    반환: {"search": 이름|None, "get_issue": 이름|None}
+    mcp-atlassian 의 정확한 이름(`jira_search`/`jira_get_issue` — list_tools 실측)을
+    우선하고, 서버 교체(JIRA_MCP_COMMAND 오버라이드) 대비로 이름 휴리스틱을 차선 허용.
     """
     listing = await session.list_tools()
     names = [t.name for t in listing.tools]
+    return {
+        "search": _pick_search_tool(names),
+        "get_issue": _pick_get_issue_tool(names),
+    }
+
+
+def _pick_search_tool(names: "list[str]") -> "str | None":
     if "jira_search" in names:
         return "jira_search"
     for name in names:
@@ -307,6 +377,20 @@ async def _pick_search_tool(session) -> "str | None":
             return name
     for name in names:
         if "search" in name.lower():
+            return name
+    return None
+
+
+def _pick_get_issue_tool(names: "list[str]") -> "str | None":
+    if "jira_get_issue" in names:
+        return "jira_get_issue"
+    for name in names:
+        low = name.lower()
+        # jira_get_issue_watchers 류 오매칭 방지 — 정확히 get+issue 로 끝나는 것만.
+        if "jira" in low and low.endswith("get_issue"):
+            return name
+    for name in names:
+        if name.lower().endswith("get_issue"):
             return name
     return None
 
@@ -337,6 +421,28 @@ def _extract_issues(result) -> "list | None":
     return None
 
 
+def _as_text(v) -> str:
+    """이슈 필드 값 → 표시 텍스트. dict 면 name/value 류 대표 문자열을 뽑는다."""
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    if isinstance(v, dict):  # 예: resolution={"name": "Fixed"}, status={"name":...}
+        for k in ("name", "value", "displayName", "text"):
+            if isinstance(v.get(k), str):
+                return v[k]
+        return ""
+    return str(v)
+
+
+def _pick_field(issue: dict, fields: dict, name: str):
+    """평탄화 dict(mcp-atlassian) 우선, raw Jira API 형태의 fields 하위 차선."""
+    v = issue.get(name)
+    if v is None:
+        v = fields.get(name)
+    return v
+
+
 def _map_issue(issue: dict) -> dict:
     """Jira/MCP 이슈 1건 → 우리 스키마 {key, summary, description, resolution,
     customer, created}. 없는 필드는 빈 문자열, created 는 YYYY-MM-DD 로 정규화.
@@ -347,31 +453,95 @@ def _map_issue(issue: dict) -> dict:
     fields = issue.get("fields") if isinstance(issue.get("fields"), dict) else {}
 
     def pick(name: str):
-        v = issue.get(name)
-        if v is None:
-            v = fields.get(name)
-        return v
+        return _pick_field(issue, fields, name)
 
-    def as_text(v) -> str:
-        if v is None:
-            return ""
-        if isinstance(v, str):
-            return v
-        if isinstance(v, dict):  # 예: resolution={"name": "Fixed"}, status={"name":...}
-            for k in ("name", "value", "displayName", "text"):
-                if isinstance(v.get(k), str):
-                    return v[k]
-            return ""
-        return str(v)
-
-    created_raw = as_text(pick("created"))
+    created_raw = _as_text(pick("created"))
     m = _DATE_RE.search(created_raw)
     return {
-        "key": as_text(pick("key")),
-        "summary": as_text(pick("summary")),
-        "description": as_text(pick("description")),
-        "resolution": as_text(pick("resolution")),
+        "key": _as_text(pick("key")),
+        "summary": _as_text(pick("summary")),
+        "description": _as_text(pick("description")),
+        "resolution": _as_text(pick("resolution")),
         # Jira 표준 필드에 '고객사' 개념이 없음 — 커스텀 필드 매핑 전까지 빈 값.
-        "customer": as_text(pick("customer")),
+        "customer": _as_text(pick("customer")),
         "created": m.group(0) if m else "",
     }
+
+
+def _extract_detail(result) -> "dict | None":
+    """CallToolResult 의 text 블록에서 이슈 상세 dict 를 찾아 반환.
+
+    mcp-atlassian jira_get_issue 는 이슈 1건을 JSON 객체로 준다 (실측: {"key": ...,
+    "summary": ..., "status": {...}} — 미해결이면 resolution 키 자체가 없음).
+    key 없는 dict(에러 메시지 등)나 JSON 아님 → None (폴백).
+    """
+    for block in getattr(result, "content", []) or []:
+        text = getattr(block, "text", None)
+        if not text:
+            continue
+        try:
+            data = json.loads(text)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(data, dict) and data.get("key"):
+            return data
+    return None
+
+
+def _map_detail(issue: dict) -> dict:
+    """이슈 상세 1건 → {key, summary, description, resolution, status, comments}.
+
+    resolution — 상세 응답의 resolution 필드에서 (미해결이면 빈 문자열).
+    comments   — 최근 코멘트들의 본문 텍스트 배열 (author 제외, 최대
+                 DETAIL_COMMENT_LIMIT 개). mcp-atlassian 은 top-level "comments",
+                 raw Jira API 는 fields.comment.comments 에 실어 준다 — 둘 다 지원.
+    """
+    fields = issue.get("fields") if isinstance(issue.get("fields"), dict) else {}
+
+    def pick(name: str):
+        return _pick_field(issue, fields, name)
+
+    return {
+        "key": _as_text(pick("key")),
+        "summary": _as_text(pick("summary")),
+        "description": _as_text(pick("description")),
+        "resolution": _as_text(pick("resolution")),
+        "status": _as_text(pick("status")),
+        "comments": _extract_comments(issue, fields),
+    }
+
+
+def _extract_comments(issue: dict, fields: dict) -> "list[str]":
+    raw = issue.get("comments")
+    if not isinstance(raw, list):
+        comment = fields.get("comment")
+        raw = comment.get("comments") if isinstance(comment, dict) else None
+    if not isinstance(raw, list):
+        return []
+    texts: "list[str]" = []
+    for c in raw[-DETAIL_COMMENT_LIMIT:]:  # 최근 것 우선 (Jira 는 오래된 순 정렬)
+        if not isinstance(c, dict):
+            continue
+        body = c.get("body")
+        text = body if isinstance(body, str) else _adf_text(body)
+        text = text.strip()
+        if text:
+            texts.append(text)
+    return texts
+
+
+def _adf_text(node) -> str:
+    """ADF(Atlassian Document Format) 류 중첩 dict 에서 text 노드만 이어 붙인다.
+
+    mcp-atlassian 은 body 를 평문으로 주지만, raw API(ADF)가 와도 견디게 한다.
+    """
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        if isinstance(node.get("text"), str):
+            return node["text"]
+        return " ".join(
+            t for t in (_adf_text(v) for v in node.get("content", []) or []) if t)
+    if isinstance(node, list):
+        return " ".join(t for t in (_adf_text(v) for v in node) if t)
+    return ""

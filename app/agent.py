@@ -62,6 +62,10 @@ _SYSTEM_PROMPT_TEMPLATE = """\
 - read_file: 지원 로그를 직접 읽어 근거를 확보하라. {log_reference}
   keyword 인자로 ERROR, WARN 등 관심 줄만 추려 읽을 수 있다.
 - search_jira: 과거 유사 이슈와 해결 방법을 검색하라. 아래 '검색 규율'을 반드시 지켜라.
+- get_jira_issue: search_jira 로 찾은 이슈 중 **문의와 가장 관련 높은 1~2건은 get_jira_issue 로
+  상세를 조회해 해결 방법·처리 코멘트를 확인**한 뒤 보고서에 인용하라. 상세 조회 없이 제목만 보고
+  해결책을 추측하지 말 것. (검색 규율과 조화 — search_jira 로 이미 좁혀 찾은 소수의 핵심 이슈에만
+  상세 조회를 쓰고, 무관한 검색 결과까지 전부 펼쳐 조회하지 마라.)
 - 추측하지 말고, 도구로 확인한 사실만 근거로 인용하라. read_file(로그 조회)은 필요한 만큼 반복해도 된다.
 
 검색 규율 (search_jira — 실 Jira 연동이라 검색 1회가 실제 비용이다. 아껴 써라):
@@ -273,6 +277,9 @@ def _humanize_request(name: str, tool_input) -> str:
     if name == "search_jira":
         query = (tool_input or {}).get("query", "")
         return f"원격 LLM 요청 수행 → Jira 검색: '{query}'"
+    if name == "get_jira_issue":
+        key = (tool_input or {}).get("key") or "(키 없음)"
+        return f"원격 LLM 요청 수행 → 이슈 상세 조회: {key}"
     return f"도구 실행: {name} {tool_input}"
 
 
@@ -283,12 +290,26 @@ def _tool_result_summary(name: str, raw: str, is_error: bool) -> str:
     - read_file 성공: "└ 결과: N줄 / N자 반환"
     - search_jira: JSON 배열 파싱 성공 시 "└ 결과: 매치 K건 (키 최대 3개)",
       아니면(0건 안내문 등) "└ 결과: 매치 0건". 매치 0건이 명확히 보이는 것이 핵심.
+    - get_jira_issue: JSON 객체({key,summary,description,resolution,status,comments}) 파싱
+      성공 시 "└ 결과: 상세 수신 (해결 정보 O/X, 코멘트 N개)". 원문 내용은 싣지 않고
+      해결 정보 유무·코멘트 수만 노출(PII 안전). 파싱 실패면 글자수 폴백.
     - 알 수 없는 도구: 글자수만.
     """
     if is_error:
         return f"└ 결과: 실패 — {raw[:60]}"
     if name == "read_file":
         return f"└ 결과: {len(raw.splitlines())}줄 / {len(raw)}자 반환"
+    if name == "get_jira_issue":
+        try:
+            issue = json.loads(raw)
+        except (ValueError, TypeError):
+            issue = None
+        if isinstance(issue, dict):
+            has_res = "O" if str(issue.get("resolution", "")).strip() else "X"
+            comments = issue.get("comments")
+            n = len(comments) if isinstance(comments, (list, str)) else 0
+            return f"└ 결과: 상세 수신 (해결 정보 {has_res}, 코멘트 {n}개)"
+        return f"└ 결과: {len(raw)}자 반환"
     if name == "search_jira":
         try:
             issues = json.loads(raw)

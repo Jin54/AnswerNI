@@ -22,6 +22,11 @@ TOOLS = [
      "input_schema": {"type": "object",
                       "properties": {"query": {"type": "string"}},
                       "required": ["query"]}},
+    {"name": "get_jira_issue",
+     "description": "검색으로 찾은 유사 이슈의 상세(해결 방법·처리 코멘트 포함)를 조회한다. 관련성 높은 이슈의 해결책을 확인할 때 호출.",
+     "input_schema": {"type": "object",
+                      "properties": {"key": {"type": "string", "description": "Jira 이슈 키 (예: 'SUP-123')"}},
+                      "required": ["key"]}},
 ]
 
 ALLOWED_DIR = Path("demo/logs").resolve()   # allowlist: 이 밖의 경로는 거부
@@ -34,6 +39,8 @@ def execute_tool(name: str, input: dict) -> str:
         return _read_file(input.get("path"), input.get("keyword"))
     if name == "search_jira":
         return _search_jira(input.get("query"))
+    if name == "get_jira_issue":
+        return _get_jira_issue(input.get("key"))
     return f"에러: 알 수 없는 도구입니다 ({name})."
 
 
@@ -86,3 +93,28 @@ def _search_jira(query: str | None) -> str:
     # 실 Jira 경로와 동일하게 유사도로 재정렬해 top 5 만 반환(경로 간 UX 일관).
     matched = rerank.rerank(query, matched, top_k=5)
     return json.dumps(matched, ensure_ascii=False, indent=2)
+
+
+def _get_jira_issue(key: str | None) -> str:
+    """이슈 단건 상세 — 검색 결과에 resolution 이 비어 오는 실 Jira 특성 보완.
+
+    실 Jira(MCP) 우선: jira_mcp.get_issue 가 상세({key, summary, description,
+    resolution, status, comments})를 주면 JSON 문자열로 반환. None(미설정·서버
+    실패·이슈 없음)이면 목 데이터(demo/jira/issues.json)에서 key 일치 이슈로 폴백,
+    그것도 없으면 '에러:' 접두 문자열 — search_jira 와 동일한 반환 계약.
+    """
+    if not key:
+        return "에러: key 인자가 필요합니다."
+    key = key.strip().upper()  # Jira 키는 대문자 — LLM 소문자 입력 관용 처리
+    if jira_mcp.is_configured():
+        issue = jira_mcp.get_issue(key)
+        if issue is not None:
+            return json.dumps(issue, ensure_ascii=False, indent=2)
+    try:
+        issues = json.loads(JIRA_FILE.read_text(encoding="utf-8"))
+    except Exception as e:
+        return f"에러: Jira 데이터 로드 실패 ({e})."
+    for issue in issues:
+        if isinstance(issue, dict) and issue.get("key", "").upper() == key:
+            return json.dumps(issue, ensure_ascii=False, indent=2)
+    return f"에러: 이슈 {key} 를 찾을 수 없습니다."
