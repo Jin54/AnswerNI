@@ -1,0 +1,8 @@
+2026-07-08 02:00:01 INFO  [sys] nightly job start
+2026-07-08 02:14:52 WARN  [sys] disk usage /var/log at 92%
+2026-07-08 03:41:10 ERROR [sys] write failed: No space left on device (/var/log/app.log)
+2026-07-08 03:41:10 ERROR [app] failed to append audit log: No space left on device
+2026-07-08 03:42:33 WARN  [sys] disk usage /var/log at 100%
+2026-07-08 03:45:00 ERROR [api] 503 Service Unavailable (audit write failed)
+2026-07-08 08:12:00 INFO  [ops] admin=oh@corp.example.com cleaned old logs, freed 18GB
+2026-07-08 08:15:00 INFO  [sys] disk usage /var/log at 41%

@@ -1,0 +1,7 @@
+2026-07-08 16:40:01 INFO  [db] tx begin id=T1 op=policy_save
+2026-07-08 16:40:31 WARN  [db] slow query 30021ms UPDATE policy SET ... (T1 holds row lock)
+2026-07-08 16:40:35 ERROR [db] tx T2 lock wait timeout exceeded; try restarting transaction
+2026-07-08 16:40:35 ERROR [adm] approve save failed doc=3120 approver=han@corp.example.com reason=lock_wait_timeout
+2026-07-08 16:41:10 WARN  [db] 6 transactions waiting on row lock (table=approve)
+2026-07-08 16:45:00 INFO  [db] tx T1 committed after 300s
+2026-07-08 16:45:01 INFO  [db] lock contention cleared

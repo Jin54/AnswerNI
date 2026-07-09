@@ -1,0 +1,7 @@
+2026-07-09 10:00:03 INFO  [net] agent boot agent_id=PC-5502 site=branch-busan ip=192.168.20.44
+2026-07-09 10:00:23 ERROR [net] connect to mgmt 198.51.100.8:8443 failed: connection timed out
+2026-07-09 10:00:53 ERROR [net] connect to mgmt 198.51.100.8:8443 failed: connection timed out
+2026-07-09 10:01:00 WARN  [net] falling back to offline policy cache
+2026-07-09 10:05:00 INFO  [net] traceroute mgmt: blocked after gateway 192.168.20.1
+2026-07-09 11:30:00 INFO  [ops] firewall exception added for 198.51.100.8:8443 by netadmin=seo@corp.example.com
+2026-07-09 11:32:10 INFO  [net] connect to mgmt 198.51.100.8:8443 ok

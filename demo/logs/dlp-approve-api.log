@@ -1,0 +1,10 @@
+2026-07-08 15:01:04 +0900 "PUT /client/v1/dlp/approve/check/CUST9931/2438/fileattach HTTP/1.1" 200 100 agent_ip=192.168.10.22
+2026-07-08 15:01:48 +0900 "POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" 200 81
+2026-07-08 15:02:33 INFO  [adm] approve changed doc=2438 file="조직도_일괄등록.xlsx" by=admin@corp.example.com ip=203.0.113.42 result=완료
+2026-07-08 15:03:08 +0900 "PUT /client/v1/dlp/approve/check/CUST9931/2438/fileattach HTTP/1.1" 200 100
+2026-07-08 15:04:19 +0900 "POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" 200 81
+2026-07-08 15:55:54 +0900 "POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" 200 81
+2026-07-08 15:57:45 WARN  [adm] approve update ignored doc=2438 reason=already_completed(approve_status=1)
+2026-07-08 16:10:02 WARN  [adm] re-approval requested but not reflected doc=2438 (status stays 완료)
+2026-07-08 17:06:00 INFO  [adm] tmp-fix approve_no reset doc=2438 by=support@corp.example.com
+2026-07-08 17:13:47 INFO  [adm] approve changed doc=2438 result=완료 (after reset)

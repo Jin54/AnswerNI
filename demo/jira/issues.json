@@ -46,5 +46,65 @@
     "resolution": "APNs 인증 키(.p8) 만료로 푸시 전송 실패. 신규 키 발급 후 알림 정상 발송 확인.",
     "customer": "고객사 C",
     "created": "2026-02-08"
+  },
+  {
+    "key": "SUP-140",
+    "summary": "결재 의견에 작은따옴표(') 입력 시 500 Internal Server Error",
+    "description": "고객사 A 관리자가 DLP 결재 반려 의견에 작은따옴표(')가 포함된 문장을 입력하면 저장 시 'Internal Server Error' 알림창이 뜨고 의견이 저장되지 않음. admin-approve 로그에 'unterminated quoted string at or near' 및 500 오류가 반복 기록됨. 의견 문자열의 '가 SQL/쿼리에서 문자열 경계로 오인되어 쿼리가 깨지는 것이 원인.",
+    "resolution": "입력 의견의 작은따옴표를 이스케이프('→'')하여 저장하도록 수정하고, 서버측 파라미터 바인딩(Prepared Statement)을 병행 적용해 근본 차단. 재현 조건: 의견 텍스트에 ' 1개 이상 포함. 수정 후 정상 저장 확인."
+  },
+  {
+    "key": "SUP-141",
+    "summary": "이미 승인 완료된 결재를 재요청 시 재승인이 반영되지 않음",
+    "description": "고객사 B에서 동일 파일(해시 동일)로 결재를 다시 요청했을 때, 관리서버가 '이미 완료된 건'으로 판단해 승인 상태를 갱신하지 못하고 결재가 진행되지 않음. dlp-approve-api 로그에 approve check/request는 200으로 기록되나 'approve update ignored ... already_completed', 're-approval requested but not reflected'가 남음. 원인은 승인 갱신 쿼리 조건 누락으로 완료 상태에서도 신규 승인 데이터가 생성되지 않은 것.",
+    "resolution": "승인 상태가 '대기'일 때만 기존 데이터를 갱신하고, 이미 '완료'된 경우에는 신규 승인 데이터가 생성되도록 로직 수정. 긴급 시 임시조치로 approve_no 값을 초기화해 재승인 가능하도록 처리. 수정 후 재요청→신규 승인 정상 생성 확인."
+  },
+  {
+    "key": "SUP-142",
+    "summary": "서비스 할당 webhook 재시도로 DB 커넥션 풀 고갈 및 응답 지연",
+    "description": "비정상 설치된 에이전트(agent id 미존재)가 서비스 할당 webhook을 호출하면 최대 3회 재시도(최악 약 13초)하며 DB 커넥션을 오래 점유, 특정 시간대에 커넥션 풀이 고갈되어 관리서버 응답이 느려짐. webhook 로그에 'retrying (attempt n/3)', 'pool exhausted', 'Connection is not available, request timed out'이 기록됨.",
+    "resolution": "webhook 재시도 max-attempts를 3→1로 축소(최악 13초→3초), connect/read 타임아웃 3초로 설정, 실패 시 serial/agent 식별자 포함 에러 로깅 추가. 적용 후 평균 응답시간 정상화 확인."
+  },
+  {
+    "key": "SUP-143",
+    "summary": "개인정보 검사 시 일부 파일 포맷에서 검출이 누락됨",
+    "description": "고객사 C에서 개인정보 검사 실행 시 일반 텍스트(.txt)는 주민번호/이메일이 검출되나 일부 문서·압축 포맷(.hwp, .zip 등)에서 검출이 누락된다고 문의. dlp-scan 로그에 'extract=FAILED (parser unsupported) -> skipped'가 다수 기록되고, 마지막에 'N files skipped due to unsupported format (potential PII not scanned)' 경고가 남음. 원인은 검사엔진의 파일 포맷 파서 커버리지 한계로 본문 추출 실패 파일이 스캔 대상에서 조용히 제외된 것.",
+    "resolution": "미지원 포맷 파서를 보강하고, 추출 실패 파일은 '검출 없음'이 아니라 '검사 불가(스캔 제외)'로 별도 로깅·표시하도록 개선해 누락을 가시화. 우선순위 포맷부터 파서 추가 적용."
+  },
+  {
+    "key": "SUP-144",
+    "summary": "에이전트 알림 팝업 노출 시간 조절 기능 요청 (개선 문의)",
+    "description": "고객사 D(의료)에서 Mac 에이전트의 차단/안내 알림 팝업이 너무 짧게(또는 길게) 표시된다며 노출 시간을 관리자 정책으로 조절할 수 있게 해달라는 개선 요청. 장애가 아닌 기능 개선 문의로, 현재는 노출 시간이 고정값으로 하드코딩되어 있음.",
+    "resolution": "관리자페이지 정책에 '알림 팝업 노출 시간(초)' 설정 항목을 추가하고 에이전트가 정책값을 반영하도록 개선 예정. 로드맵 반영, 다음 마이너 버전 목표. 임시 안내: 현재 버전은 고정값이라 조절 불가."
+  },
+  {
+    "key": "SUP-145",
+    "summary": "디스크 사용률 100%로 로그 적재 실패 및 서비스 지연",
+    "description": "새벽 시간부터 관리서버 응답이 느리고 로그가 더 이상 쌓이지 않는다는 문의. system 로그에 'disk usage /var/log at 100%', 'No space left on device', 일부 API '503 Service Unavailable'이 기록됨. 로그 로테이션 미설정으로 대용량 로그가 누적되어 로그 파티션이 가득 찬 것이 원인.",
+    "resolution": "오래된 로그를 정리(약 18GB 확보)하고 logrotate를 일 단위·보관 14일로 설정, 디스크 사용률 85% 초과 시 알림 임계치를 등록해 재발 방지. 조치 후 사용률 41%로 정상화."
+  },
+  {
+    "key": "SUP-146",
+    "summary": "라이선스 만료로 검사·차단 기능이 비활성화됨",
+    "description": "특정 일자 이후 정책이 적용되지 않고 검사/차단 기능이 동작하지 않는다는 문의. license 로그에 'license expired -> entering safe mode (block/scan disabled)', 'policy not applied: license invalid'가 기록됨. 제품 라이선스 만료로 에이전트가 안전모드로 전환되어 기능이 비활성화된 것.",
+    "resolution": "라이선스를 갱신·재적용하고 정책을 재동기화하여 정상화. 재발 방지를 위해 만료 30일 전 자동 알림 발송을 권고. 조치 후 'policy re-sync ok' 확인."
+  },
+  {
+    "key": "SUP-147",
+    "summary": "방화벽 포트 차단으로 에이전트-관리서버 통신 실패",
+    "description": "신규 네트워크 구간(지사)의 PC들이 관리서버에 연결되지 않는다는 문의. network 로그에 'connect to mgmt ...:8443 failed: connection timed out'과 'traceroute mgmt: blocked after gateway'가 기록됨. 고객사 방화벽 정책 변경으로 관리서버 포트(8443) 아웃바운드가 차단된 것이 원인.",
+    "resolution": "방화벽에 관리서버 IP:8443 아웃바운드 예외를 등록하고, telnet/curl로 연결 확인 절차를 안내. 예외 등록 후 'connect to mgmt ...:8443 ok' 확인. 배포 전 필요한 포트 목록을 사전 공유하도록 프로세스 보완."
+  },
+  {
+    "key": "SUP-148",
+    "summary": "DB 락 대기/타임아웃으로 결재·정책 저장이 지연됨",
+    "description": "결재 승인·정책 저장이 간헐적으로 지연되거나 실패한다는 문의. db 로그에 'slow query 30021ms ... holds row lock', 'lock wait timeout exceeded', 'transactions waiting on row lock'이 기록됨. 장시간 실행되는 트랜잭션이 행 잠금을 오래 점유해 후속 쿼리가 락 대기 후 타임아웃되는 것이 원인.",
+    "resolution": "장기 실행 쿼리를 튜닝하고 락/커넥션 풀 타임아웃을 조정, 슬로우 쿼리 모니터링을 추가. 장기 트랜잭션 분할 처리로 잠금 점유 시간을 단축. 조치 후 'lock contention cleared' 확인."
+  },
+  {
+    "key": "SUP-149",
+    "summary": "에이전트 메모리 누수로 PC 성능 저하",
+    "description": "특정 PC들이 시간이 지날수록 느려진다는 문의. agent-perf 로그에서 프로세스 RSS가 180MB→2360MB로 지속 증가하고 'high memory: ... scan module holding buffers'가 기록됨. 특정 검사 모듈에서 핸들/버퍼가 해제되지 않아 메모리 누수가 누적된 것이 원인.",
+    "resolution": "누수 모듈 패치를 적용하고, 임시로 에이전트 서비스 재기동 스케줄을 운영. 메모리 사용량 임계치 모니터링을 추가해 조기 감지. 재기동 후 RSS 190MB로 회복 확인."
   }
 ]

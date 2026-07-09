@@ -1,0 +1,7 @@
+2026-07-09 00:00:05 INFO  [lic] license check ok expire=2026-07-08
+2026-07-09 00:00:05 WARN  [lic] license expires today
+2026-07-09 00:05:00 ERROR [lic] license expired -> entering safe mode (block/scan disabled)
+2026-07-09 09:10:22 WARN  [agent] policy not applied: license invalid agent_id=PC-4410 user=jung@corp.example.com
+2026-07-09 09:40:15 WARN  [agent] scan skipped: license invalid
+2026-07-09 13:20:00 INFO  [lic] license renewed expire=2027-07-08 by=admin@corp.example.com
+2026-07-09 13:21:00 INFO  [agent] policy re-sync ok

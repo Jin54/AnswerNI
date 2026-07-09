@@ -1,0 +1,11 @@
+2026-07-09 11:00:01 INFO  [scan] job start target=\\fileshare\hr requester=park@corp.example.com
+2026-07-09 11:00:05 INFO  [scan] file=employee_list.txt format=plain matched RRN=1 EMAIL=1
+2026-07-09 11:00:05 DETECT [scan] employee_list.txt rrn=900101-1234567 email=kim@aaa.com
+2026-07-09 11:00:12 INFO  [scan] file=contract_2026.docx format=docx extract=OK matched PHONE=1
+2026-07-09 11:00:12 DETECT [scan] contract_2026.docx phone=010-1234-5678
+2026-07-09 11:00:18 WARN  [scan] file=members.hwp format=hwp extract=FAILED (parser unsupported) -> skipped
+2026-07-09 11:00:19 WARN  [scan] file=archive.zip format=zip extract=FAILED (nested) -> skipped
+2026-07-09 11:00:24 INFO  [scan] file=notice.txt format=plain matched EMAIL=1
+2026-07-09 11:00:24 DETECT [scan] notice.txt email=lee@bbb.com
+2026-07-09 11:00:40 INFO  [scan] job done files=214 detected=3 skipped=12
+2026-07-09 11:00:40 WARN  [scan] 12 files skipped due to unsupported format (potential PII not scanned)

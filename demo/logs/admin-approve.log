@@ -1,0 +1,11 @@
+2026-07-09 14:18:02 INFO  [adm] approve console opened approver=choi@corp.example.com ip=192.168.10.12
+2026-07-09 14:20:11 INFO  [adm] POST /admin/approve/opinion doc=2438 200 18ms
+2026-07-09 14:21:03 INFO  [adm] POST /admin/approve/opinion doc=2439
+2026-07-09 14:21:03 ERROR [adm] 500 Internal Server Error while saving opinion doc=2439
+2026-07-09 14:21:03 ERROR [adm] org.postgresql.util.PSQLException: unterminated quoted string at or near "'"
+2026-07-09 14:21:03 DEBUG [adm] opinion_raw="반려합니다 'A안'은 재검토 필요" approver=park@corp.example.com contact=010-1234-5678
+2026-07-09 14:23:40 INFO  [adm] POST /admin/approve/opinion doc=2440 200 21ms
+2026-07-09 14:25:12 ERROR [adm] 500 Internal Server Error while saving opinion doc=2441
+2026-07-09 14:25:12 ERROR [adm] PSQLException: unterminated quoted string at or near "'"
+2026-07-09 14:25:12 DEBUG [adm] opinion_raw="'긴급' 승인 요청 반려" approver=kim@aaa.com
+2026-07-09 14:40:55 WARN  [adm] 5 approval-save failures in last 30m (all: quoted string)
