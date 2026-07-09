@@ -11,14 +11,23 @@
 - 상한 도달 시 "지금까지 수집한 정보로 결론 내라" 지시 후 마지막 요청 1회
 
 emit 페이로드 (daemon/frontend 와 공유된 고정 계약 — JSON dict 3종):
-- {"type": "log", "message": str}
+- {"type": "log", "message": str, "source"?: "local"|"remote"|"system"}
+    source(옵션 필드): 진행 활동의 출처 구분 — local=로컬 SLM(Ollama gemma3n) 요약,
+    remote=원격 Claude 추론, system=도구 실행·마스킹·데몬 상태. 기존 필드는 불변이며
+    source 없는 log 도 유효하다(하위호환 — frontend 는 source 유무로 뱃지만 분기).
 - {"type": "mask_diff", "raw": <앞 500자>, "masked": <앞 500자>}
 - {"type": "slm_compress", "before": int, "after": int}
+  (mask_diff/slm_compress 는 스키마 불변 — frontend 가 각각 masking/local 로 취급)
 """
 
 from .tools import TOOLS, execute_tool
 from .pii import mask
 from .slm import summarize_if_long
+
+# 로컬 SLM 요약 트리거 기준(len(raw) > limit 이면 요약 대상)을 slm.summarize_if_long 의
+# 기본 인자값에서 그대로 읽어 동기화한다. slm.py 에 별도 상수가 없고 수정 대상도 아니므로,
+# 매직넘버 중복 없이 기본값을 참조해 기준 드리프트를 막는다.
+_SLM_SUMMARIZE_LIMIT = summarize_if_long.__defaults__[0]
 
 MODEL = "claude-opus-4-8"
 MAX_ITERATIONS = 10
@@ -64,12 +73,18 @@ def run_agent(user_query: str, emit, client=None) -> str:
             from .llm_cli import ClaudeCLIClient
             client = ClaudeCLIClient()
             emit({"type": "log",
-                  "message": "ℹ️ API 키 미설정 — 로컬 Claude Code CLI 백엔드로 실행"})
+                  "message": "ℹ️ API 키 미설정 — 로컬 Claude Code CLI 백엔드로 실행",
+                  "source": "system"})
 
     messages = [{"role": "user", "content": mask(user_query)}]
     tool_calls = 0  # 누적 도구 호출 수 (종료 로그용)
 
-    for _ in range(MAX_ITERATIONS):
+    for i in range(MAX_ITERATIONS):
+        # LLM 응답 대기(CLI 백엔드 최대 180초/호출)가 화면 정지처럼 보이지 않게,
+        # 각 _create 직전에 진행 신호를 1건 남긴다 (기존 log 타입 재사용 — 스키마 불변).
+        emit({"type": "log",
+              "message": f"원격 LLM 분석 중... ({i + 1}번째 판단)",
+              "source": "remote"})
         response = _create(client, messages)
         stop = response.stop_reason
 
@@ -119,7 +134,8 @@ def run_agent(user_query: str, emit, client=None) -> str:
 def _emit_final_log(emit, stop_reason, tool_calls) -> None:
     """종료 시 마지막 stop_reason 과 누적 도구 호출 수를 log 이벤트로 남긴다 (PLAN_REVIEW §3)."""
     emit({"type": "log",
-          "message": f"에이전트 종료 (stop_reason={stop_reason}, 누적 도구 호출 {tool_calls}회)"})
+          "message": f"에이전트 종료 (stop_reason={stop_reason}, 누적 도구 호출 {tool_calls}회)",
+          "source": "system"})
 
 
 def _create(client, messages):
@@ -143,13 +159,21 @@ def _run_tools(response, emit) -> list:
     for block in response.content:
         if block.type != "tool_use":
             continue
-        emit({"type": "log", "message": f"도구 실행: {block.name} {block.input}"})
+        emit({"type": "log",
+              "message": f"도구 실행: {block.name} {block.input}",
+              "source": "system"})
         try:
             raw = execute_tool(block.name, block.input)
         except Exception as e:  # execute_tool 은 문자열 반환 설계지만 겸용 방어
             raw = f"에러: 도구 실행 중 예외 발생 ({e})."
         is_error = raw.startswith("에러:")
 
+        # 로컬 SLM 이 실제로 요약을 시도하는 순간을 표시(요약 대상일 때만). summarize_if_long
+        # 직전에 남겨야 이후 slm_compress(스키마 불변, frontend 가 local 로 취급)와 짝이 된다.
+        if len(raw) > _SLM_SUMMARIZE_LIMIT:
+            emit({"type": "log",
+                  "message": f"로컬 SLM(gemma3n) 요약 중... (원본 {len(raw)}자)",
+                  "source": "local"})
         summarized = summarize_if_long(raw)  # 요약 → 마스킹 순서 (PLAN.md 4.1)
         if len(summarized) != len(raw):
             emit({"type": "slm_compress", "before": len(raw), "after": len(summarized)})

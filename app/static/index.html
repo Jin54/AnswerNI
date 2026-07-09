@@ -3,55 +3,65 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AnswerNI — 자율 기술지원 에이전트</title>
+<title>AnswerNI — 기술지원 문의 자동 분석</title>
 <style>
-  :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-2: #1e222b;
-    --border: #2a2f3a;
-    --text: #e6e9ef;
-    --muted: #9aa4b2;
-    --accent: #2f66d0;
-    --red-bg: #3a1d22;
-    --red-fg: #ff8a9a;
-    --green-bg: #16311f;
-    --green-fg: #7ee2a8;
-  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1a1a1a;
+    background: #f5f6f8;
+    line-height: 1.7;
+    font-size: 15px;
   }
-  header {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
+  .container {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    background: #fff;
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
   }
-  header h1 { margin: 0; font-size: 18px; }
-  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
 
-  /* ① 입력 영역 */
-  #input-area { margin-bottom: 20px; }
+  /* 헤더 */
+  header { margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
+  header h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+  header .subtitle { margin: 0; color: #64748b; font-size: 14px; }
+
+  /* 섹션 공통 */
+  .section { margin: 0 0 40px; }
+  h2 {
+    font-size: 22px; font-weight: 700; color: #0f172a;
+    margin: 0 0 20px; padding-bottom: 10px;
+    border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px;
+  }
+  .section-num { color: #3b82f6; font-weight: 700; margin-right: 4px; }
+
+  /* ① 입력 카드 */
+  #input-area {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 24px; margin-bottom: 40px;
+  }
+  .field-label { display: block; font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 8px; }
   #query {
     width: 100%;
-    min-height: 84px;
+    min-height: 96px;
     resize: vertical;
     padding: 12px 14px;
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
     font-size: 14px;
+    line-height: 1.6;
     font-family: inherit;
   }
-  .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  #query:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+  .row { display: flex; gap: 12px; align-items: center; margin-top: 14px; }
   #submit {
-    padding: 10px 20px;
-    background: var(--accent);
+    padding: 10px 22px;
+    min-height: 44px;
+    background: #2563eb;         /* 흰 텍스트 대비 5.1:1 (WCAG AA ≥4.5:1) — 참고 서식 #3b82f6 은 3.7:1 로 미달 */
     color: #fff;
     border: 0;
     border-radius: 8px;
@@ -59,161 +69,251 @@
     font-weight: 600;
     cursor: pointer;
   }
+  #submit:hover:not(:disabled) { background: #1d4ed8; }
   #submit:disabled { opacity: .5; cursor: default; }
-  #status { color: var(--muted); font-size: 13px; }
-
-  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 860px) {
-    .panels { grid-template-columns: 1fr; }
-    #submit { min-height: 44px; }
-  }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .panel > h2 {
-    margin: 0;
-    padding: 12px 16px;
-    font-size: 14px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel-2);
-  }
-  .panel-body { padding: 14px 16px; overflow-y: auto; max-height: 62vh; }
+  #status { color: #64748b; font-size: 13px; font-variant-numeric: tabular-nums; }
 
   /* ② 진행 로그 */
-  .log-item { margin-bottom: 12px; }
-  .log-line {
-    display: flex;
-    gap: 8px;
-    font-size: 13px;
-  }
-  .log-line .ts { color: var(--muted); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
-  .log-line .msg { white-space: pre-wrap; word-break: break-word; }
+  .log-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+  .log-body { padding: 18px 20px; overflow-y: auto; max-height: 460px; }
+  .log-item { margin-bottom: 14px; }
+  .log-item:last-child { margin-bottom: 0; }
+  .log-line { display: flex; gap: 10px; font-size: 14px; }
+  .log-line .ts { color: #94a3b8; flex: 0 0 auto; font-variant-numeric: tabular-nums; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px; }
+  .log-line .msg { color: #334155; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 
   .badge {
     display: inline-block;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--green-fg);
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: #dcfce7;
+    color: #166534;
     font-size: 12px;
     font-weight: 600;
   }
+  /* 소스별 뱃지 색 — 로컬 SLM(초록)/원격 LLM(파랑)/시스템(회색) 시각 구분 */
+  .badge-local  { background: #dcfce7; color: #166534; }
+  .badge-remote { background: #dbeafe; color: #1e40af; }
+  .badge-system { background: #f1f5f9; color: #475569; }
+  /* 로그 타임라인 소스 뱃지 — ts 와 msg 사이, 줄바꿈 시 밀리지 않게 고정 */
+  .badge-source { flex: 0 0 auto; align-self: flex-start; }
+
+  /* 진행 로그 소스 범례 — 하이브리드 아키텍처(로컬 전처리 + 원격 추론)를 한눈에 */
+  .log-legend {
+    margin: 0 0 18px;
+    color: #64748b;
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  .log-legend .badge { flex: 0 0 auto; }
 
   .diff {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 10px;
+    margin-top: 8px;
   }
   @media (max-width: 620px) { .diff { grid-template-columns: 1fr; } }
   .diff-col {
-    border: 1px solid var(--border);
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 8px 10px;
-    background: var(--panel-2);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    color: #1e293b;
     white-space: pre-wrap;
     word-break: break-word;
+    overflow-wrap: anywhere;
     overflow-x: auto;
   }
   .diff-col .diff-label {
-    font-family: inherit;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
     font-size: 11px;
-    color: var(--muted);
+    color: #64748b;
     margin-bottom: 6px;
     font-weight: 600;
+    letter-spacing: 0.3px;
   }
+  /* diff 색상은 심사 핵심 장면 — 원본(빨강)/치환(초록) 대비를 명확히 */
   .pii-raw {
-    background: var(--red-bg);
-    color: var(--red-fg);
+    background: #fee2e2;
+    color: #991b1b;
     border-radius: 4px;
     padding: 0 3px;
+    font-weight: 600;
   }
   .pii-masked {
-    background: var(--green-bg);
-    color: var(--green-fg);
+    background: #dcfce7;
+    color: #166534;
     border-radius: 4px;
     padding: 0 3px;
+    font-weight: 600;
   }
   .log-error {
-    color: var(--red-fg);
-    background: var(--red-bg);
-    border: 1px solid var(--red-fg);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 13px;
+    color: #991b1b;
+    background: #fef2f2;
+    border-left: 4px solid #dc2626;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 14px;
   }
-  .empty { color: var(--muted); font-size: 13px; }
+  .empty { color: #94a3b8; font-size: 14px; }
 
-  /* ③ 보고서 */
+  /* 진행 로그 하단 pulsing dot 스피너 (QC P2) */
+  .log-spinner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b; font-size: 13px;
+  }
+  .log-spinner[hidden] { display: none; }
+  .log-spinner .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #2563eb; flex: 0 0 auto;
+    animation: dot-pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes dot-pulse {
+    0%, 100% { opacity: .35; transform: scale(.8); }
+    50%      { opacity: 1;   transform: scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .log-spinner .dot { animation: none; }
+  }
+
+  /* ③ 최종 보고서 — 하단 전체폭 대형 뷰 */
+  #report-section h2 { border-bottom-width: 3px; display: flex; align-items: center; gap: 8px; }
+
+  /* 보고서 복사 버튼 — PCFILTER 톤(조용한 보더 버튼, hover 시 강조) */
+  .copy-btn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #475569;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    cursor: pointer;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+  .copy-btn:hover { background: #f1f5f9; border-color: #3b82f6; color: #1e40af; }
+  .copy-btn[hidden] { display: none; }
+  .copy-btn.copied { background: #f0fdf4; border-color: #16a34a; color: #166534; }
+  .copy-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  .report-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 32px 36px;
+    min-height: 60vh;
+  }
   #report h1, #report h2, #report h3,
   #report p, #report li, #report code { overflow-wrap: anywhere; }
-  #report h1, #report h2, #report h3 { line-height: 1.3; }
-  #report h1 { font-size: 20px; margin: 0 0 12px; }
-  #report h2 { font-size: 17px; margin: 18px 0 8px; }
-  #report h3 { font-size: 15px; margin: 14px 0 6px; }
-  #report p { margin: 8px 0; }
-  #report ul, #report ol { margin: 8px 0; padding-left: 22px; }
-  #report li { margin: 3px 0; }
+  #report h1, #report h2, #report h3 { line-height: 1.35; }
+  #report h1 {
+    font-size: 24px; font-weight: 700; color: #0f172a;
+    margin: 0 0 16px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;
+    letter-spacing: -0.3px;
+  }
+  #report h2 {
+    font-size: 20px; font-weight: 700; color: #0f172a;
+    margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 2px solid #3b82f6;
+  }
+  #report h3 { font-size: 16px; font-weight: 600; color: #1e293b; margin: 24px 0 10px; }
+  #report p { margin: 10px 0; color: #1a1a1a; }
+  #report ul, #report ol { margin: 10px 0; padding-left: 24px; }
+  #report li { margin: 5px 0; }
   #report code {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
+    background: #f1f5f9;
     border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding: 2px 6px;
+    font-size: 13px;
+    color: #0f172a;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', ui-monospace, Menlo, monospace;
   }
   #report pre {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
     overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 14px 0;
   }
-  #report pre code { background: none; border: 0; padding: 0; }
-  #report strong { color: #fff; }
+  #report pre code { background: none; border: 0; padding: 0; color: inherit; }
+  #report strong { color: #0f172a; font-weight: 700; }
+
+  @media (max-width: 860px) {
+    .container { padding: 28px 18px 60px; }
+    .report-card { padding: 24px 20px; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>AnswerNI</h1>
-  <p>문의 1건 입력 → 자율 tool-use 루프 → PII 마스킹 → 최종 기술지원 보고서</p>
-</header>
+<div class="container">
+  <header>
+    <h1>AnswerNI — 기술지원 문의 자동 분석</h1>
+    <p class="subtitle">자율 tool-use 루프 · PII 마스킹 · SLM 압축 · 최종 기술지원 보고서 &nbsp;|&nbsp; 로컬 데몬 + 원격 LLM 하이브리드</p>
+  </header>
 
-<div class="wrap">
   <!-- ① 문의 입력 -->
   <section id="input-area">
+    <label class="field-label" for="query">문의 내용</label>
     <textarea id="query" placeholder="예: 고객사 A 로그인 실패 — 어제 오전부터 특정 계정(kim@aaa.com)이 로그인되지 않는다는 문의가 들어왔습니다. 원인 분석과 조치 방법을 알려주세요."></textarea>
     <div class="row">
       <button id="submit">분석 시작</button>
-      <span id="status"></span>
+      <span id="status" role="status"></span>
     </div>
   </section>
 
-  <div class="panels">
-    <!-- ② 진행 로그 -->
-    <section class="panel">
-      <h2>진행 로그</h2>
-      <div class="panel-body" id="log">
+  <!-- ② 진행 로그 -->
+  <section class="section">
+    <h2><span class="section-num">1.</span> 진행 로그</h2>
+    <p class="log-legend">
+      <span class="badge badge-local">🖥️ 로컬 SLM</span> Ollama · gemma3n — 전처리·요약
+      <span class="badge badge-remote">☁️ 원격 LLM</span> Claude — 분석·판단
+    </p>
+    <div class="log-card">
+      <div class="log-body" id="log" aria-live="polite">
         <div class="empty">문의를 제출하면 에이전트의 진행 상황이 여기에 표시됩니다.</div>
       </div>
-    </section>
+      <div class="log-spinner" id="log-spinner" hidden>
+        <span class="dot"></span><span>분석 진행 중...</span>
+      </div>
+    </div>
+  </section>
 
-    <!-- ③ 최종 보고서 -->
-    <section class="panel">
-      <h2>최종 보고서</h2>
-      <div class="panel-body" id="report">
+  <!-- ③ 최종 보고서 — 하단 전체폭 대형 섹션 -->
+  <section class="section" id="report-section">
+    <h2><span class="section-num">2.</span> 최종 보고서
+      <button id="report-copy-btn" class="copy-btn" type="button" hidden
+              aria-label="보고서 마크다운 복사" title="마크다운 원문 복사">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span class="copy-btn-label">복사</span>
+      </button>
+    </h2>
+    <div class="report-card">
+      <div id="report">
         <div class="empty">분석이 끝나면 최종 보고서가 여기에 렌더링됩니다.</div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -268,6 +368,18 @@ function highlightTokens(escaped) {
   return escaped.replace(/\[[A-Z]+_\d+\]/g, function (match) {
     return '<span class="pii-masked">' + match + '</span>';
   });
+}
+
+// log 이벤트의 옵션 필드 source("local"|"remote"|"system")를 소스 뱃지로 매핑.
+// 로컬 SLM(전처리·요약) vs 원격 LLM(추론·판단) vs 시스템/도구를 시각 구분한다.
+// source 미지정(구 서버/하위호환)이면 null → 뱃지 없이 기존처럼 렌더.
+function sourceBadgeInfo(source) {
+  switch (source) {
+    case 'local':  return { className: 'badge-local',  text: '🖥️ 로컬 SLM' };
+    case 'remote': return { className: 'badge-remote', text: '☁️ 원격 LLM' };
+    case 'system': return { className: 'badge-system', text: '시스템' };
+    default:       return null; // 하위호환 — source 없으면 무뱃지
+  }
 }
 
 // 요청/네트워크 오류를 고정 한국어 문구로 매핑 (영어 예외 문구 노출 방지).
@@ -387,7 +499,17 @@ function clearEmpty(el) {
   if (e) { e.remove(); }
 }
 
-function appendLog(logEl, message, tsText) {
+// source 뱃지 element 생성(없거나 미지원 값이면 null). className 은 신뢰된 고정 문자열만.
+function makeSourceBadge(source) {
+  var info = sourceBadgeInfo(source);
+  if (!info) { return null; }
+  var badge = document.createElement('span');
+  badge.className = 'badge badge-source ' + info.className;
+  badge.textContent = info.text;       // textContent → XSS 안전
+  return badge;
+}
+
+function appendLog(logEl, message, tsText, source) {
   clearEmpty(logEl);
   var item = document.createElement('div');
   item.className = 'log-item';
@@ -396,10 +518,12 @@ function appendLog(logEl, message, tsText) {
   var ts = document.createElement('span');
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
+  line.appendChild(ts);
+  var badge = makeSourceBadge(source); // source 없으면 null → 무뱃지(하위호환)
+  if (badge) { line.appendChild(badge); }
   var msg = document.createElement('span');
   msg.className = 'msg';
   msg.textContent = message;           // textContent → XSS 안전
-  line.appendChild(ts);
   line.appendChild(msg);
   item.appendChild(line);
   logEl.appendChild(item);
@@ -416,10 +540,15 @@ function appendMaskDiff(logEl, raw, masked, tsText) {
   var ts = document.createElement('span');
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
+  line.appendChild(ts);
+  // PII 마스킹은 로컬 데몬 처리 → 로컬 뱃지로 "전송 전 로컬 마스킹" 셀링포인트 강조.
+  var badge = document.createElement('span');
+  badge.className = 'badge badge-local badge-source';
+  badge.textContent = '🖥️ 로컬 마스킹';
+  line.appendChild(badge);
   var msg = document.createElement('span');
   msg.className = 'msg';
   msg.textContent = 'PII 마스킹 적용';
-  line.appendChild(ts);
   line.appendChild(msg);
   item.appendChild(line);
 
@@ -463,8 +592,8 @@ function appendCompress(logEl, before, after, tsText) {
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
   var badge = document.createElement('span');
-  badge.className = 'badge';
-  badge.textContent = 'SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
+  badge.className = 'badge badge-local';   // slm_compress 는 정의상 로컬 SLM
+  badge.textContent = '🖥️ 로컬 SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
                       Number(after).toLocaleString() + '자';
   line.appendChild(ts);
   line.appendChild(badge);
@@ -484,7 +613,38 @@ function appendError(logEl, message) {
 
 function renderReport(reportEl, markdown) {
   reportEl.innerHTML = renderMarkdown(markdown);  // renderMarkdown 내부에서 전량 이스케이프
-  reportEl.scrollTop = 0;
+  // 보고서 도착 시 하단 대형 섹션으로 부드럽게 스크롤(브라우저 전용 — Node 격리 테스트에는 미정의).
+  if (typeof reportEl.scrollIntoView === 'function') {
+    reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// 텍스트를 클립보드에 복사. navigator.clipboard 우선, 실패/미지원 시 textarea+execCommand 폴백.
+// 항상 Promise 반환(성공 resolve, 실패 reject)해 호출부가 피드백을 일관되게 처리.
+function fallbackCopy(text) {
+  return new Promise(function (resolve, reject) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { resolve(); } else { reject(new Error('execCommand copy 실패')); }
+    } catch (e) { reject(e); }
+  });
+}
+
+function copyToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(function () {
+      return fallbackCopy(text); // 권한 거부/보안 컨텍스트 아님 등 → 폴백
+    });
+  }
+  return fallbackCopy(text);
 }
 
 // 이벤트 1건을 받아 알맞은 영역에 렌더. refs = {log, report}.
@@ -493,9 +653,12 @@ function renderReport(reportEl, markdown) {
 function handleEvent(data, refs, tsText) {
   switch (data.type) {
     case 'log':
-      appendLog(refs.log, data.message, tsText);
+      appendLog(refs.log, data.message, tsText, data.source);
       return false;
     case 'mask_diff':
+      // 치환이 전혀 없으면(raw === masked, PII 미발견) 렌더 생략 — 로그를 깔끔하게.
+      // 인덱스/타임스탬프는 onmessage 에서 이벤트 수신 시점에 이미 기록되므로 정합 유지.
+      if (data.raw === data.masked) { return false; }
       appendMaskDiff(refs.log, data.raw, data.masked, tsText);
       return false;
     case 'slm_compress':
@@ -526,14 +689,75 @@ function initApp() {
   var statusEl = document.getElementById('status');
   var logEl = document.getElementById('log');
   var reportEl = document.getElementById('report');
+  var spinnerEl = document.getElementById('log-spinner');
+  var copyBtnEl = document.getElementById('report-copy-btn');
+  var copyLabelEl = copyBtnEl ? copyBtnEl.querySelector('.copy-btn-label') : null;
   var refs = { log: logEl, report: reportEl };
   var source = null;
+
+  // 보고서 복사 상태 — 렌더 전 마크다운 원문을 보관(복사 대상). replay 시 report 이벤트가
+  // 다시 오면 자연 복원되므로, 리셋(start/onopen) 때는 숨김만 하면 된다.
+  var reportMarkdown = null;
+  var copyResetTimer = null;
+
+  function hideReportCopy() {
+    reportMarkdown = null;
+    if (copyResetTimer) { clearTimeout(copyResetTimer); copyResetTimer = null; }
+    if (copyBtnEl) { copyBtnEl.hidden = true; copyBtnEl.classList.remove('copied'); }
+    if (copyLabelEl) { copyLabelEl.textContent = '복사'; }
+  }
+  function showReportCopy(markdown) {
+    reportMarkdown = markdown;
+    if (copyBtnEl) { copyBtnEl.hidden = false; }
+  }
+  function flashCopied() {
+    if (copyBtnEl) { copyBtnEl.classList.add('copied'); }
+    if (copyLabelEl) { copyLabelEl.textContent = '복사됨 ✓'; }
+    if (copyResetTimer) { clearTimeout(copyResetTimer); }
+    copyResetTimer = setTimeout(function () {
+      if (copyBtnEl) { copyBtnEl.classList.remove('copied'); }
+      if (copyLabelEl) { copyLabelEl.textContent = '복사'; }
+      copyResetTimer = null;
+    }, 2000);
+  }
+  if (copyBtnEl) {
+    copyBtnEl.addEventListener('click', function () {
+      if (reportMarkdown == null) { return; }
+      copyToClipboard(reportMarkdown).then(flashCopied).catch(function () { /* 복사 실패 — 조용히 무시 */ });
+    });
+  }
   // 연속 onerror 상한(브라우저 자동 재연결 무한 반복 방지). onopen(재연결 성공) 시 리셋.
   var MAX_RETRIES = 5;
+
+  // LLM 응답 대기 구간 시각 신호(QC P2): #status 경과 초 카운터 + 진행 로그 하단 pulsing dot.
+  var elapsedTimer = null;   // 1초 간격 카운터 인터벌
+  var elapsedStart = 0;      // 질의 시작 시각(경과 기준) — 새 질의에서만 리셋
 
   function setBusy(busy, text) {
     submitEl.disabled = busy;
     statusEl.textContent = text || '';
+  }
+
+  function showSpinner() { if (spinnerEl) { spinnerEl.hidden = false; } }
+  function hideSpinner() { if (spinnerEl) { spinnerEl.hidden = true; } }
+
+  function elapsedText() {
+    var secs = Math.floor((Date.now() - elapsedStart) / 1000);
+    return '분석 중... ' + secs + '초 경과';
+  }
+  function startElapsed() {           // 분석 중 — 경과 카운터 구동 + 스피너 노출(재연결 성공 시 재개)
+    if (!elapsedStart) { elapsedStart = Date.now(); }
+    showSpinner();
+    statusEl.textContent = elapsedText();
+    if (elapsedTimer) { return; }
+    elapsedTimer = setInterval(function () { statusEl.textContent = elapsedText(); }, 1000);
+  }
+  function pauseElapsed() {           // 재연결 안내 문구 노출을 위해 카운터만 멈춤(스피너/시작시각 유지)
+    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+  }
+  function stopElapsed() {            // 종료(완료/오류/실패) — 카운터 정지 + 스피너 제거
+    pauseElapsed();
+    hideSpinner();
   }
 
   function stopStream() {
@@ -545,8 +769,12 @@ function initApp() {
     if (!query) { statusEl.textContent = '문의 내용을 입력하세요.'; return; }
 
     stopStream();
+    stopElapsed();                 // 이전 질의의 카운터/스피너 정리
+    elapsedStart = 0;              // 새 질의 → 경과 카운터 리셋
     logEl.innerHTML = '';
     reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
+    hideReportCopy();              // 새 질의 → 이전 보고서 복사 버튼/원문 숨김·초기화
+    showSpinner();
     setBusy(true, '요청 전송 중...');
 
     fetch('/ask', {
@@ -565,7 +793,8 @@ function initApp() {
         var maxSeen = 0;          // 전 연결 통틀어 관측한 최대 이벤트 수(진짜 진행 판정 기준)
         var connEventCount = 0;   // 현재 연결에서 수신한 이벤트 수(onopen 시 리셋)
         var eventTimestamps = []; // 이벤트 인덱스 → 최초 관측 ts(replay 재도장 방지, 질의 수명 유지)
-        setBusy(true, '분석 중... (task ' + taskId + ')');
+        submitEl.disabled = true; // 분석 진행 중 — 제출 잠금(경과 카운터가 status 를 구동)
+        startElapsed();
         source = new EventSource('/events/' + encodeURIComponent(taskId));
         source.onopen = function () {
           // 서버는 재구독 시 history 를 idx=0 부터 전량 replay 하므로, 연결이 열릴 때마다
@@ -576,7 +805,9 @@ function initApp() {
           connEventCount = 0;
           logEl.innerHTML = '';
           reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
-          setBusy(true, '분석 중... (task ' + taskId + ')');
+          hideReportCopy();        // 패널 리셋과 함께 복사 버튼도 숨김 — report replay 로 자연 복원
+          submitEl.disabled = true;
+          startElapsed();          // (재)연결 성공 → 경과 카운터 재개(재연결 안내 문구 대체)
         };
         source.onmessage = function (ev) {
           var parsed;
@@ -595,9 +826,14 @@ function initApp() {
           var tsText = eventTimestamps[eventIdx];
           if (tsText === undefined) { tsText = nowTs(); eventTimestamps[eventIdx] = tsText; }
           var finished = handleEvent(parsed, refs, tsText);
+          if (parsed.type === 'report') {
+            showReportCopy(parsed.markdown);  // 렌더 전 원문 보관 + 복사 버튼 노출
+          }
           if (finished) {
             streamDone = true;   // done/error 는 종료 이벤트 → 이후 onerror 재연결 금지
+            if (parsed.type === 'error') { hideReportCopy(); }
             stopStream();
+            stopElapsed();       // 종료 → 경과 카운터 정지 + 스피너 제거
             setBusy(false, parsed.type === 'error' ? '오류로 종료됨' : '완료');
           }
         };
@@ -611,17 +847,22 @@ function initApp() {
           if (errorCount > MAX_RETRIES) {
             // 반복 절단 → 자동 재연결 포기하고 실패 안내(F5 error 처리 재사용).
             stopStream();
+            stopElapsed();
             appendError(logEl, '서버 연결이 반복적으로 끊겨 분석을 완료하지 못했습니다.');
             reportEl.innerHTML =
               '<div class="empty">보고서를 생성하지 못했습니다 — 진행 로그를 확인해주세요.</div>';
+            hideReportCopy();
             setBusy(false, '연결 실패');
             return;
           }
           // done 미수신 → close 하지 않고 브라우저 자동 재연결에 맡긴다(replay 로 복구).
+          // 카운터만 멈춰 재시도 문구를 노출하고, 스피너는 유지(다음 onopen 이 카운터 재개).
+          pauseElapsed();
           setBusy(true, '연결 재시도 중... (' + errorCount + '/' + MAX_RETRIES + ')');
         };
       })
       .catch(function (err) {
+        stopElapsed();
         appendError(logEl, networkErrorMessage(err));
         setBusy(false, '요청 실패');
       });
@@ -640,7 +881,7 @@ if (typeof document !== 'undefined') {
 
 // Node 격리 테스트용 export (브라우저에는 영향 없음)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage };
+  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard };
 }
 </script>
 </body>
