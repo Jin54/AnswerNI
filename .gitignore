@@ -10,3 +10,5 @@ venv/
 
 # 사내 참고 문서 (push 금지)
 PCFILTER_*.html
+# 디자인 원본 (22MB standalone 번들 — 슬림 실연동판만 커밋)
+AnswerNI Float.standalone.html

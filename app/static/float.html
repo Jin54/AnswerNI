@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnswerNI — 두 LLM이 스스로 대화하며 답을 찾습니다</title>
+<!--
+  AnswerNI Float 랜딩 + 라이브 데모.
+  원본: "AnswerNI Float.standalone.html" (디자인 툴 내보내기 번들)에서 템플릿·에셋을
+  추출해 재구성. React/번들러 런타임 제거(원본 로직은 stage 스케일링뿐이라 vanilla 로 충분),
+  폰트는 실사용 굵기(woff2)만 동봉 — 런타임 외부 네트워크 의존 0건(오프라인 데모 안전).
+
+  히어로 "floating stage"를 실 백엔드에 연결:
+    POST /ask {"query"} → GET /events/{task_id} SSE
+    log(source=local)   → 왼쪽 PC(내부 LLM · 로컬) 말풍선
+    log(source=remote)  → 오른쪽 PC(외부 LLM · 원격) 말풍선
+    mask_diff           → 왼쪽 PC 마스킹 diff 말풍선 (원본 PII 빨강 / 토큰 초록)
+    slm_compress        → 왼쪽 PC 압축 말풍선
+    jira_results        → 중앙 보고서 "01 유사 대응 이력" 카드 (key 누적·중복 제거)
+    report              → 중앙 보고서 본문 (마크다운, 전량 이스케이프)
+    error / done        → 상태 뱃지·상태줄
+  초기 stage 는 "예시 미리보기"(정적) — 첫 실행 시 전부 비우고 라이브 데이터로 교체.
+  모든 서버 텍스트는 textContent 또는 escapeHtml 경유(XSS 방어, index.html 과 동일 원칙).
+-->
+<style>
+/*
+Copyright (c) 2021 Kil Hyung-jin, with Reserved Font Name Pretendard.
+https://github.com/orioncactus/pretendard
+Licensed under the SIL Open Font License, Version 1.1.
+실사용 굵기만 동봉: 400(본문)·800(헤딩). 500→400, 600/700/900→800 으로 근접 매칭.
+*/
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400;
+  font-display: swap;
+  src: local('Pretendard Regular'), local('Pretendard'), url("/static/float/fonts/pretendard-400.woff2") format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 800;
+  font-display: swap;
+  src: local('Pretendard ExtraBold'), url("/static/float/fonts/pretendard-800.woff2") format('woff2');
+}
+/* JetBrains Mono (OFL) — latin 서브셋만(라벨은 ASCII·중점). 400~700 동일 파일 매핑. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/static/float/fonts/jetbrains-mono-latin.woff2") format('woff2');
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#FFFFFF}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer}
+input{font:inherit}
+::selection{background:#FFD9C2;color:#141210}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pcL{0%,100%{transform:perspective(2000px) rotateY(20deg) rotateX(4deg) translateY(0)}50%{transform:perspective(2000px) rotateY(20deg) rotateX(4deg) translateY(-14px)}}
+@keyframes pcR{0%,100%{transform:perspective(2000px) rotateY(-20deg) rotateX(4deg) translateY(0)}50%{transform:perspective(2000px) rotateY(-20deg) rotateX(4deg) translateY(-18px)}}
+@keyframes midf{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+
+/* ── 라이브 데모 전용 스타일 ───────────────────────────────────────────── */
+.pc-body{padding:16px; display:flex; flex-direction:column; gap:10px; height:296px; overflow-y:auto; scrollbar-width:thin;}
+.bubble{background:var(--soft); border:1px solid var(--line); border-radius:12px 12px 12px 4px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:92%; word-break:break-word; flex-shrink:0;}
+.bubble-remote{background:var(--ink); color:#EDE7DE; border:0; border-radius:12px 12px 4px 12px; align-self:flex-end; text-align:left;}
+.bubble-label{font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em; color:var(--accent-deep); font-weight:700; margin-bottom:5px;}
+.diff-block{font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.6; background:#fff; border:1px solid var(--line); border-radius:7px; padding:7px 9px; margin-top:6px; max-height:88px; overflow-y:auto; word-break:break-all; white-space:pre-wrap;}
+.pii-raw{background:#FEE2E2; color:#B91C1C; border-radius:3px; padding:0 2px; font-weight:700;}
+.pii-masked{background:#DCFCE7; color:#166534; border-radius:3px; padding:0 2px; font-weight:700;}
+.pc-empty{color:var(--muted); font-size:12.5px; line-height:1.6; margin:auto; text-align:center;}
+.live-dots span{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;}
+.live-dots.on span{animation:blink 1.1s ease-in-out infinite;}
+.live-dots.on span:nth-child(2){animation-delay:.18s}
+.live-dots.on span:nth-child(3){animation-delay:.36s}
+
+#query{flex:1; min-width:0; border:1px solid var(--line); border-radius:12px; padding:13px 16px; font-size:15px; background:#fff; color:var(--ink); outline:none; font-family:inherit;}
+#query:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(234,91,26,0.12);}
+#runBtn{background:var(--accent); color:#fff; border:0; border-radius:12px; padding:13px 22px; font-size:15px; font-weight:800; white-space:nowrap; transition:background .15s;}
+#runBtn:hover{background:var(--accent-deep);}
+#runBtn:disabled{background:#D9D4CE; cursor:not-allowed;}
+
+.report-body{padding:22px 30px 26px; display:flex; flex-direction:column; gap:20px; font-family:'Pretendard',sans-serif; color:#1a1a1a; max-height:470px; overflow-y:auto; scrollbar-width:thin;}
+.jira-card{border:1px solid #E7EAEE; border-radius:8px; padding:11px 13px;}
+.jira-card .row1{display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;}
+.jira-card .key{font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#3b82f6;}
+.jira-card .res{background:#dcfce7; color:#166534; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.jira-card .sum{font-size:13px; font-weight:600; color:#0f172a; line-height:1.35;}
+.jira-card .meta{display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding-top:9px; border-top:1px solid #F1F3F5; font-family:'JetBrains Mono',monospace; font-size:10px; color:#64748b;}
+.section-head{display:flex; align-items:baseline; gap:8px; margin-bottom:11px;}
+.section-no{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--accent-deep);}
+.section-title{font-size:14px; font-weight:800; color:#0f172a;}
+.section-sub{font-family:'JetBrains Mono',monospace; font-size:10px; color:#94a3b8;}
+.badge-status{font-size:9px; font-weight:700; padding:2px 7px; border-radius:4px; background:#dcfce7; color:#166534;}
+.badge-status.busy{background:#FEF3C7; color:#92400E;}
+.badge-status.error{background:#FEE2E2; color:#B91C1C;}
+
+/* 보고서 마크다운 */
+#reportMd{font-size:13px; line-height:1.7; color:#1e293b;}
+#reportMd h1,#reportMd h2,#reportMd h3{letter-spacing:-0.02em; color:#0f172a; margin:14px 0 7px; line-height:1.3;}
+#reportMd h1{font-size:17px} #reportMd h2{font-size:15px} #reportMd h3{font-size:13.5px}
+#reportMd h1:first-child,#reportMd h2:first-child,#reportMd h3:first-child{margin-top:0}
+#reportMd p{margin:7px 0}
+#reportMd ul,#reportMd ol{margin:7px 0; padding-left:20px}
+#reportMd li{margin:3px 0}
+#reportMd code{font-family:'JetBrains Mono',monospace; font-size:11px; background:#F1F5F9; border-radius:4px; padding:1px 5px;}
+#reportMd pre{background:#17120E; border-radius:8px; padding:12px 14px; overflow-x:auto; margin:9px 0;}
+#reportMd pre code{background:none; color:#CFC7BD; padding:0; font-size:11px; line-height:1.75;}
+#reportMd strong{font-weight:800; color:#0f172a}
+.report-error{background:#FEF2F2; border-left:3px solid #EF4444; border-radius:0 8px 8px 0; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#991B1B;}
+.report-wait{color:#94a3b8; font-size:12.5px; display:flex; align-items:center; gap:8px;}
+
+@media (max-width:760px){
+  #askForm{flex-direction:column;}
+  #runBtn{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div id="root" style="--accent:#EA5B1A; --accent-deep:#CC4A10; --tint:#FFF1E8; --ink:#141210; --muted:#6B6560; --line:#EBE8E3; --soft:#F7F6F3; font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif; color:#141210; background:#FFFFFF; overflow-x:hidden;">
+
+  <!-- NAV -->
+  <header style="position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.82); backdrop-filter:blur(12px); border-bottom:1px solid var(--line);">
+    <nav style="max-width:1200px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between;">
+      <a href="#top" style="display:flex; align-items:center; gap:11px; font-weight:800; font-size:19px; letter-spacing:-0.02em;">
+        <img src="/static/float/logo.png" alt="AnswerNI" style="height:32px; width:auto; display:block; border-radius:7px;">
+        <span>Answer<span style="color:var(--accent);">NI</span></span>
+      </a>
+      <div style="display:flex; align-items:center; gap:18px; font-size:15px; color:var(--muted); font-weight:500;">
+        <a href="/" style="font-size:14px;">콘솔 버전 UI</a>
+        <a href="#demo" style="display:inline-flex; align-items:center; gap:7px; background:var(--ink); color:#fff; padding:10px 18px; border-radius:10px; font-weight:600;">라이브 데모 <span style="font-size:13px;">→</span></a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section id="top" style="position:relative; max-width:1200px; margin:0 auto; padding:70px 32px 20px; text-align:center;">
+    <h1 style="font-size:clamp(38px,6vw,74px); line-height:1.08; letter-spacing:-0.035em; font-weight:800; max-width:900px; margin:0 auto 22px; animation:rise .6s ease .05s both;">
+      두 개의 LLM이 사람 없이<br><span style="color:var(--accent);">스스로 대화하며</span> 답을 찾습니다
+    </h1>
+    <p style="font-size:19px; line-height:1.65; color:var(--muted); max-width:560px; margin:0 auto 34px; animation:rise .6s ease .12s both;">
+      문의 한 건이 들어오면 로컬 LLM과 원격 LLM이 서로 주고받으며 <br>내용을 읽고, 사례를 찾고, 원인을 진단해 보고서로 돌려줍니다.
+    </p>
+
+    <!-- LIVE DEMO INPUT -->
+    <div id="demo" style="animation:rise .6s ease .18s both; scroll-margin-top:90px;">
+      <form id="askForm" style="display:flex; gap:10px; width:100%; max-width:680px; margin:0 auto;">
+        <input id="query" type="text" autocomplete="off"
+               placeholder="예: 고객사 A 로그인 실패 — kim@aaa.com 계정이 로그인되지 않습니다. 원인 분석해주세요.">
+        <button id="runBtn" type="submit">분석 실행</button>
+      </form>
+      <div id="statusText" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-top:12px; min-height:17px;">문의를 입력하면 아래 화면이 실시간 분석으로 전환됩니다 · 아래는 예시 미리보기</div>
+    </div>
+
+    <!-- FLOATING STAGE -->
+    <div id="stage" style="position:relative; height:692px; margin-top:36px;">
+     <div id="scene" style="position:absolute; left:50%; top:0; width:1160px; height:692px; transform:translateX(-50%); transform-origin:center top;">
+      <!-- ground shadow -->
+      <div style="position:absolute; left:48%; bottom:34px; transform:translateX(-50%); width:840px; height:120px; background:radial-gradient(ellipse at center, rgba(20,18,16,0.20), rgba(20,18,16,0) 70%); filter:blur(4px); pointer-events:none; z-index:0;"></div>
+      <!-- soft glow -->
+      <div style="position:absolute; left:46%; top:46%; transform:translate(-50%,-50%); width:720px; height:420px; background:radial-gradient(ellipse at center, rgba(234,91,26,0.13), rgba(234,91,26,0) 70%); pointer-events:none; z-index:0;"></div>
+
+      <!-- LEFT PC = 내부 LLM · 로컬 -->
+      <div style="position:absolute; left:-30px; top:72px; width:440px; z-index:1; transform-origin:center; animation:pcL 8.5s ease-in-out infinite; background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:-46px 52px 104px -44px rgba(20,18,16,0.5); overflow:hidden; text-align:left;">
+        <div style="display:flex; align-items:center; gap:7px; padding:11px 15px; border-bottom:1px solid var(--line); background:#FBFAF8;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#E7C7B7;"></span><span style="width:10px;height:10px;border-radius:50%;background:#EADFC4;"></span><span style="width:10px;height:10px;border-radius:50%;background:#D3E0CE;"></span>
+          <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);">내부 LLM · 로컬</span>
+        </div>
+        <div id="localBody" class="pc-body">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--muted); font-weight:700;">요약 · 마스킹 <span style="opacity:.6">(예시)</span></div>
+          <div class="bubble">로그 214줄 → 오류 12줄 추출</div>
+          <div class="bubble">개인정보 3건 마스킹 완료<br><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#B5443C;">SSL certificate expired</span></div>
+          <div class="bubble">SUP-123 매칭 · 요약 전달 <span style="color:#1F8A5B;">✓</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); padding:0 16px 13px;"><span id="localDots" class="live-dots" style="display:flex; gap:3px;"><span></span><span style="opacity:0.5"></span><span style="opacity:0.25"></span></span> <span id="localStatus">대기 중</span></div>
+      </div>
+
+      <!-- RIGHT PC = 외부 LLM · 원격 -->
+      <div style="position:absolute; right:-30px; top:72px; width:440px; z-index:1; transform-origin:center; animation:pcR 9s ease-in-out .2s infinite; background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:46px 52px 104px -44px rgba(20,18,16,0.5); overflow:hidden; text-align:left;">
+        <div style="display:flex; align-items:center; gap:7px; padding:11px 15px; border-bottom:1px solid var(--line); background:#FBFAF8;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#E7C7B7;"></span><span style="width:10px;height:10px;border-radius:50%;background:#EADFC4;"></span><span style="width:10px;height:10px;border-radius:50%;background:#D3E0CE;"></span>
+          <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);">외부 LLM · 원격</span>
+        </div>
+        <div id="remoteBody" class="pc-body" style="align-items:flex-end;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--accent-deep); font-weight:700;">추론 · 지시 <span style="opacity:.6">(예시)</span></div>
+          <div class="bubble bubble-remote">인증 서버 계열 문제로 의심됩니다.</div>
+          <div class="bubble bubble-remote">auth-server.log를 요약해 주세요. <span style="color:var(--accent);">↗</span></div>
+          <div class="bubble bubble-remote">Jira에서 유사 사례를 검색해 주세요. <span style="color:var(--accent);">↗</span></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:flex-end; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); padding:0 16px 13px;"><span id="remoteDots" class="live-dots" style="display:flex; gap:3px;"><span></span><span style="opacity:0.5"></span><span style="opacity:0.25"></span></span> <span id="remoteStatus">대기 중</span></div>
+      </div>
+
+      <!-- TOP arc: 내부(왼쪽) → 외부(오른쪽) -->
+      <div style="position:absolute; left:200px; top:-44px; width:760px; height:92px; z-index:2; pointer-events:none; overflow:hidden;">
+        <div style="width:727px; height:309px; border:2.5px dashed var(--accent); border-radius:50%; opacity:0.85"></div>
+      </div>
+      <!-- BOTTOM arc: 외부(오른쪽) → 내부(왼쪽) -->
+      <div style="position:absolute; left:200px; top:456px; width:760px; height:92px; z-index:2; pointer-events:none; overflow:hidden">
+        <div style="width:727px; height:309px; border:2.5px dashed var(--accent); border-radius:50%; opacity:0.85; margin-top:-217px"></div>
+      </div>
+
+      <!-- CENTER = 보고서 시트 -->
+      <div id="reportSheet" style="position:absolute; left:340px; top:36px; width:480px; z-index:3; animation:midf 7s ease-in-out infinite; background:#fff; border:1px solid #E3E6EA; border-radius:6px; box-shadow:0 54px 96px -30px rgba(20,18,16,0.46), 0 12px 32px -12px rgba(20,18,16,0.3); overflow:hidden; text-align:left;">
+        <div style="height:5px; background:linear-gradient(90deg,var(--accent),var(--accent-deep));"></div>
+        <!-- masthead -->
+        <div style="padding:22px 30px 18px; border-bottom:1px solid #EEF0F2; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+          <div style="min-width:0;">
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:11px;">
+              <img src="/static/float/logo.png" alt="" style="height:18px; width:auto; display:block; border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.12em; color:var(--accent-deep); font-weight:700;">ANSWERNI REPORT</span>
+            </div>
+            <div style="font-size:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; color:#0f172a;">기술지원 대응 보고서</div>
+            <div id="caseSub" style="font-size:13px; color:#64748b; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">로그인 실패 · 인증 오류 (예시)</div>
+          </div>
+          <div style="text-align:right; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.7; color:#94a3b8; white-space:nowrap;">
+            <div>NO. <span id="caseNo" style="color:#475569; font-weight:700;">CASE-001</span></div>
+            <div>발행 <span id="caseDate" style="color:#475569; font-weight:700;">2026-07-09</span></div>
+            <div style="margin-top:5px;"><span id="caseBadge" class="badge-status">해결 완료</span></div>
+          </div>
+        </div>
+        <!-- body -->
+        <div id="reportScroll" class="report-body">
+          <!-- 01 유사 대응 이력 (jira_results 라이브 카드) -->
+          <div>
+            <div class="section-head"><span class="section-no">01</span><span class="section-title">유사 대응 이력</span><span id="jiraCount" class="section-sub">JIRA · 예시 2건</span></div>
+            <div id="jiraCards" style="display:flex; flex-direction:column; gap:8px;">
+              <div class="jira-card">
+                <div class="row1"><span class="key">SUP-123</span><span class="res">해결됨</span></div>
+                <div class="sum">SSL 인증서 만료로 로그인 실패</div>
+                <div class="meta"><span style="font-weight:600; color:#475569;">고객사 A</span><span>2026-06-14</span></div>
+              </div>
+              <div class="jira-card">
+                <div class="row1"><span class="key">SUP-087</span><span class="res">해결됨</span></div>
+                <div class="sum">인증 서버 재기동 후 세션 만료</div>
+                <div class="meta"><span style="font-weight:600; color:#475569;">고객사 B</span><span>2026-05-02</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- 02 분석 보고서: 예시 콘텐츠(mockSections) → 실행 시 라이브 마크다운(reportLive) -->
+          <div>
+            <div class="section-head"><span class="section-no">02</span><span class="section-title">분석 보고서</span><span id="reportSub" class="section-sub">예시</span></div>
+            <div id="mockSections">
+              <div style="background:#17120E; border-radius:8px; padding:13px 15px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.85; color:#CFC7BD; margin-bottom:12px;">
+                <div><span style="color:#F87171; font-weight:700;">ERROR</span> SSL certificate has expired</div>
+                <div><span style="color:#FBBF24; font-weight:700;">WARN</span>&nbsp; login rejected user=[EMAIL_1]</div>
+                <div><span style="color:#F87171; font-weight:700;">ERROR</span> tls handshake_failure (alert 40)</div>
+              </div>
+              <div style="background:#f0fdf4; border-left:3px solid #10b981; border-radius:0 8px 8px 0; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#065f46;">만료된 SSL 인증서를 갱신하고 인증 서비스를 재기동. 동일 절차로 정상화 확인됨.</div>
+            </div>
+            <div id="reportLive" style="display:none;">
+              <div id="reportMd"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+     </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section id="why" style="max-width:1160px; margin:0 auto; padding:88px 32px 80px;">
+    <div style="text-align:center; max-width:700px; margin:0 auto 52px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">왜 필요한가</div>
+      <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:18px;">같은 오류를, 매번 처음부터 찾고 있습니다</h2>
+      <p style="font-size:17px; line-height:1.7; color:var(--muted);">기술지원 문의는 계속 쌓이고, 오류 건은 빠르게 처리해야 합니다. <br>하지만 같은 오류가 여러 고객사에서 반복 접수되고, 누가·언제·어떻게 처리했는지는 흩어져 있습니다.</p>
+    </div>
+
+    <div style="background:var(--soft); border:1px solid var(--line); border-radius:20px; padding:32px; display:grid; grid-template-columns:1fr auto 1.1fr; gap:26px; align-items:center; margin-bottom:32px;">
+      <div style="display:flex; flex-direction:column; gap:9px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); font-weight:700; margin-bottom:2px; letter-spacing:0.06em;">같은 오류 · 반복 접수</div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 A</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#FEE2E2; color:#B91C1C; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">긴급</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#64748b;"><span style="width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-deep)); flex-shrink:0;"></span>개발자 <b style="color:#475569;">김OO</b> 처리 · 3시간 소요</div></div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 B</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#FEE2E2; color:#B91C1C; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">긴급</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#64748b;"><span style="width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#4f46e5); flex-shrink:0;"></span>개발자 <b style="color:#475569;">이OO</b> 처리 · 4시간 소요</div></div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 C</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#F1F5F9; color:#64748b; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">대기</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#B45309;"><span style="width:16px; height:16px; border-radius:50%; border:1.5px dashed #D4A574; flex-shrink:0;"></span>미배정 · <b>또 처음부터 조사?</b></div></div>
+      </div>
+      <div style="font-size:26px; color:var(--accent); font-weight:700; text-align:center;">→</div>
+      <div style="background:#fff; border:1px dashed #E3B8A2; border-radius:16px; padding:26px 24px;">
+        <div style="font-size:19px; font-weight:800; letter-spacing:-0.02em; line-height:1.4; margin-bottom:10px;">“이 오류, 전에 누가 처리했더라?”</div>
+        <p style="font-size:14.5px; line-height:1.6; color:var(--muted); margin-bottom:16px;">처리 이력을 모르는 개발자는 원인부터 다시 조사합니다. <br>이미 회사가 풀었던 문제인데도요.</p>
+        <span style="display:inline-flex; align-items:center; gap:7px; background:#FEE2E2; color:#B91C1C; font-size:12px; font-weight:700; padding:7px 12px; border-radius:20px;">↺ 반복 조사 공수 발생</span>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">01</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">중복 접수</h3><p style="font-size:14.5px; line-height:1.65; color:var(--muted);">같은 오류가 A사·B사에서 따로 들어옵니다. <br>각각 별개 건으로 처리하면 대응이 중복됩니다.</p></div>
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">02</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">이력 단절</h3><p style="font-size:14.5px; line-height:1.65; color:var(--muted);">누가 언제 어떻게 처리했는지 공유되지 않습니다. 담당자가 바뀌면 지식도 함께 사라집니다.</p></div>
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">03</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">반복 조사</h3><p style="font-size:14.5px; line-height:1.65; color:var(--muted);">그 오류를 모르는 개발자는 원인부터 다시 찾습니다. 특히 신입일수록 더 오래 걸립니다.</p></div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section id="how" style="background:var(--soft); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+    <div style="max-width:1160px; margin:0 auto; padding:88px 32px;">
+      <div style="text-align:center; max-width:700px; margin:0 auto 52px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">어떻게 동작하나</div>
+        <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:18px;">아는 답은 즉시, 모르는 답은 안전하게</h2>
+        <p style="font-size:17px; line-height:1.7; color:var(--muted);">접수된 오류를 먼저 Jira 이력에서 찾습니다. 사례가 있으면 대응 이력을 종합해 바로 보고서로. <br>없으면 로컬·외부 LLM이 안전하게 대화해 답을 만듭니다.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:stretch;">
+        <div style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:32px;">
+          <div style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-deep); background:var(--tint); padding:6px 11px; border-radius:20px; margin-bottom:18px;">경로 1 · Jira에 사례가 있으면</div>
+          <h3 style="font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-bottom:12px;">지금까지의 대응을 그대로</h3>
+          <p style="font-size:15px; line-height:1.7; color:var(--muted); margin-bottom:22px;">과거에 같은 유형을 어떻게 해결했는지, 흩어진 이력을 한 장으로 종합합니다. 오류를 처음 보는 개발자도, 신입도 회사의 대응 방식을 한눈에 파악합니다.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">접수</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">유사 사례 매칭</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">대응 이력 종합</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:var(--accent); color:#fff; border-radius:20px; padding:8px 14px; font-size:13px; font-weight:700;">보고서</span>
+          </div>
+        </div>
+
+        <div style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:32px;">
+          <div style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-deep); background:var(--tint); padding:6px 11px; border-radius:20px; margin-bottom:18px;">경로 2 · 새로운 유형이면</div>
+          <h3 style="font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-bottom:12px;">두 LLM이 대화해 답을 만듭니다</h3>
+          <p style="font-size:15px; line-height:1.7; color:var(--muted); margin-bottom:20px;">Jira에 사례가 없으면, 소스코드를 볼 수 있는 로컬 LLM이 외부 LLM에게 <br>도움을 청합니다. 부족한 데이터는 다시 로컬에 요청하며 주고받습니다.</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:13px 15px; border:1px solid var(--line); border-radius:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--muted); background:var(--soft); padding:4px 8px; border-radius:6px; white-space:nowrap; margin-top:1px;">로컬</span><div style="font-size:13.5px; line-height:1.55;">소스코드 열람 · 문의 확인 · <b>프롬프트 구성</b> · 개인정보 마스킹</div></div>
+            <div style="text-align:center; color:var(--accent); font-size:15px; font-weight:700;">⇅ 부족하면 다시 요청</div>
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:13px 15px; border:1px solid var(--line); border-radius:12px; background:#141210;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:#fff; background:var(--accent); padding:4px 8px; border-radius:6px; white-space:nowrap; margin-top:1px;">외부</span><div style="font-size:13.5px; line-height:1.55; color:#EDE7DE;">마스킹된 프롬프트로 <b style="color:#fff;">추론</b> · 충분하면 해결책 회신</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; background:#141210; color:#EDE7DE; border-radius:20px; padding:30px 34px; display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--accent); font-weight:700; margin-bottom:10px;">SECURE BY DESIGN</div>
+          <div style="font-size:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.35; margin-bottom:8px;">소스코드와 개인정보는 로컬을 벗어나지 않습니다</div>
+          <p style="font-size:14.5px; line-height:1.6; color:#A79E95;">외부 LLM에는 마스킹·정제된 프롬프트만 전달됩니다. 코드 유출과 개인정보 노출 없이, 외부의 추론 능력만 빌립니다.</p>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.9; background:#231C16; border-radius:14px; padding:18px 20px; min-width:230px;">
+          <div><span style="color:#7FE0B0;">local</span> 소스코드 · 원문 로그</div>
+          <div style="color:#6B635C;">──────────────</div>
+          <div><span style="color:var(--accent);">sent</span> 마스킹된 프롬프트만</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALUE -->
+  <section id="value" style="max-width:1160px; margin:0 auto; padding:88px 32px;">
+    <div style="text-align:center; max-width:660px; margin:0 auto 52px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">기대 효과</div>
+      <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15;">문의 하나가, 회사의 대응 자산이 됩니다</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:20px;">
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">01</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">신속 대응</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">접수 즉시 대응 이력 기반 보고서를 받습니다. <br>긴급 오류 건의 처리 시간을 크게 줄입니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">02</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">공수 절감</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">이미 풀어본 문제를 다시 조사하지 않습니다. <br>반복 조사와 중복 대응이 사라집니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">03</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">온보딩 가속</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">오류를 처음 보는 개발자도, 신입도 회사가 어떻게 대응해왔는지 <br>한눈에 익힙니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">04</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">보안 유지</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">소스코드와 개인정보는 로컬 밖으로 나가지 않습니다. <br>외부에는 마스킹된 프롬프트만.</p></div></div>
+    </div>
+  </section>
+
+  <!-- END / CTA -->
+  <section id="end" style="max-width:1200px; margin:0 auto; padding:96px 32px; text-align:center;">
+    <h2 style="font-size:clamp(30px,4.6vw,58px); font-weight:800; letter-spacing:-0.03em; line-height:1.1; margin-bottom:18px; max-width:800px; margin-left:auto; margin-right:auto;">문의 하나만 넘기세요.<br>대화는 둘이 알아서 합니다.</h2>
+    <p style="font-size:18px; color:var(--muted); margin-bottom:32px;">근거 포함 보고서 · 그대로 전달</p>
+    <a href="#demo" style="display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; padding:14px 26px; border-radius:12px; font-weight:800; font-size:16px;">라이브 데모 실행 →</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid var(--line);">
+    <div style="max-width:1200px; margin:0 auto; padding:32px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px; font-weight:800; font-size:17px;">
+        <img src="/static/float/logo.png" alt="AnswerNI" style="height:28px; width:auto; display:block; border-radius:6px;">
+        <span>Answer<span style="color:var(--accent);">NI</span></span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#9A928A; letter-spacing:0.06em;">내부 LLM × 외부 LLM · © 2026</div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── stage 반응형 스케일 (원본 DCLogic._fit 이식) ─────────────────────────
+  var stage = document.getElementById('stage');
+  var scene = document.getElementById('scene');
+  function fit() {
+    if (!stage || !scene) { return; }
+    var w = stage.clientWidth;
+    var s = Math.min(1, w / 1160);
+    scene.style.transform = 'translateX(-50%) scale(' + s + ')';
+    stage.style.height = (692 * s) + 'px';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  // ── XSS 안전 유틸 (index.html 과 동일 계약) ───────────────────────────────
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // 서버 pii.py / index.html 과 동기화된 PII 하이라이트 패턴 (EMAIL→RRN→PHONE→IP).
+  var PII_PATTERN = new RegExp([
+    /[\p{L}\p{N}_.+-]{1,64}@[\p{L}\p{N}_-]{1,255}(?:\.[\p{L}\p{N}_-]+)+/.source,
+    /(?<!\d)\d{6}-?[1-4]\d{6}(?!\d)/.source,
+    /(?<!\d)01[016789]-?\d{3,4}-?\d{4}(?!\d)/.source,
+    /(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)/.source
+  ].join('|'), 'gu');
+
+  function highlightPII(escaped) {
+    return escaped.replace(PII_PATTERN, function (match) {
+      if (match.indexOf('@') === -1 && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(match)) {
+        var ok = match.split('.').every(function (o) { return o.length > 0 && Number(o) <= 255; });
+        if (!ok) { return match; }
+      }
+      return '<span class="pii-raw">' + match + '</span>';
+    });
+  }
+  function highlightTokens(escaped) {
+    return escaped.replace(/\[[A-Z]+_\d+\]/g, function (m) {
+      return '<span class="pii-masked">' + m + '</span>';
+    });
+  }
+
+  // 최소 마크다운 렌더러 (index.html 이식 — 모든 텍스트 이스케이프 후 삽입).
+  function renderInline(text) {
+    var s = escapeHtml(text);
+    s = s.replace(/`([^`]+)`/g, function (_, c) { return '<code>' + c + '</code>'; });
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    return s;
+  }
+  function renderMarkdown(md) {
+    var lines = String(md).replace(/\r\n/g, '\n').split('\n');
+    var html = [];
+    var i = 0;
+    var listType = null;
+    function closeList() { if (listType) { html.push('</' + listType + '>'); listType = null; } }
+    while (i < lines.length) {
+      var line = lines[i];
+      var fence = line.match(/^\s*```(.*)$/);
+      if (fence) {
+        closeList();
+        var buf = [];
+        i++;
+        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { buf.push(escapeHtml(lines[i])); i++; }
+        i++;
+        html.push('<pre><code>' + buf.join('\n') + '</code></pre>');
+        continue;
+      }
+      var heading = line.match(/^(#{1,3})\s+(.*)$/);
+      if (heading) {
+        closeList();
+        var level = heading[1].length;
+        html.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
+        i++;
+        continue;
+      }
+      var ul = line.match(/^\s*[-*]\s+(.*)$/);
+      if (ul) {
+        if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
+        html.push('<li>' + renderInline(ul[1]) + '</li>');
+        i++;
+        continue;
+      }
+      var ol = line.match(/^\s*\d+\.\s+(.*)$/);
+      if (ol) {
+        if (listType !== 'ol') { closeList(); html.push('<ol>'); listType = 'ol'; }
+        html.push('<li>' + renderInline(ol[1]) + '</li>');
+        i++;
+        continue;
+      }
+      if (/^\s*$/.test(line)) { closeList(); i++; continue; }
+      closeList();
+      var para = [line];
+      i++;
+      while (i < lines.length && !/^\s*$/.test(lines[i]) &&
+             !/^\s*```/.test(lines[i]) && !/^#{1,3}\s/.test(lines[i]) &&
+             !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i])) {
+        para.push(lines[i]);
+        i++;
+      }
+      html.push('<p>' + para.map(renderInline).join('<br>') + '</p>');
+    }
+    closeList();
+    return html.join('\n');
+  }
+
+  function networkErrorMessage(err) {
+    if (err && err.name === 'TypeError') { return '서버에 연결할 수 없습니다. 서버 실행 여부를 확인해주세요.'; }
+    var msg = err && err.message ? String(err.message) : '';
+    if (/^서버 응답/.test(msg)) { return msg; }
+    return '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────
+  var form = document.getElementById('askForm');
+  var queryEl = document.getElementById('query');
+  var runBtn = document.getElementById('runBtn');
+  var statusEl = document.getElementById('statusText');
+  var localBody = document.getElementById('localBody');
+  var remoteBody = document.getElementById('remoteBody');
+  var localStatus = document.getElementById('localStatus');
+  var remoteStatus = document.getElementById('remoteStatus');
+  var localDots = document.getElementById('localDots');
+  var remoteDots = document.getElementById('remoteDots');
+  var caseNo = document.getElementById('caseNo');
+  var caseDate = document.getElementById('caseDate');
+  var caseBadge = document.getElementById('caseBadge');
+  var caseSub = document.getElementById('caseSub');
+  var jiraCount = document.getElementById('jiraCount');
+  var jiraCards = document.getElementById('jiraCards');
+  var mockSections = document.getElementById('mockSections');
+  var reportLive = document.getElementById('reportLive');
+  var reportMd = document.getElementById('reportMd');
+  var reportSub = document.getElementById('reportSub');
+  var reportSheet = document.getElementById('reportSheet');
+
+  var es = null;            // 현재 EventSource
+  var jiraIssues = [];      // 누적 이슈 (key 중복 제거)
+  var retryCount = 0;
+  var MAX_RETRIES = 5;
+  var JIRA_MAX_CARDS = 3;   // 시트 공간상 카드 3장 + "+N건" 표기
+
+  function setStatus(text) { statusEl.textContent = text; }
+  function setBusy(busy) {
+    runBtn.disabled = busy;
+    runBtn.textContent = busy ? '분석 중...' : '분석 실행';
+    localDots.classList.toggle('on', busy);
+    remoteDots.classList.toggle('on', busy);
+    localStatus.textContent = busy ? '대화 중' : localStatus.textContent;
+    remoteStatus.textContent = busy ? '대화 중' : remoteStatus.textContent;
+  }
+  function setBadge(text, cls) {
+    caseBadge.textContent = text;
+    caseBadge.className = 'badge-status' + (cls ? ' ' + cls : '');
+  }
+  function scrollBottom(el) { el.scrollTop = el.scrollHeight; }
+
+  // 라이브 세션 시작/SSE replay(onopen) 때 stage 를 리셋 — 예시 미리보기 제거 + 중복 방지.
+  function resetLive(query, taskId) {
+    localBody.textContent = '';
+    remoteBody.textContent = '';
+    var lh = document.createElement('div');
+    lh.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--muted); font-weight:700;";
+    lh.textContent = '요약 · 마스킹';
+    localBody.appendChild(lh);
+    var rh = document.createElement('div');
+    rh.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--accent-deep); font-weight:700;";
+    rh.textContent = '추론 · 지시';
+    remoteBody.appendChild(rh);
+
+    jiraIssues = [];
+    jiraCards.textContent = '';
+    var waiting = document.createElement('div');
+    waiting.className = 'report-wait';
+    waiting.id = 'jiraWait';
+    waiting.textContent = '유사 사례 검색 대기 중...';
+    jiraCards.appendChild(waiting);
+    jiraCount.textContent = 'JIRA · 0건';
+
+    mockSections.style.display = 'none';
+    reportLive.style.display = 'block';
+    reportMd.textContent = '두 LLM이 분석 중입니다...';
+    reportSub.textContent = '분석 중';
+    caseSub.textContent = query;                       // textContent → XSS 안전
+    caseNo.textContent = 'CASE-' + String(taskId).slice(0, 8).toUpperCase();
+    caseDate.textContent = new Date().toISOString().slice(0, 10);
+    setBadge('분석 중', 'busy');
+    localStatus.textContent = '대화 중';
+    remoteStatus.textContent = '대화 중';
+  }
+
+  function addBubble(side, build) {
+    var el = document.createElement('div');
+    el.className = side === 'remote' ? 'bubble bubble-remote' : 'bubble';
+    build(el);
+    (side === 'remote' ? remoteBody : localBody).appendChild(el);
+    scrollBottom(side === 'remote' ? remoteBody : localBody);
+  }
+
+  function onLog(message, source) {
+    var side = source === 'remote' ? 'remote' : 'local'; // system/미지정 → 로컬 활동
+    addBubble(side, function (el) { el.textContent = message; });
+  }
+
+  function onMaskDiff(raw, masked) {
+    addBubble('local', function (el) {
+      var label = document.createElement('div');
+      label.className = 'bubble-label';
+      label.textContent = 'PII 마스킹 — 원본은 로컬에만';
+      el.appendChild(label);
+      var rawEl = document.createElement('div');
+      rawEl.className = 'diff-block';
+      rawEl.innerHTML = highlightPII(escapeHtml(raw));       // 이스케이프 후 하이라이트만 주입
+      el.appendChild(rawEl);
+      var maskedEl = document.createElement('div');
+      maskedEl.className = 'diff-block';
+      maskedEl.innerHTML = highlightTokens(escapeHtml(masked));
+      el.appendChild(maskedEl);
+    });
+  }
+
+  function onCompress(before, after) {
+    addBubble('local', function (el) {
+      var label = document.createElement('div');
+      label.className = 'bubble-label';
+      label.textContent = 'SLM 압축';
+      el.appendChild(label);
+      var span = document.createElement('span');
+      span.textContent = Number(before).toLocaleString() + '자 → ' + Number(after).toLocaleString() + '자 ';
+      el.appendChild(span);
+      var check = document.createElement('span');
+      check.style.color = '#1F8A5B';
+      check.textContent = '✓';
+      el.appendChild(check);
+    });
+  }
+
+  function renderJiraCards() {
+    jiraCards.textContent = '';
+    if (jiraIssues.length === 0) {
+      var waiting = document.createElement('div');
+      waiting.className = 'report-wait';
+      waiting.textContent = '유사 사례 검색 대기 중...';
+      jiraCards.appendChild(waiting);
+      jiraCount.textContent = 'JIRA · 0건';
+      return;
+    }
+    jiraCount.textContent = 'JIRA · ' + jiraIssues.length + '건';
+    var shown = jiraIssues.slice(0, JIRA_MAX_CARDS);
+    shown.forEach(function (issue) {
+      var card = document.createElement('div');
+      card.className = 'jira-card';
+      var row1 = document.createElement('div');
+      row1.className = 'row1';
+      var key = document.createElement('span');
+      key.className = 'key';
+      key.textContent = issue.key || '';
+      row1.appendChild(key);
+      if (issue.resolution) {
+        var res = document.createElement('span');
+        res.className = 'res';
+        res.textContent = issue.resolution;
+        row1.appendChild(res);
+      }
+      card.appendChild(row1);
+      var sum = document.createElement('div');
+      sum.className = 'sum';
+      sum.textContent = issue.summary || '';
+      card.appendChild(sum);
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var cust = document.createElement('span');
+      cust.style.cssText = 'font-weight:600; color:#475569;';
+      cust.textContent = issue.customer || '';
+      var created = document.createElement('span');
+      created.textContent = issue.created || '';
+      meta.appendChild(cust);
+      meta.appendChild(created);
+      card.appendChild(meta);
+      jiraCards.appendChild(card);
+    });
+    if (jiraIssues.length > JIRA_MAX_CARDS) {
+      var more = document.createElement('div');
+      more.className = 'section-sub';
+      more.style.textAlign = 'right';
+      more.textContent = '+' + (jiraIssues.length - JIRA_MAX_CARDS) + '건 더 발견됨';
+      jiraCards.appendChild(more);
+    }
+  }
+
+  function onJiraResults(issues) {
+    var list = Array.isArray(issues) ? issues : [];
+    var seen = {};
+    jiraIssues.forEach(function (it) { if (it && it.key != null) { seen[it.key] = true; } });
+    list.forEach(function (issue) {
+      if (!issue || issue.key == null || issue.key === '' || seen[issue.key]) { return; }
+      seen[issue.key] = true;
+      jiraIssues.push(issue);
+    });
+    renderJiraCards();
+  }
+
+  function onReport(markdown) {
+    reportMd.innerHTML = renderMarkdown(markdown);   // renderMarkdown 내부에서 전량 이스케이프
+    reportSub.textContent = '발행 완료';
+    setBadge('발행 완료', '');
+    if (typeof reportSheet.scrollIntoView === 'function') {
+      reportSheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function onError(message) {
+    reportMd.textContent = '';
+    var box = document.createElement('div');
+    box.className = 'report-error';
+    box.textContent = '오류: ' + message;
+    reportMd.appendChild(box);
+    reportSub.textContent = '오류';
+    setBadge('오류', 'error');
+  }
+
+  function finish(errored) {
+    if (es) { es.close(); es = null; }
+    setBusy(false);
+    localStatus.textContent = errored ? '오류로 종료' : '완료 ✓';
+    remoteStatus.textContent = errored ? '오류로 종료' : '완료 ✓';
+    setStatus(errored ? '오류로 종료되었습니다. 다시 시도해주세요.' : '분석 완료 — 보고서가 발행되었습니다.');
+  }
+
+  function handleEvent(data, sawError) {
+    switch (data.type) {
+      case 'log':          onLog(data.message, data.source); break;
+      case 'mask_diff':    onMaskDiff(data.raw, data.masked); break;
+      case 'slm_compress': onCompress(data.before, data.after); break;
+      case 'jira_results': onJiraResults(data.issues); break;
+      case 'report':       onReport(data.markdown); break;
+      case 'error':        onError(data.message); break;
+      case 'done':         finish(sawError.value); break;
+    }
+    if (data.type === 'error') { sawError.value = true; }
+  }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var q = queryEl.value.trim();
+    if (!q) { queryEl.focus(); return; }
+    if (es) { es.close(); es = null; }   // 이전 스트림 정리(재실행)
+
+    setBusy(true);
+    setStatus('요청 전송 중...');
+    retryCount = 0;
+
+    fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q })
+    }).then(function (res) {
+      if (!res.ok) { throw new Error('서버 응답 ' + res.status); }
+      return res.json();
+    }).then(function (body) {
+      var taskId = body.task_id;
+      var sawError = { value: false };
+      es = new EventSource('/events/' + encodeURIComponent(taskId));
+      es.onopen = function () {
+        // 서버는 재연결 시 history 전체를 replay → 매 연결마다 리셋해 중복 표시 방지.
+        retryCount = 0;
+        sawError.value = false;
+        resetLive(q, taskId);
+        setStatus('두 LLM이 대화 중입니다...');
+      };
+      es.onmessage = function (msg) {
+        var data;
+        try { data = JSON.parse(msg.data); } catch (e) { return; }
+        handleEvent(data, sawError);
+      };
+      es.onerror = function () {
+        if (!es) { return; }
+        retryCount++;
+        if (retryCount > MAX_RETRIES) {
+          es.close();
+          es = null;
+          setBusy(false);
+          setStatus('연결이 끊어졌습니다. 다시 시도해주세요.');
+          return;
+        }
+        setStatus('연결 재시도 중... (' + retryCount + '/' + MAX_RETRIES + ')');
+      };
+    }).catch(function (err) {
+      setBusy(false);
+      setStatus(networkErrorMessage(err));
+    });
+  });
+})();
+</script>
+</body>
+</html>
