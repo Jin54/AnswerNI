@@ -8,6 +8,8 @@ is_error 로 감싸 LLM 이 스스로 우회하게 한다 (PLAN.md 8절).
 import json
 from pathlib import Path
 
+from . import jira_mcp
+
 TOOLS = [
     {"name": "read_file",
      "description": "지원 로그·설정 파일을 읽는다. 대상 파일이 로그 분석에 필요할 때 호출.",
@@ -59,6 +61,17 @@ def _read_file(path: str | None, keyword: str | None = None) -> str:
 def _search_jira(query: str | None) -> str:
     if not query:
         return "에러: query 인자가 필요합니다."
+    # 실 Jira(MCP) 우선: .env 에 JIRA_URL/USERNAME/API_TOKEN 이 설정돼 있으면
+    # jira_mcp.search_issues (로컬 에이전트가 MCP 클라이언트) 로 검색한다.
+    # None(미설정·서버 실패·타임아웃)이면 아래 목 데이터 검색으로 그대로 폴백 —
+    # 반환 계약(JSON 배열 문자열 / 0건 안내문 / '에러:' 접두)은 두 경로 모두 동일하다
+    # (agent.py 의 jira_results 파싱·결과 요약 로그가 이 계약에 의존).
+    if jira_mcp.is_configured():
+        issues = jira_mcp.search_issues(query)
+        if issues is not None:
+            if not issues:
+                return f"'{query}' 에 매칭되는 Jira 이슈가 없습니다."
+            return json.dumps(issues, ensure_ascii=False, indent=2)
     try:
         issues = json.loads(JIRA_FILE.read_text(encoding="utf-8"))
     except Exception as e:

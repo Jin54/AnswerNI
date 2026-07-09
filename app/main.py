@@ -2,7 +2,9 @@
 
 - POST /ask        : 문의 1건 수신 → run_agent 를 스레드로 실행 → task_id 즉시 반환
 - GET  /events/{id}: SSE(text/event-stream) 로 진행 이벤트 스트림
-- GET  /           : 웹 UI (app/static/index.html) + 정적 파일 서빙
+- GET  /           : 메인 랜딩 (app/static/float.html)
+- GET  /demo       : 라이브 데모 콘솔 (app/static/index.html)
+- /static          : 정적 파일(assets) 서빙
 
 run_agent 는 동기 anthropic SDK 를 호출하므로(이벤트 루프 블로킹) 별도 스레드에서
 돌리고, emit 콜백은 작업별 이벤트 history(list) 에 dict 를 append 하며 Condition 으로
@@ -39,7 +41,8 @@ from .agent import run_agent
 
 BASE_DIR = Path(__file__).resolve().parent          # app/
 STATIC_DIR = BASE_DIR / "static"
-INDEX_HTML = STATIC_DIR / "index.html"
+FLOAT_HTML = STATIC_DIR / "float.html"      # '/' 메인 (플로트 랜딩)
+INDEX_HTML = STATIC_DIR / "index.html"      # '/demo' 라이브 데모(콘솔)
 
 # 미구독·완료 작업의 인메모리 누수를 막는 TTL(초). /ask 마다 만료 항목을 sweep 한다.
 _TASK_TTL_SECONDS = 3600
@@ -171,10 +174,17 @@ async def events(task_id: str):
 
 @app.get("/")
 async def index():
+    """메인 랜딩(플로트). '라이브 데모' 링크가 /demo 로 이동한다."""
+    return FileResponse(FLOAT_HTML)
+
+
+@app.get("/demo")
+async def demo():
+    """라이브 데모 페이지(콘솔 UI). /ask·/events 를 소비하는 index.html."""
     return FileResponse(INDEX_HTML)
 
 
-# 정적 파일(assets) 서빙. index.html 은 '/' 라우트가 우선 처리.
+# 정적 파일(assets) 서빙. '/'·'/demo' 라우트가 HTML 을 우선 처리.
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
