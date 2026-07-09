@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-142 — webhook 재시도로 DB 커넥션 풀 고갈 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🏗️ 인프라 · Infrastructure</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-142 — webhook 재시도로 DB 커넥션 풀 고갈<br>(관리서버 응답 지연)</h1>
+    <p class="subtitle"><b>고객사 E</b> &nbsp;|&nbsp; 접수 2026-06-01 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 인프라 / webhook · HikariCP &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 E의 운영 담당자가 <strong>"특정 시간대에 관리서버 응답이 느려진다"</strong>는 문의를 접수했다. 별도의 명시적 오류 메시지 없이 화면 로딩·API 응답이 지연되는 형태였으며, 담당자는 정확한 원인을 특정하지 못한 채 로그 분석을 요청했다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <code>logs/webhook.log</code>를 비롯한 다중 로그와 사내 Jira 이력을 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "특정 시간에 관리서버가 느려진다는 문의가 있어요. 로그 보고 원인 짚어줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 비정상 설치된 에이전트(<code>agent_id=null</code>)가 <strong>service-assign webhook</strong>을 호출하며 최대 3회 재시도(최악 ~13초) 동안 DB 커넥션을 오래 점유 → 동시간대 <strong>HikariCP 커넥션 풀 고갈</strong>(<code>active=20 / idle=0 / waiting=14</code>) → 후속 요청 30초 타임아웃 → 평균 응답 8.7초로 <strong>degraded</strong>. webhook 재시도 <code>max-attempts</code>를 <strong>3→1</strong>로 축소하고 <strong>connect/read 타임아웃을 3초</strong>로 설정, 실패 로깅을 강화하여 근본 차단한다.</p></div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">인프라</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 E</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-06-01</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">관리서버 전체 응답</div></div>
+    <div class="stat-card"><div class="label">데이터 유실</div><div class="value">없음 (지연)</div></div>
+    <div class="stat-card"><div class="label">재현성</div><div class="value">시간대 의존</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>특정 시간대(관측: 09:30~09:41) <strong>관리서버 전체 응답 지연</strong> — 특정 기능이 아닌 전 사용자·전 화면이 영향. 평균 응답시간 <code>8.7s</code>로 저하(<code>degraded</code>), 후속 요청은 <code>30000ms</code> 타임아웃.</td></tr>
+      <tr><td>연쇄 장애 위험</td><td><span class="badge badge-required">중요</span> 커넥션 풀 고갈은 <strong>단일 기능 장애가 시스템 전반으로 번지는 연쇄 장애(cascading failure)</strong>의 전형. 대기 큐(<code>waiting=14</code>)가 계속 쌓이면 완전 정지로 확대될 수 있음.</td></tr>
+      <tr><td>긴급도</td><td>High — 핵심 인프라 자원(DB 커넥션)의 고갈이며, 유발 조건(비정상 설치 에이전트의 반복 webhook 호출)이 상시 존재.</td></tr>
+      <tr><td>탐지 난이도</td><td>사용자 눈에는 "느림"으로만 보여 원인 특정이 어려움 — 명시적 500/스택트레이스 없이 <strong>타임아웃·풀 통계</strong>로만 드러남.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>심각도 근거 요약:</strong> 관리서버 전체 응답 지연으로 전 사용자에게 영향이 미치고, 커넥션 풀 고갈은 연쇄 장애를 유발할 수 있는 구조적 위험이므로 <span class="sev sev-high">High</span>로 평가한다.</p></div>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 응답 지연</td><td>특정 시간대(<code>09:30~09:41</code>) 관리서버 응답이 느려짐. 평균 응답 <code>8.7s</code>로 저하(<code>degraded</code>).</td></tr>
+      <tr><td><span class="badge badge-warn">징후</span> webhook 실패</td><td><code>service-assign</code> webhook이 3회 재시도 후 <strong>~13초</strong> 소요하고 실패(<code>elapsed=13020ms</code> / <code>12980ms</code>).</td></tr>
+      <tr><td><span class="badge badge-required">징후</span> 커넥션 풀 고갈</td><td><code>HikariPool-1</code> — <code>active=20 idle=0 waiting=14 (pool exhausted)</code>. 신규 요청은 <code>request timed out after 30000ms</code>.</td></tr>
+      <tr><td><span class="badge badge-edit">공통점</span> 대상 serial</td><td>실패 webhook의 대상이 모두 <code>agent_id=null</code>(비정상 설치) 에이전트 — <code>CUST-7788</code>, <code>CUST-7789</code>.</td></tr>
+      <tr><td><span class="badge badge-new">대응</span> 온콜 통지</td><td><code>09:41</code> on-call 담당자에게 알림 발송(<code>admin=[EMAIL_1] phone=[PHONE_1]</code>).</td></tr>
+    </tbody>
+  </table>
+  <p>증상의 핵심은 <strong>"특정 기능이 아니라 관리서버 전체가 느리다"</strong>는 점이다. 이는 개별 API의 버그가 아니라 <strong>공유 자원(DB 커넥션 풀)</strong>이 소진되어 모든 요청이 대기·타임아웃에 걸리는 자원 고갈형 장애의 특징이다.</p>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/webhook.log</code>. webhook 재시도(WARN) → 실패(ERROR) → 커넥션 풀 고갈(ERROR/WARN) → 응답 저하(WARN)로 이어지는 <strong>시간 인과 사슬</strong>이 뚜렷하게 관측된다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-09 09:30:11</span> <span class="lv-info">INFO</span>  <span class="msg">[hook] service-assign webhook start serial=CUST-7788 <span class="hl">agent_id=null</span></span>
+<span class="ts">2026-07-09 09:30:11</span> <span class="lv-warn">WARN</span>  <span class="msg">[hook] agent id not found, retrying (attempt 1/3)</span>
+<span class="ts">2026-07-09 09:30:15</span> <span class="lv-warn">WARN</span>  <span class="msg">[hook] agent id not found, retrying (attempt 2/3)</span>
+<span class="ts">2026-07-09 09:30:19</span> <span class="lv-warn">WARN</span>  <span class="msg">[hook] agent id not found, retrying (attempt 3/3)</span>
+<span class="ts">2026-07-09 09:30:24</span> <span class="lv-error">ERROR</span> <span class="msg">[hook] <span class="hl">webhook failed after 3 attempts</span> serial=CUST-7788 <span class="hl">elapsed=13020ms</span></span>
+<span class="ts">2026-07-09 09:31:02</span> <span class="lv-error">ERROR</span> <span class="msg">[db]  HikariPool-1 - <span class="hl">Connection is not available, request timed out after 30000ms</span></span>
+<span class="ts">2026-07-09 09:31:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[db]  HikariPool-1 - <span class="hl">active=20 idle=0 waiting=14 (pool exhausted)</span></span>
+<span class="ts">2026-07-09 09:33:40</span> <span class="lv-warn">WARN</span>  <span class="msg">[api] <span class="hl">avg response time 8.7s (last 5m) - degraded</span></span>
+<span class="ts">2026-07-09 09:35:10</span> <span class="lv-error">ERROR</span> <span class="msg">[hook] <span class="hl">webhook failed after 3 attempts</span> serial=CUST-7789 <span class="hl">elapsed=12980ms</span></span>
+<span class="ts">2026-07-09 09:41:00</span> <span class="lv-info">INFO</span>  <span class="msg">[ops] on-call notified admin=[EMAIL_1] phone=[PHONE_1]</span></div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>시각</th><th>주체</th><th>이벤트</th><th>핵심 지표</th></tr></thead>
+    <tbody>
+      <tr><td>09:30:11</td><td><code>[hook]</code></td><td>webhook 시작 · agent_id 없음</td><td><code>serial=CUST-7788</code> · <code>agent_id=null</code></td></tr>
+      <tr><td>09:30:11~19</td><td><code>[hook]</code></td><td>재시도 1/3 → 2/3 → 3/3 (각 ~4초)</td><td><span class="badge badge-warn">WARN ×3</span></td></tr>
+      <tr><td>09:30:24</td><td><code>[hook]</code></td><td>3회 재시도 후 최종 실패</td><td><code>elapsed=13020ms</code></td></tr>
+      <tr><td>09:31:02</td><td><code>[db]</code></td><td>커넥션 획득 타임아웃</td><td><code>timed out after 30000ms</code></td></tr>
+      <tr><td>09:31:02</td><td><code>[db]</code></td><td>풀 고갈 상태 노출</td><td><code>active=20 idle=0 waiting=14</code></td></tr>
+      <tr><td>09:33:40</td><td><code>[api]</code></td><td>평균 응답 저하</td><td><code>8.7s degraded</code></td></tr>
+      <tr><td>09:35:10</td><td><code>[hook]</code></td><td>두 번째 webhook 실패</td><td><code>serial=CUST-7789</code> · <code>elapsed=12980ms</code></td></tr>
+      <tr><td>09:41:00</td><td><code>[ops]</code></td><td>온콜 통지</td><td><span class="badge badge-done">대응 착수</span></td></tr>
+    </tbody>
+  </table>
+  <div class="info"><strong>판독 포인트:</strong> webhook 실패(<code>elapsed≈13초</code>)와 풀 고갈(<code>waiting=14</code>)이 <strong>같은 시간 창(±수십 초)</strong> 안에서 발생한다. 재시도 구간 동안 커넥션을 오래 붙잡고 있다가 실패하는 패턴이 반복되면서 유휴 커넥션(<code>idle=0</code>)이 소진되고, 후속 요청이 30초 대기 후 타임아웃되어 전체 응답이 <code>8.7s</code>로 밀린다.</div>
+
+  <h4>복합 정황(secondary) — 함께 검토된 로그</h4>
+  <p>에이전트는 "느림"이라는 모호한 증상을 좁히기 위해 webhook.log 외에도 아래 로그를 함께 조회했다. 이들은 <strong>동일 시스템의 부하 정황</strong>을 보여주는 참고 자료이나, <strong>본 SUP-142 건의 1차(primary) 원인은 아니다.</strong></p>
+  <table>
+    <thead><tr><th>로그</th><th>관측 내용</th><th>성격</th></tr></thead>
+    <tbody>
+      <tr><td><code>agent-perf.log</code></td><td>RSS <code>1180MB → 1890MB</code>로 증가, 핸들 수 <code>handles=8421</code> — 메모리·핸들 누수 정황</td><td><span class="badge badge-warn">참고(복합)</span></td></tr>
+      <tr><td><code>system.log</code></td><td><code>No space left</code> / <code>503</code> (03:41~03:45) — 디스크 포화로 인한 새벽 시간대 오류</td><td><span class="badge badge-warn">참고(복합)</span></td></tr>
+      <tr><td><code>db.log</code></td><td>slow query <code>30021ms</code>가 row lock 보유, <code>6 tx waiting</code> — 락 대기 정황</td><td><span class="badge badge-warn">참고(복합)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의(분리 판단):</strong> 위 복합 정황은 시스템 건전성 차원에서 별도 추적이 필요하지만, 고객이 문의한 <strong>"특정 시간대 관리서버 지연"</strong>의 직접 원인은 <code>webhook.log</code>가 보여주는 <strong>재시도 폭주로 인한 커넥션 풀 고갈</strong>이며, 이는 Jira 완전 일치 이슈 SUP-142와 정확히 부합한다.</p></div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>비정상 설치로 <code>agent_id=null</code> 상태인 에이전트가 <strong>service-assign webhook</strong>을 호출한다. 서버는 agent id를 찾지 못해 최대 3회까지 재시도(각 시도당 약 4초, 최악 누적 ~13초)하는데, <strong>이 재시도 구간 내내 DB 커넥션을 점유</strong>한다. 동시간대에 이런 실패 webhook이 반복되면 커넥션이 반환되지 못하고 쌓여 풀이 고갈된다.</p>
+
+  <div class="flow-box">[비정상 설치 에이전트]  service-assign webhook 호출  (agent_id=null)
+     |
+     v
+[재시도 루프]  attempt 1/3 (~4s) → 2/3 (~4s) → 3/3 (~4s) → fail (~13s)  ❌ 취약 지점
+     |   └─ 재시도 구간 내내 DB 커넥션 점유 (반환 지연)
+     v
+[HikariCP 커넥션 풀]  active=20 · idle=0 · waiting=14  →  pool exhausted
+     |
+     v
+[신규 요청]  커넥션 획득 대기  →  request timed out after 30000ms
+     |
+     v
+[관리서버]  avg response 8.7s  →  degraded (전 사용자 체감 지연)</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>webhook 재시도(최대 3회, 최악 ~13초) 동안 DB 커넥션을 장시간 점유하여 <code>HikariPool</code>이 고갈(<code>active=20 idle=0 waiting=14</code>)됨.</td></tr>
+      <tr><td>근본 원인</td><td>비정상 설치(<code>agent_id=null</code>) 에이전트가 유발하는 <strong>webhook 재시도 폭주(retry storm)</strong> + 과도한 재시도 횟수·타임아웃 설정(3회 / 사실상 장시간 대기).</td></tr>
+      <tr><td>기여 요인</td><td>실패 webhook에 <strong>serial·agent 식별자 로깅 부재</strong>로 원인 특정 지연 · 커넥션 풀 크기/타임아웃 방어선 부재 · 비정상 설치를 걸러내는 등록 검증 부재.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>구조적 관점:</strong> 하나의 느린 외부 호출(webhook)이 공유 자원(커넥션 풀)을 붙잡으면, 그 여파는 해당 기능을 넘어 <strong>시스템 전체로 전파</strong>된다. 따라서 "재시도를 줄이는 것"만이 아니라 <strong>느린 의존성이 공유 자원을 오래 붙잡지 못하도록 타임아웃·서킷 브레이커로 경계를 두는 것</strong>이 근본 방어다.</p></div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 로그에서 추출한 키워드(<code>connection pool exhausted</code> / <code>webhook 재시도</code> / <code>row lock</code> / <code>No space left</code>)로 사내 Jira를 조회한 결과, <strong>동일 증상의 SUP-142가 완전 일치(primary)</strong>로 회수되었다. "느림" 조사 과정에서 표면화된 복합 정황과 연관된 SUP-148·SUP-145는 <strong>참고(복합 정황)</strong>로 함께 제시한다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-142</strong></td><td>서비스 할당 webhook 재시도로 DB 커넥션 풀 고갈 및 응답 지연</td><td>고객사 E · 2026-06-01</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+      <tr><td>SUP-148</td><td>DB 락 대기 / 슬로우 쿼리 타임아웃</td><td>고객사 B · 2026-02-25</td><td><span class="badge badge-warn">참고(복합)</span></td></tr>
+      <tr><td>SUP-145</td><td>디스크 100% — 로그 적재 실패 / 503</td><td>고객사 F · 2025-08-19</td><td><span class="badge badge-warn">참고(복합)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-142 조치 이력(resolution) — Primary</h4>
+    <p>webhook 재시도 <code>max-attempts</code>를 <strong>3→1</strong>로 축소(최악 13초 → 3초)하고, <strong>connect/read 타임아웃을 3초</strong>로 설정. 실패 시 <strong>serial·agent 식별자를 포함한 상세 에러 로깅</strong>을 추가하여 원인 추적성을 확보. 적용 후 <strong>평균 응답시간 정상화</strong>를 확인했다.</p>
+  </div>
+  <div class="info"><strong>참고 이슈 취급:</strong> SUP-148(락 대기)·SUP-145(디스크 포화)는 에이전트가 '느림'을 조사하며 <strong>복합 정황 로그</strong>로부터 매칭한 항목이다. 본 건의 직접 원인과는 별개이므로 <strong>후속 시스템 건전성 점검 항목</strong>으로만 연계 기록한다.</div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 재시도 축소 &amp; 타임아웃 경계 (권장)</h3>
+  <p>webhook 재시도 횟수를 줄여 <strong>실패가 빨리 확정</strong>되도록 하고, connect/read 타임아웃을 짧게(3초) 설정하여 <strong>느린 호출이 커넥션을 오래 붙잡지 못하도록</strong> 경계를 둔다. 이로써 최악 소요가 ~13초에서 ~3초로 단축되어 풀 점유 시간이 대폭 감소한다.</p>
+  <pre><span class="comment"># webhook 클라이언트 설정 (before → after)</span>
+<span class="key">webhook</span>:
+  <span class="key">retry</span>:
+    <span class="key">maxAttempts</span>: <span class="number">3</span>   <span class="new">→ 1</span>          <span class="comment"># 재시도 폭주 차단 (최악 13s → 3s)</span>
+  <span class="key">timeout</span>:
+    <span class="key">connectTimeout</span>: <span class="number">30s</span> <span class="new">→ 3s</span>   <span class="comment"># 연결 대기 상한</span>
+    <span class="key">readTimeout</span>:    <span class="number">30s</span> <span class="new">→ 3s</span>   <span class="comment"># 응답 대기 상한</span>
+  <span class="key">onFailure</span>:
+    <span class="key">log</span>: <span class="string">"serial + agent_id 포함 상세 에러 로깅"</span> <span class="new">// 신규</span></pre>
+
+  <h3>7-2. 원천 차단 — 비정상 설치(agent_id=null) 방지</h3>
+  <p>실패 webhook의 대상이 모두 <code>agent_id=null</code>인 점에서, 근본적으로는 <strong>agent id 없이 등록되는 비정상 설치를 원천 차단</strong>해야 한다. 설치/등록 절차에 <strong>식별자 검증(유효한 agent_id 없으면 등록 거부)</strong>을 강화하여 무의미한 재시도 호출 자체를 발생시키지 않는다.</p>
+
+  <h3>7-3. 부가 — 자원 방어선 재점검</h3>
+  <ul>
+    <li><strong>커넥션 풀 재점검:</strong> HikariCP <code>maximumPoolSize</code>·<code>connectionTimeout</code>·<code>maxLifetime</code>을 부하 특성에 맞게 재조정하고, 풀 고갈 시 빠른 실패(fail-fast) 정책을 검토한다.</li>
+    <li><strong>서킷 브레이커 / 백오프:</strong> webhook 등 외부 의존 호출에 서킷 브레이커와 지수 백오프를 도입해 반복 실패가 자원을 잠식하지 않도록 한다.</li>
+  </ul>
+
+  <h3>7-4. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (webhook 재시도 폭주 → 커넥션 풀 고갈 → 응답 지연)</li>
+    <li>webhook <code>max-attempts</code> 3→1 축소 적용</li>
+    <li><code>connectTimeout</code> / <code>readTimeout</code> 3초 설정</li>
+    <li>실패 시 <code>serial</code>·<code>agent_id</code> 포함 상세 에러 로깅 추가</li>
+    <li>비정상 설치(<code>agent_id=null</code>) 등록 검증 강화</li>
+    <li>커넥션 풀 크기·타임아웃 재점검 및 서킷 브레이커/백오프 검토</li>
+    <li>배포 후 <code>webhook.log</code>/<code>db.log</code>에서 <code>pool exhausted</code>·<code>timed out</code> 미재발 및 평균 응답 정상화 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>커넥션 풀 상시 모니터링:</strong> <code>HikariPool</code>의 <code>active</code>/<code>idle</code>/<code>waiting</code> 지표를 지속 수집하고, <code>waiting &gt; 임계치</code> 또는 <code>idle=0</code> 지속 시 알림 규칙을 등록해 고갈을 조기 감지한다.</li>
+    <li><strong>webhook 실패율 알림:</strong> <code>webhook failed after N attempts</code> 및 <code>elapsed</code> 지표를 집계하여 실패 급증 시 자동 통지한다.</li>
+    <li><strong>응답 지연 알림:</strong> <code>avg response time</code>의 <code>degraded</code> 임계(예: 3s↑)를 SLO로 관리하고 위반 시 온콜 통지한다.</li>
+    <li><strong>비정상 설치 검출:</strong> <code>agent_id=null</code> webhook 호출을 별도 카운터로 추적하여 비정상 설치 유입을 조기에 차단·회수한다.</li>
+    <li><strong>복합 정황 후속 점검:</strong> 참고로 관측된 메모리 증가(<code>agent-perf.log</code>)·디스크 포화(<code>system.log</code>)·락 대기(<code>db.log</code>)는 별도 티켓(SUP-148/SUP-145 연계)으로 추적한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-142와 linked issue로 기록하고, 동일 "느림" 재문의 시 커넥션 풀·webhook 재시도를 1차 점검 포인트로 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>관리서버 전체 응답</td><td><span class="badge badge-required">직접</span></td><td>공유 커넥션 풀 고갈로 전 사용자·전 화면 지연</td></tr>
+      <tr><td>service-assign webhook</td><td><span class="badge badge-required">직접</span></td><td>재시도 폭주의 진원 — 수정 대상 핵심 경로</td></tr>
+      <tr><td>DB 의존 API 전반</td><td><span class="badge badge-warn">잠재</span></td><td>풀 고갈 지속 시 커넥션 대기·타임아웃 확산</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>지연·타임아웃일 뿐 데이터 손상 없음</td></tr>
+      <tr><td>연쇄 장애 위험</td><td><span class="badge badge-required">중요</span></td><td>재시도 축소·타임아웃 경계로 근본 차단</td></tr>
+    </tbody>
+  </table>
+
+  <h4>사건 타임라인</h4>
+  <div class="timeline">
+    <div class="tl-item warn"><div class="tl-time">09:30:11 · WARN</div><div class="tl-body"><code>service-assign</code> webhook 시작 — <code>agent_id=null</code>, 재시도 1/3 진입</div></div>
+    <div class="tl-item warn"><div class="tl-time">09:30:15~19 · WARN</div><div class="tl-body">재시도 2/3 → 3/3 (각 ~4초) — 재시도 구간 내내 DB 커넥션 점유</div></div>
+    <div class="tl-item err"><div class="tl-time">09:30:24 · ERROR</div><div class="tl-body">3회 재시도 후 최종 실패 — <code>elapsed=13020ms</code> (serial=CUST-7788)</div></div>
+    <div class="tl-item err"><div class="tl-time">09:31:02 · ERROR</div><div class="tl-body"><code>HikariPool-1</code> 커넥션 획득 타임아웃(30000ms) · <code>active=20 idle=0 waiting=14 (pool exhausted)</code></div></div>
+    <div class="tl-item warn"><div class="tl-time">09:33:40 · WARN</div><div class="tl-body"><code>[api]</code> 평균 응답 <code>8.7s</code>로 저하 — <code>degraded</code></div></div>
+    <div class="tl-item err"><div class="tl-time">09:35:10 · ERROR</div><div class="tl-body">두 번째 webhook 실패 — <code>elapsed=12980ms</code> (serial=CUST-7789)</div></div>
+    <div class="tl-item ok"><div class="tl-time">09:41:00 · OK</div><div class="tl-body">on-call 담당자 통지 — <code>admin=[EMAIL_1] phone=[PHONE_1]</code> · 대응 착수</div></div>
+  </div>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>6회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item warn"><div class="tl-time">20:57:53 · 도구</div><div class="tl-body">로그 조회 <code>agent-perf.log</code> (WARN) → 2줄 회수 (RSS 1180→1890MB, handles=8421 — 메모리 누수 정황)</div></div>
+    <div class="tl-item err"><div class="tl-time">20:57:53 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (ERROR) → 3줄 회수 (No space left · 503 @03:41~03:45 — 디스크 포화)</div></div>
+    <div class="tl-item warn"><div class="tl-time">20:57:53 · 도구</div><div class="tl-body">로그 조회 <code>db.log</code> (WARN) → 2줄 회수 (slow query 30021ms row lock · 6 tx waiting)</div></div>
+    <div class="tl-item"><div class="tl-time">20:58:03 · 도구</div><div class="tl-body">Jira 검색 <code>'row lock'</code> → <strong>SUP-148</strong> · <code>'slow query'</code> → <strong>SUP-148</strong> · <code>'No space left'</code> → <strong>SUP-145</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">20:58:38 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 6회)</div></div>
+  </div>
+  <div class="note"><strong>트레이스 유의사항:</strong> 본 SUP-142 데이터셋의 파이프라인 트레이스는 <code>webhook.log</code>가 아닌 <strong>복합 정황 로그</strong>(agent-perf/system/db)를 조회하여 SUP-148·SUP-145를 매칭했다. 그러나 고객 문의("특정 시간대 관리서버 지연")의 <strong>최종 원인은 webhook 재시도로 인한 커넥션 풀 고갈(SUP-142 완전 일치)</strong>로 정리되며, 복합 정황은 별도 시스템 건전성 항목으로 분리한다.</p></div>
+  <div class="info"><strong>분석 특징:</strong> "느림"이라는 비특정 증상에 대해 다중 로그를 병렬 수집하여 여러 정황을 확보한 뒤, <strong>공유 자원(커넥션 풀) 고갈</strong>이라는 1차 원인과 <strong>복합 정황(메모리·디스크·락)</strong>을 분리 판단했다 — 다중 근거 수집 → 인과 사슬 구성 → primary/secondary 분리의 전형적 성공 패턴.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>on-call 담당 이메일</td><td>09:41:00 <code>[ops]</code> 라인 (<code>oh@corp.example.com</code>)</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>담당 휴대폰</td><td>09:41:00 <code>[ops]</code> 라인 (<code>010-2345-6789</code>)</td></tr>
+    </tbody>
+  </table>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-142 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-144 — 에이전트 알림 팝업 노출 시간 조절 기능 요청 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+  .logbox .empty { color: #94a3b8; font-style: italic; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">💡 개선문의 · Enhancement</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-144 — 에이전트 알림 팝업<br>노출 시간 조절 기능 요청</h1>
+    <p class="subtitle"><b>고객사 D (의료)</b> &nbsp;|&nbsp; 접수 2026-05-22 &nbsp;|&nbsp; 상태 <b>개선 예정</b> &nbsp;|&nbsp; 모듈 agent / 알림 UI &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">문의(요구사항) 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석 (장애 여부 확인)</a></li>
+      <li><a href="#sec5">현황 분석 — 조절 불가 원인</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">대응 방안 (현황 + 로드맵)</a></li>
+      <li><a href="#sec8">후속 조치 &amp; 커뮤니케이션 권고</a></li>
+      <li><a href="#sec9">영향 범위 / 우선순위</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 &amp; 부수 발견</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 D(의료)에서 <strong>Mac 에이전트가 표시하는 차단/안내 알림 팝업의 노출 시간(화면에 떠 있는 시간)을 관리자가 임의로 조절하고 싶다</strong>는 문의를 접수했다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 관련 로그와 사내 Jira 이력을 조회·대조하여, 이 문의가 <strong>장애(fault)가 아닌 기능 개선 요청(enhancement)</strong>임을 확인하고 현황과 대응 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "고객사에서 알림 팝업 시간을 조절하고 싶다는데, 지금 가능한지랑 대응안 정리해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 현재 버전에서 알림 팝업 노출 시간은 <strong>코드상 고정값으로 하드코딩</strong>되어 있어 관리자 정책/설정으로 조절할 수 없다. 이는 <strong>장애가 아닌 사양(기능 미제공)</strong>이며, 관리자페이지에 <strong>'알림 팝업 노출 시간(초)' 정책 항목을 추가</strong>하는 개선을 로드맵에 반영해 <strong>다음 마이너 버전</strong>을 목표로 지원 예정이다(SUP-144).</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">유형</div><div class="value">개선 문의</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 D (의료)</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-05-22</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value"><span class="badge badge-review">개선 예정</span></div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-low">Low</span></div></div>
+    <div class="stat-card"><div class="label">대상 기능</div><div class="value">알림 팝업 노출 시간</div></div>
+    <div class="stat-card"><div class="label">서비스 영향</div><div class="value">없음 (정상 동작)</div></div>
+    <div class="stat-card"><div class="label">장애 여부</div><div class="value">아님 (사양)</div></div>
+  </div>
+  <div class="success"><strong>심각도 판정 — Low:</strong> 본 건은 서비스 오류나 데이터 손실이 없는 <strong>기능 개선 요청</strong>이다. 에이전트·팝업 기능 자체는 정상 동작하며, 단지 노출 시간이 사용자 조절 대상이 아닐 뿐이다. 따라서 심각도는 <strong>Low</strong>, 우선순위는 <strong>제품 로드맵 관리</strong> 트랙으로 다룬다.</div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>없음 — 팝업은 정상적으로 노출되며 보안 안내 기능이 저해되지 않는다. 노출 시간이 환경에 따라 다소 짧거나 길게 느껴질 수 있다는 <strong>사용성(UX) 개선 여지</strong>에 해당한다.</td></tr>
+      <tr><td>보안 영향</td><td>없음 — 팝업 노출 시간은 차단/안내 동작의 부가적 표시 파라미터이며, 차단 로직 자체와 무관하다.</td></tr>
+      <tr><td>긴급도</td><td><span class="badge badge-done">Low</span> — 장애가 아니므로 즉시 조치 대상 아님. 다음 마이너 버전 릴리스 일정에 맞춰 제공.</td></tr>
+      <tr><td>대응 성격</td><td><span class="badge badge-review">개선(Enhancement)</span> — 관리자페이지 정책 항목 신설 + 에이전트 정책값 반영 개발.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>구분 유의:</strong> 이 문의를 '장애'로 접수·처리할 경우 원인 조사(로그/재현)에 불필요한 리소스가 투입된다. 아래 4장에서 로그상 오류가 전혀 없음을 확인하여 <strong>사양 이슈</strong>로 명확히 분류한다.</div>
+
+  <h2 id="sec3"><span class="section-num">3.</span>문의(요구사항) 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-review">요구</span> 핵심 요청</td><td>Mac 에이전트 <strong>알림 팝업이 화면에 떠 있는 시간(노출 시간)</strong>을 관리자가 조절할 수 있게 해달라.</td></tr>
+      <tr><td><span class="badge badge-edit">확인</span> 현재 가능 여부</td><td>현재 버전에서는 <strong>조절 불가</strong>. 노출 시간이 코드 고정값으로 설정되어 있다.</td></tr>
+      <tr><td><span class="badge badge-warn">미정</span> 목표값</td><td>고객이 원하는 구체적 초 단위 값·대상 OS(Mac/Windows)는 아직 미수집 → 후속 수집 필요(8장).</td></tr>
+      <tr><td><span class="badge badge-new">범위</span> 대상 기능</td><td>차단/안내 성격의 에이전트 팝업 UI. 모바일 푸시·결재 알림 등 타 알림 채널과는 무관.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석 (장애 여부 확인)</h2>
+  <p>이 문의가 장애인지 사양인지 먼저 판별하기 위해, 에이전트가 <code>system.log</code>에서 팝업/알림 관련 키워드(<code>popup</code>, <code>notification</code>)를 조회했다. 그 결과 <strong>관련 오류·이벤트 줄이 전혀 발견되지 않았다(0건)</strong>. 즉, 시스템은 팝업 노출과 관련해 어떤 오류도 남기지 않았으며, 이는 <strong>기능이 정상 동작하고 있고 장애가 아님</strong>을 방증한다.</p>
+
+  <div class="logbox"><span class="ts">$ grep -i "popup"  system.log</span>
+<span class="empty">'popup' 를 포함하는 줄이 없습니다.</span>
+
+<span class="ts">$ grep -i "notification"  system.log</span>
+<span class="empty">'notification' 를 포함하는 줄이 없습니다.</span>
+
+<span class="ts"># 결과: 팝업/알림 관련 오류·이벤트 로그 0건</span>
+<span class="ts"># → 장애의 흔적 없음. 노출 시간은 '기록되는 이벤트'가 아니라</span>
+<span class="ts">#   코드 내부 고정 상수로 처리됨(사양).</span></div>
+
+  <div class="info"><strong>Dead-end search(공회전 검색)의 의미:</strong> 통상 장애 분석에서 키워드 검색이 <strong>0건</strong>이면 조사가 막힌 것이지만, 이 케이스에서는 오히려 <strong>"오류가 없다 = 장애가 아니다"</strong>를 역으로 입증하는 근거가 된다. 노출 시간은 런타임에 로깅되는 값이 아니라 빌드에 박힌 고정 상수이므로, 로그에 흔적이 남지 않는 것이 정상이다.</div>
+
+  <h4>로그 조사 결과 요약</h4>
+  <table>
+    <thead><tr><th>검색 키워드</th><th>대상</th><th>결과</th><th>해석</th></tr></thead>
+    <tbody>
+      <tr><td><code>popup</code></td><td>system.log</td><td><span class="badge badge-done">0건</span></td><td>팝업 관련 오류/이벤트 없음</td></tr>
+      <tr><td><code>notification</code></td><td>system.log</td><td><span class="badge badge-done">0건</span></td><td>알림 관련 오류/이벤트 없음</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>부수 관찰(무관):</strong> 팝업 키워드와 별개로, 같은 <code>system.log</code>에서 <strong>디스크 포화 및 감사로그 기록 실패</strong> 오류가 관측되었다. 이는 팝업 노출 시간 이슈와 <strong>전혀 무관</strong>하나 시급한 별건이므로 부록 B에 분리 기재한다.</div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>현황 분석 — 조절 불가 원인</h2>
+  <p>4장에서 장애가 아님이 확인되었으므로, 본 장은 근본 원인(RCA)이 아니라 <strong>"왜 현재 조절이 불가능한가"에 대한 현황 분석</strong>이다. 결론은 단순하다: <strong>알림 팝업 노출 시간이 에이전트 코드상 고정값(상수)으로 하드코딩</strong>되어 있고, 관리자페이지 정책에 이를 제어할 <strong>설정 항목 자체가 존재하지 않기</strong> 때문이다.</p>
+
+  <div class="flow-box">[현황 — 조절 불가]
+  알림 팝업 노출 시간 = 코드 하드코딩 고정값 (예: 5초)
+       |
+       v
+  관리자페이지 정책에 해당 설정 항목 없음
+       |
+       v
+  관리자가 값을 바꿀 방법이 없음  →  ❌ 조절 불가
+
+──────────────────────────────────────────────
+
+[로드맵 — 조절 가능]
+  관리자페이지 정책에 '알림 팝업 노출 시간(초)' 항목 추가
+       |
+       v
+  에이전트가 정책값을 fetch (정책 동기화)
+       |
+       v
+  fetch 한 값으로 팝업 노출 시간 반영  →  ✅ 조절 가능</div>
+
+  <h4>현황 요인 정리</h4>
+  <table>
+    <thead><tr><th>계층</th><th>현황</th></tr></thead>
+    <tbody>
+      <tr><td>표면 현상</td><td>관리자가 알림 팝업 노출 시간을 변경할 UI/설정이 없다.</td></tr>
+      <tr><td>직접 원인</td><td>노출 시간이 <strong>에이전트 코드의 고정 상수</strong>로 정의되어 있어 외부에서 주입할 경로가 없다.</td></tr>
+      <tr><td>구조적 배경</td><td>관리자페이지 <strong>정책 스키마에 해당 파라미터가 미정의</strong> → 에이전트가 참조할 정책값 자체가 없음.</td></tr>
+      <tr><td>결론</td><td>장애가 아니라 <strong>기능 미제공(사양)</strong>. 정책 항목 신설 + 에이전트 반영 개발이 필요.</td></tr>
+    </tbody>
+  </table>
+  <div class="success"><strong>핵심:</strong> 코드 버그를 고치는 문제가 아니라, <strong>"고정값을 정책 기반 설정값으로 승격"</strong>하는 기능 추가 문제다. 관리자페이지(정책 정의) + 에이전트(정책값 반영) 양쪽 작업이 함께 필요하다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 <code>'팝업'</code>, <code>'알림'</code> 키워드로 사내 Jira를 조회했다. <code>'팝업'</code> 검색은 본 문의 이슈(<strong>SUP-144</strong>)를 정확히 회수했고, <code>'알림'</code> 검색은 3건이 매칭되었으나 그중 2건은 <strong>키워드만 겹칠 뿐 팝업 노출 시간과는 무관</strong>한 별개 이슈다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-144</strong></td><td>에이전트 알림 팝업 노출 시간 조절 기능 요청 (개선 문의)</td><td>고객사 D · 2026-05-22</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+      <tr><td>SUP-131</td><td>모바일 푸시 알림 미수신</td><td>고객사 C · 2026-02-08</td><td><span class="badge badge-warn">키워드만 겹침 (무관)</span></td></tr>
+      <tr><td>SUP-140</td><td>결재 의견에 작은따옴표(') 입력 시 500 에러</td><td>고객사 A · 2026-04-10</td><td><span class="badge badge-warn">키워드만 겹침 (무관)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="info"><strong>매칭 해석:</strong> SUP-131은 '모바일 푸시', SUP-140은 '결재 알림'이라는 서로 다른 알림 도메인 이슈로, 단지 <code>'알림'</code>이라는 공통 단어 때문에 검색에 걸렸을 뿐이다. <strong>팝업 노출 시간 개선과 직접 관련된 이슈는 SUP-144 하나</strong>다.</div>
+  <div class="card">
+    <h4>SUP-144 조치 이력(resolution)</h4>
+    <p>관리자페이지 정책에 <strong>'알림 팝업 노출 시간(초)' 설정 항목을 추가</strong>하고, 에이전트가 해당 정책값을 fetch·반영하도록 <strong>개선 예정</strong>. 로드맵에 반영되었으며 <strong>다음 마이너 버전</strong>을 목표로 한다. 임시 안내: <strong>현재 버전은 고정값이라 조절 불가</strong>.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>대응 방안 (현황 + 로드맵)</h2>
+
+  <h3>7-1. 현재 버전 — 조절 불가 (고정값)</h3>
+  <p>현재 배포 버전에서는 노출 시간이 코드 고정값으로 박혀 있어 <strong>관리자·현장 모두 조절할 수 없다.</strong> 임시 우회책(로컬 설정 파일 편집 등)은 제공되지 않으며, 무리한 우회 대신 아래 정식 개선을 기다리는 것을 권장한다. 값이 반드시 즉시 필요한 경우에 한해, 개별 빌드로 상수를 조정한 버전을 제공할 수 있는지 개발팀 확인이 필요하다(8장).</p>
+
+  <h3>7-2. 정식 대응 — 정책 기반 조절 (다음 마이너 버전)</h3>
+  <p>관리자페이지 정책에 <strong>'알림 팝업 노출 시간(초)'</strong> 항목을 추가하고, 에이전트가 정책 동기화 시 이 값을 받아 팝업 노출 시간에 반영하도록 개선한다. 배포 후에는 관리자가 정책 화면에서 값을 지정하기만 하면 대상 단말에 적용된다.</p>
+
+  <h4>계획된 관리자페이지 정책 설정 UI (목업)</h4>
+  <div class="ui-mock">┌─ 관리자페이지 · 정책 설정 › 알림 ────────────────────────┐
+│                                                          │
+│   알림 팝업 노출 시간 :  [   5   ] 초                     │
+│                          (기본 5초, 범위 1 ~ 30초)        │
+│                                                          │
+│   적용 대상 :  [✓] Mac      [ ] Windows                  │
+│                                                          │
+│                                   [ 취소 ]   [ 저장 ]     │
+└──────────────────────────────────────────────────────────┘
+※ 저장 시 정책 동기화를 통해 대상 에이전트에 반영됨.</div>
+  <div class="info"><strong>동작 흐름:</strong> 관리자가 값 저장 → 정책 배포 → 에이전트가 다음 정책 fetch에서 값 수신 → 이후 노출되는 팝업부터 지정 시간 적용.</div>
+
+  <h3>7-3. 개선 적용 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">장애 여부 판별 완료 (로그 0건 → 사양 이슈로 확정)</li>
+    <li class="done">현황 원인 규명 (노출 시간 = 코드 하드코딩 고정값)</li>
+    <li>관리자페이지 정책 스키마에 <code>알림 팝업 노출 시간(초)</code> 항목 추가 (기본 5초 · 범위 1~30초)</li>
+    <li>에이전트가 정책값을 fetch하여 팝업 노출 시간에 반영하도록 개발</li>
+    <li>적용 대상 OS(Mac/Windows) 분기 처리 검증</li>
+    <li>다음 마이너 버전 릴리스에 포함 · 배포 후 고객사 D 적용 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>후속 조치 &amp; 커뮤니케이션 권고</h2>
+  <ol>
+    <li><strong>고객사 안내:</strong> "현재 버전은 노출 시간이 고정값이라 조절 불가하며, <strong>다음 마이너 버전에서 정책 기반 조절을 지원할 예정(SUP-144 로드맵 반영)</strong>"임을 안내한다.</li>
+    <li><strong>요구사항 수집:</strong> 고객이 원하는 <strong>목표 노출 시간(초)</strong>과 <strong>대상 OS(Mac/Windows)</strong>를 확인해 <strong>SUP-144에 코멘트로 추가</strong>한다. (기본 5초 대비 얼마를 원하는지 구체값 확보)</li>
+    <li><strong>일정 통지:</strong> 릴리스 일정이 확정되면 고객사 D에 통지한다. <strong>급한 경우</strong> 상수만 조정한 개별 빌드 제공이 가능한지 개발팀에 확인한다.</li>
+    <li><strong>[별건·시급] 디스크 포화 조치:</strong> 로그 조사 중 발견된 <code>/var/log</code> 디스크 100% 포화 및 감사로그 기록 실패(503)는 팝업 이슈와 무관하나 <strong>즉시 조치가 필요한 별도 티켓</strong>으로 분리 처리한다(부록 B 참조).</li>
+  </ol>
+  <div class="danger"><strong>주의 — 우선순위 역전:</strong> 정작 이번 문의(팝업 시간, Low)보다 <strong>부수 발견된 디스크 포화/감사로그 실패(별건)</strong>가 더 시급하다. 팝업 개선은 로드맵으로 관리하되, 디스크 이슈는 즉시 인프라팀에 에스컬레이션할 것.</div>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 / 우선순위</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>에이전트 알림 팝업 기능</td><td><span class="badge badge-done">정상 동작</span></td><td>노출 시간만 고정 · 표시 자체는 문제 없음</td></tr>
+      <tr><td>보안 차단 로직</td><td><span class="badge badge-done">영향 없음</span></td><td>노출 시간은 표시 파라미터일 뿐 차단 동작과 무관</td></tr>
+      <tr><td>관리자페이지 (개발 대상)</td><td><span class="badge badge-review">개선</span></td><td>정책 항목 신설 필요</td></tr>
+      <tr><td>에이전트 (개발 대상)</td><td><span class="badge badge-review">개선</span></td><td>정책값 fetch·반영 로직 추가</td></tr>
+      <tr><td>디스크 포화 (부수·별건)</td><td><span class="badge badge-required">시급</span></td><td>팝업과 무관 · 즉시 조치 (부록 B)</td></tr>
+    </tbody>
+  </table>
+  <div class="success"><strong>우선순위 정리:</strong> 본 개선(SUP-144)은 <strong>Low · 로드맵 관리</strong>. 다음 마이너 버전 목표. 서비스 영향이 없으므로 긴급 핫픽스 대상이 아니다.</div>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>7회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-time">20:59:25 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (키워드 <code>popup</code>) → <strong>0줄</strong> (팝업 오류 없음)</div></div>
+    <div class="tl-item"><div class="tl-time">20:59:25 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (키워드 <code>notification</code>) → <strong>0줄</strong> (알림 오류 없음)</div></div>
+    <div class="tl-item"><div class="tl-time">20:59:25 · 도구</div><div class="tl-body">Jira 검색 <code>'알림 팝업 시간'</code> → 매치 <strong>0건</strong> (자연어 검색 공회전)</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:59:32 · 도구</div><div class="tl-body">Jira 검색 <code>'팝업'</code> → 매치 1건 (<strong>SUP-144</strong> 회수)</div></div>
+    <div class="tl-item"><div class="tl-time">20:59:32 · 도구</div><div class="tl-body">Jira 검색 <code>'알림'</code> → 매치 3건 (SUP-131 · SUP-140 · SUP-144, 2건은 무관)</div></div>
+    <div class="tl-item warn"><div class="tl-time">20:59:32 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (키워드 <code>WARN</code>) → 2줄 (디스크 포화 경고 · 부수 발견)</div></div>
+    <div class="tl-item err"><div class="tl-time">20:59:32 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (키워드 <code>ERROR</code>) → 3줄 (쓰기 실패 · 503 · 부수 발견)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:00:00 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 7회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징 — "공회전으로 장애 아님을 입증":</strong> <code>popup</code>/<code>notification</code> 로그 검색이 모두 0건인 <strong>dead-end search</strong>였으나, 이 공회전 자체가 <strong>"오류 흔적이 없으므로 장애가 아니라 사양 이슈"</strong>라는 결론을 역으로 뒷받침했다. 이후 정확한 키워드(<code>'팝업'</code>)로 Jira 로드맵 이슈(SUP-144)를 회수해 대응 방향을 확정했다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 &amp; 부수 발견</h2>
+
+  <h3>11-1. PII 마스킹 처리 내역</h3>
+  <p>본 케이스는 <strong>팝업 관련 PII가 존재하지 않는다.</strong> 다만 부수 발견된 <code>system.log</code>에서 로그 정리 담당자의 이메일 1건이 확인되어 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>담당자 이메일</td><td>부수 발견 system.log 정리 담당 (<code>oh@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>11-2. 부수 발견 — 디스크 포화 &amp; 감사로그 실패 (팝업과 무관)</h3>
+  <div class="danger"><strong>구분 명시:</strong> 아래 오류는 이번 문의(알림 팝업 노출 시간)와 <strong>전혀 무관한 부수 관찰</strong>이다. 그러나 감사로그 기록이 중단되는 <strong>시급한 별건</strong>이므로 별도 티켓으로 즉시 조치할 것을 권고한다.</div>
+  <div class="logbox"><span class="ts">2026-07-08 02:14:52</span> <span class="lv-warn">WARN</span>  <span class="msg">disk usage <span class="hl">/var/log at 92%</span></span>
+<span class="ts">2026-07-08 03:42:33</span> <span class="lv-warn">WARN</span>  <span class="msg">disk usage <span class="hl">/var/log at 100%</span></span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg">write failed: <span class="hl">No space left on device</span></span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg"><span class="hl">failed to append audit log</span> (log rotation owner=[EMAIL_1])</span>
+<span class="ts">2026-07-08 03:45:00</span> <span class="lv-error">ERROR</span> <span class="msg"><span class="hl">503 Service Unavailable</span> (audit write failed)</span></div>
+  <table>
+    <thead><tr><th>시각</th><th>레벨</th><th>내용</th><th>영향</th></tr></thead>
+    <tbody>
+      <tr><td>02:14:52</td><td><span class="badge badge-warn">WARN</span></td><td><code>/var/log</code> 사용률 92%</td><td>포화 임박 경고</td></tr>
+      <tr><td>03:42:33</td><td><span class="badge badge-warn">WARN</span></td><td><code>/var/log</code> 사용률 100%</td><td>디스크 완전 포화</td></tr>
+      <tr><td>03:41:10</td><td><span class="badge badge-required">ERROR</span></td><td><code>No space left on device</code> · 감사로그 append 실패</td><td>감사 기록 유실 위험</td></tr>
+      <tr><td>03:45:00</td><td><span class="badge badge-required">ERROR</span></td><td><code>503 Service Unavailable</code> (audit write failed)</td><td>감사 서비스 응답 불가</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>권고:</strong> 인프라팀에 즉시 에스컬레이션 — <code>/var/log</code> 확보(로그 순환/아카이빙), 감사로그 쓰기 경로 복구 및 유실 구간 점검. 본 SUP-144(팝업 개선)와는 <strong>별도 티켓</strong>으로 추적할 것.</div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-144 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

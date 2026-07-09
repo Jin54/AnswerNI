@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-143 — 개인정보 검사 시 일부 파일 포맷 검출 누락 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🔒 개인정보 · Privacy/DLP</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-143 — 개인정보 검사 시 일부 파일<br>포맷에서 검출이 누락됨</h1>
+    <p class="subtitle"><b>고객사 C</b> &nbsp;|&nbsp; 접수 2025-10-15 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 dlp / scan-engine &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 C의 담당자가 DLP 개인정보 검사를 실행한 뒤 <strong>"일부 파일이 개인정보 검사에서 검출되지 않는다"</strong>고 문의했다. 특정 문서에는 주민등록번호·이메일 등 개인정보가 분명히 포함되어 있음에도 검사 결과에 나타나지 않아, 검출 엔진의 <em>미탐(false negative)</em>을 의심한 것이다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 검사 엔진 로그(<code>logs/dlp-scan.log</code>)와 사내 Jira 이력을 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "개인정보 검사에서 일부 파일이 검출 안 된다는 문의. 뭐가 문제인지 정리해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 검출이 <strong>'안 되는'(미탐)</strong> 것이 아니라, 검사엔진이 해당 파일의 <strong>본문 추출(extract)에 실패</strong>해 스캔 대상에서 <strong>조용히 제외(skipped)</strong>된 것이다. 미지원 포맷(<code>.hwp</code> 파서 미지원, <code>.zip</code> 중첩 압축)으로 총 <strong>12개 파일</strong>이 스킵되어 잠재 PII가 미검사 상태로 남았다. 스킵 파일이 결과 화면에서 '검출 없음'처럼 보여 누락으로 인식된 것 — 즉 <strong>'미탐'이 아니라 '검사 제외(스캔 사각지대)'</strong>다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">개인정보/DLP</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 C</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2025-10-15</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">개인정보 검사 커버리지</div></div>
+    <div class="stat-card"><div class="label">검사 총건</div><div class="value">214 files</div></div>
+    <div class="stat-card"><div class="label">스캔 사각지대</div><div class="value">12 files (skipped)</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>개인정보 검사 커버리지 결손 — 214개 중 <strong>12개 파일이 검사되지 않은 채</strong> 결과에 '검출 없음'으로 표시됨. 담당자가 검사 완료로 오인.</td></tr>
+      <tr><td>컴플라이언스 영향</td><td><span class="badge badge-required">중요</span> 개인정보보호 관점에서 <strong>'검사했다고 믿었으나 실제로는 미검사'</strong>는 가장 위험한 상태. 잠재 PII(주민번호·이메일 등)가 조용히 방치되어 규제·감사 리스크로 직결.</td></tr>
+      <tr><td>긴급도</td><td>High — 미탐은 결과가 틀린 것이지만, 본 건은 <strong>검사 자체가 누락된 사각지대</strong>가 결과에 드러나지 않는다는 점에서 인지·차단이 더 어렵다.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>심각도 근거 (High):</strong> 개인정보 검사는 "검사했다"는 사실 자체가 컴플라이언스 근거가 된다. 스킵된 파일이 결과상 '깨끗함'으로 표시되면, 실제로는 미검사임에도 <strong>PII 유출 리스크가 조용히 방치</strong>된다. 결과의 <em>신뢰도</em>를 훼손하는 사각지대이므로 High로 평가한다.</div>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-done">정상</span> 지원 포맷</td><td><code>.txt</code>(plain) · <code>.docx</code>는 본문 추출·검출이 정상 동작 — 주민번호(RRN) · 이메일(EMAIL) · 전화번호(PHONE)가 탐지됨(detected=3).</td></tr>
+      <tr><td><span class="badge badge-required">누락</span> 미지원 포맷</td><td><code>.hwp</code>(파서 미지원) · <code>.zip</code>(중첩 압축)은 <code>extract=FAILED</code>로 검사에서 제외됨. 화면상 검출 결과가 나타나지 않음.</td></tr>
+      <tr><td><span class="badge badge-warn">규모</span> 스킵 건수</td><td><strong>12 files skipped</strong> (unsupported format) — 검사 커버리지 214개 중 미검사 12개.</td></tr>
+      <tr><td><span class="badge badge-edit">오인</span> 결과 표시</td><td>스킵된 파일이 결과 화면에서 <strong>'검출 없음'과 동일하게</strong> 보여, 담당자가 "검사했으나 안 나온 것(미탐)"으로 오인.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/dlp-scan.log</code>. 검출 성공(<code>DETECT</code>)과 제외(<code>skipped</code>)가 <strong>파일 포맷의 추출 가능 여부</strong>에 따라 정확히 갈린다. 검사 Job의 마지막 요약(<code>files=214 detected=3 skipped=12</code>)이 사각지대의 존재를 명시하고 있다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-09 11:00:01</span> <span class="lv-info">INFO</span>  <span class="msg">[scan] job start target=\\fileshare\hr requester=[EMAIL_3]</span>
+<span class="ts">2026-07-09 11:00:05</span> <span class="lv-info">INFO</span>  <span class="msg">[scan] file=employee_list.txt format=plain matched RRN=1 EMAIL=1</span>
+<span class="ts">2026-07-09 11:00:05</span> <span class="lv-detect">DETECT</span> <span class="msg">[scan] employee_list.txt rrn=[RRN_1] email=[EMAIL_1]</span>
+<span class="ts">2026-07-09 11:00:12</span> <span class="lv-info">INFO</span>  <span class="msg">[scan] file=contract_2026.docx format=docx extract=OK matched PHONE=1</span>
+<span class="ts">2026-07-09 11:00:12</span> <span class="lv-detect">DETECT</span> <span class="msg">[scan] contract_2026.docx phone=[PHONE_1]</span>
+<span class="ts">2026-07-09 11:00:18</span> <span class="lv-warn">WARN</span>  <span class="msg">[scan] file=members.hwp format=hwp <span class="hl">extract=FAILED (parser unsupported) -&gt; skipped</span></span>
+<span class="ts">2026-07-09 11:00:19</span> <span class="lv-warn">WARN</span>  <span class="msg">[scan] file=archive.zip format=zip <span class="hl">extract=FAILED (nested) -&gt; skipped</span></span>
+<span class="ts">2026-07-09 11:00:24</span> <span class="lv-info">INFO</span>  <span class="msg">[scan] file=notice.txt format=plain matched EMAIL=1</span>
+<span class="ts">2026-07-09 11:00:24</span> <span class="lv-detect">DETECT</span> <span class="msg">[scan] notice.txt email=[EMAIL_2]</span>
+<span class="ts">2026-07-09 11:00:40</span> <span class="lv-info">INFO</span>  <span class="msg">[scan] job done files=214 detected=3 <span class="hl">skipped=12</span></span>
+<span class="ts">2026-07-09 11:00:40</span> <span class="lv-warn">WARN</span>  <span class="msg">[scan] <span class="hl">12 files skipped due to unsupported format (potential PII not scanned)</span></span></div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>파일</th><th>포맷</th><th>추출(extract)</th><th>검출 결과</th></tr></thead>
+    <tbody>
+      <tr><td>employee_list.txt</td><td>plain</td><td><span class="badge badge-done">OK</span></td><td><span class="badge badge-done">DETECT</span> RRN=1 · EMAIL=1</td></tr>
+      <tr><td>contract_2026.docx</td><td>docx</td><td><span class="badge badge-done">OK</span></td><td><span class="badge badge-done">DETECT</span> PHONE=1</td></tr>
+      <tr><td>notice.txt</td><td>plain</td><td><span class="badge badge-done">OK</span></td><td><span class="badge badge-done">DETECT</span> EMAIL=1</td></tr>
+      <tr><td>members.hwp</td><td>hwp</td><td><span class="badge badge-required">FAILED</span> (parser unsupported)</td><td><span class="badge badge-warn">skipped</span> 검사 제외</td></tr>
+      <tr><td>archive.zip</td><td>zip</td><td><span class="badge badge-required">FAILED</span> (nested)</td><td><span class="badge badge-warn">skipped</span> 검사 제외</td></tr>
+      <tr><td>… (그 외 미지원 포맷)</td><td>various</td><td><span class="badge badge-required">FAILED</span></td><td><span class="badge badge-warn">skipped</span> 합계 12건</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>핵심 관찰:</strong> <code>ERROR</code> 레벨 로그는 <strong>0줄</strong>이다 — 검사 엔진은 예외 없이 "정상 종료"했다. 문제는 실패가 <code>WARN</code>으로만 남고, 스킵된 파일이 결과에서 '검출 없음'과 구분되지 않는다는 점이다. 사각지대는 오류가 아니라 <strong>조용한 누락</strong>의 형태로 나타난다.</div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>고객이 의심한 '미탐(검출 로직이 PII를 놓침)'은 사실이 아니다. 지원 포맷(<code>.txt</code>/<code>.docx</code>)에서는 검출 로직이 정상 동작해 RRN·EMAIL·PHONE을 모두 탐지했다. 진짜 원인은 <strong>검사 이전 단계인 '본문 추출(extract)'의 실패</strong>다. 추출에 실패하면 검사할 텍스트 자체가 없으므로 파일이 <strong>스캔 대상에서 조용히 제외(skipped)</strong>되고, 그 상태가 결과 화면에서 '검출 없음'과 구분되지 않는다.</p>
+
+  <div class="flow-box">[개인정보 검사 Job — 214 files]
+     |
+     ├─▶ .txt / .docx  →  extract OK  →  [PII 탐지 엔진]  →  DETECT (detected=3)  ✅
+     |
+     └─▶ .hwp / .zip   →  extract FAILED
+                             |
+                             v
+                        skipped (조용히 제외 · skipped=12)
+                             |
+                             v
+                        결과 화면엔 '검출 없음'처럼 표시  ❌
+                             |
+                             v
+                        사용자 인지 못함 → 스캔 사각지대 12건</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>표면 증상</td><td>일부 파일에서 개인정보가 '검출되지 않음' → 사용자는 미탐(false negative)으로 인식.</td></tr>
+      <tr><td>직접 원인</td><td>미지원 포맷(<code>.hwp</code> 파서 미지원, <code>.zip</code> 중첩 압축)에서 <strong>본문 추출(extract)이 실패</strong>하여 파일이 스킵됨 → 검사할 텍스트가 애초에 존재하지 않음.</td></tr>
+      <tr><td>근본 원인</td><td>추출 실패 파일을 별도 상태로 리포팅하지 않고 <strong>'검출 없음'과 동일하게 처리</strong> → 스캔 사각지대가 결과에 드러나지 않음.</td></tr>
+      <tr><td>기여 요인</td><td>미지원 포맷 파서 커버리지 부족(.hwp 등) · 중첩 압축 재귀 해제 미지원 · 스킵 건수/목록의 상시 노출 부재.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>핵심 재정의:</strong> 이 사건은 <strong>'미탐(검사했는데 놓침)'이 아니라 '검사 제외(스캔 사각지대)'</strong>다. 검출 엔진의 정확도 문제가 아니라, <strong>검사 커버리지와 결과 가시성의 문제</strong>다. 따라서 조치의 초점은 검출 로직 튜닝이 아니라 <strong>추출 커버리지 확대 + 누락의 가시화</strong>에 있어야 한다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 로그에서 추출한 정확한 키워드(<code>'hwp'</code>, <code>'unsupported'</code>, <code>'skipped'</code>)로 사내 Jira를 재조회해 <strong>동일 증상의 이슈 SUP-143</strong>을 회수했다(현재 문의가 곧 이 이슈의 재현).</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-143</strong></td><td>개인정보 검사 시 일부 파일 포맷에서 검출이 누락됨</td><td>고객사 C · 2025-10-15</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-143 조치 이력(resolution)</h4>
+    <p>미지원 포맷 파서를 보강하고, 추출 실패 파일은 <strong>'검출 없음'이 아니라 '검사 불가(스캔 제외)'로 별도 로깅·표시</strong>하도록 개선해 누락을 가시화. 우선순위 포맷부터 파서를 추가 적용. 이로써 검사 커버리지의 사각지대가 결과 리포트에 명시적으로 드러나 담당자가 재조치(변환 후 재검사 등)를 취할 수 있게 됨.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 추출 커버리지 확대 &amp; 누락 가시화 (권장)</h3>
+  <ul>
+    <li><strong>(1) 미지원 포맷 파서 보강:</strong> <code>.hwp</code> 등 <strong>우선순위 포맷부터</strong> 본문 추출 파서를 추가 적용하여 검사 대상 커버리지를 확대한다.</li>
+    <li><strong>(2) 중첩 압축 재귀 해제:</strong> <code>.zip</code> nested 아카이브를 <strong>재귀적으로 해제한 뒤</strong> 내부 파일을 스캔 대상에 포함한다.</li>
+    <li><strong>(3) 상태 분리 리포팅:</strong> 추출 실패 파일을 <strong>'검출 없음'이 아닌 '검사 불가(스캔 제외)'</strong>라는 별도 상태로 로깅·리포트에 표시하여 누락을 가시화한다.</li>
+    <li><strong>(4) 스킵 목록 상시 노출:</strong> 검사 결과 리포트에 <strong>'스킵된 파일 목록/건수'</strong>를 항상 노출해, 담당자가 사각지대를 즉시 인지하고 조치하도록 한다.</li>
+  </ul>
+
+  <h3>7-2. 즉시 완화 — 지원 포맷으로 변환 후 재검사</h3>
+  <p>파서 보강 배포 전 임시 대응으로, 미지원 포맷 파일을 <strong>지원 포맷(<code>.txt</code> / <code>.pdf</code> 등)으로 변환</strong>한 뒤 재검사를 수행한다. 로그의 <code>skipped</code> 목록(<code>members.hwp</code>, <code>archive.zip</code> 등 12건)을 대상으로 삼는다. 단, 이는 <strong>한시적 대응</strong>이며 근본 해결(7-1)로 대체되어야 한다.</p>
+
+  <h3>7-3. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (미탐 아님 → extract 실패로 인한 skipped, 스캔 사각지대)</li>
+    <li>우선순위 미지원 포맷(.hwp 등) 파서 추가 적용</li>
+    <li>중첩 압축(.zip nested) 재귀 해제 후 스캔 포함</li>
+    <li>추출 실패 파일을 '검사 불가(스캔 제외)' 상태로 별도 로깅·표시</li>
+    <li>검사 결과 리포트에 '스킵된 파일 목록/건수' 상시 노출</li>
+    <li>임시: 미지원 포맷을 지원 포맷으로 변환 후 재검사</li>
+    <li>배포 후 <code>dlp-scan.log</code>에서 <code>skipped</code> 건수 감소 및 커버리지 개선 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>커버리지 지표화:</strong> 검사 Job마다 <code>files / detected / skipped</code>를 지표로 수집하고, <strong>skipped 비율</strong>을 검사 신뢰도 KPI로 관리한다.</li>
+    <li><strong>알림 규칙 등록:</strong> <code>dlp-scan.log</code>의 <code>extract=FAILED</code> / <code>skipped</code> / <code>potential PII not scanned</code> 패턴을 알림 규칙으로 등록해 사각지대를 조기 감지한다.</li>
+    <li><strong>결과 UX 개선:</strong> 검사 결과 화면에서 <strong>'검출 없음'과 '검사 불가(스캔 제외)'를 명확히 구분</strong>하여 표시한다. 두 상태가 시각적으로 동일하면 안 된다.</li>
+    <li><strong>파서 로드맵화:</strong> 미지원 포맷 파서 보강을 개발 로드맵 항목으로 관리하고, 현장 사용 빈도 높은 포맷(.hwp 등)부터 우선순위를 부여한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-143과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>개인정보 검사 커버리지</td><td><span class="badge badge-required">직접</span></td><td>미지원 포맷 스캔 사각지대 — 214개 중 12개 미검사</td></tr>
+      <tr><td>컴플라이언스 / 감사</td><td><span class="badge badge-warn">중요</span></td><td>'검사 완료' 오인 → 잠재 PII 방치 리스크</td></tr>
+      <tr><td>검출 엔진 정확도</td><td><span class="badge badge-done">영향 없음</span></td><td>지원 포맷에서는 정상 검출 — 미탐 아님</td></tr>
+      <tr><td>파서 보강</td><td><span class="badge badge-review">로드맵</span></td><td>미지원 포맷 파서 추가는 개발 로드맵 사안</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>6회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-time">20:58:45 · 도구</div><div class="tl-body">로그 조회 <code>dlp-scan.log</code> (키워드 ERROR) → 결과 <strong>0줄</strong> (예외 없음 → 미탐/크래시 가설 배제)</div></div>
+    <div class="tl-item warn"><div class="tl-time">20:58:45 · 도구</div><div class="tl-body">로그 조회 <code>dlp-scan.log</code> (키워드 WARN) → <strong>3줄</strong> 회수 (<code>extract=FAILED ... skipped</code> 확인)</div></div>
+    <div class="tl-item"><div class="tl-time">20:58:45 · 도구</div><div class="tl-body">Jira 검색 <code>'개인정보 검출 누락'</code> (자연어) → 매치 <strong>0건</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">20:58:52 · 도구</div><div class="tl-body">Jira 재검색 <code>'hwp'</code> → <strong>SUP-143</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">20:58:52 · 도구</div><div class="tl-body">Jira 재검색 <code>'unsupported'</code> → <strong>SUP-143</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">20:58:52 · 도구</div><div class="tl-body">Jira 재검색 <code>'skipped'</code> → <strong>SUP-143</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">20:59:18 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 6회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 첫 Jira 검색(자연어 <code>'개인정보 검출 누락'</code>)은 0건이었으나, <strong>로그에서 추출한 정확 키워드</strong>(<code>'hwp'</code>, <code>'unsupported'</code>, <code>'skipped'</code>)로 재검색하여 정답 이슈를 회수했다 — 자연어 실패 → 로그 근거로 키워드 정제 → 이력 매칭의 전형적 성공 패턴. 또한 <code>ERROR</code> 0줄 / <code>WARN</code> 3줄이라는 로그 레벨 분포 자체가 "크래시가 아닌 조용한 스킵"이라는 원인 방향을 조기에 확정지었다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[RRN_1]</code></td><td>주민등록번호</td><td>employee_list.txt DETECT 라인 (<code>900101-1234567</code>)</td></tr>
+      <tr><td><code>[EMAIL_1]</code></td><td>이메일</td><td>employee_list.txt DETECT 라인 (<code>kim@aaa.com</code>)</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>전화번호</td><td>contract_2026.docx DETECT 라인 (<code>010-1234-5678</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>이메일</td><td>notice.txt DETECT 라인 (<code>lee@bbb.com</code>)</td></tr>
+      <tr><td><code>[EMAIL_3]</code></td><td>검사 요청자 이메일</td><td>job start 라인 (<code>park@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의 (마스킹 중요성):</strong> 본 케이스는 <strong>로그 자체에 실제 PII(주민등록번호 포함)가 평문으로 기록</strong>되어 있어 마스킹의 중요성이 특히 높다. 검사 엔진이 탐지한 PII를 <code>DETECT</code> 로그에 원문으로 남기는 관행은, 로그 파일이 곧 개인정보 유출 경로가 될 수 있으므로 운영 환경에서는 <strong>로그 내 PII 마스킹·저장 정책</strong>을 별도로 수립해야 한다.</div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-143 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

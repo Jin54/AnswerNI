@@ -22,8 +22,8 @@
     -webkit-font-smoothing: antialiased;
   }
   .container {
-    max-width: 1160px; margin: 0 auto; padding: 48px 32px 96px;
-    background: transparent; min-height: 100vh;
+    max-width: 1160px; margin: 0 auto; padding: 48px 32px 60px;
+    background: transparent;
   }
 
   /* 헤더 */
@@ -74,13 +74,32 @@
   #submit:disabled { opacity: .5; cursor: default; box-shadow: none; }
   #status { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
-  /* ② 진행 로그 */
+  /* 로그·파일 첨부 영역 */
+  .attach { margin-top: 16px; }
+  .attach-label { display: block; font-size: 12px; font-weight: 600; color: #8A8F98; margin-bottom: 8px; }
+  .attach-zone { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1.5px dashed #D9DCE1; border-radius: 12px; background: #FAFBFC; cursor: pointer; transition: border-color .15s, background .15s; }
+  .attach-zone:hover, .attach-zone.drag { border-color: var(--accent); background: #FFF7F2; }
+  .attach-zone .ico { width: 38px; height: 38px; border-radius: 11px; background: #F1F2F5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #6B7079; }
+  .attach-zone .txt { font-size: 13px; color: #6B7079; line-height: 1.45; }
+  .attach-zone .txt b { color: var(--accent-deep); font-weight: 700; }
+  .attach-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .attach-list:empty { display: none; }
+  .attach-chip { display: inline-flex; align-items: center; gap: 9px; padding: 8px 11px; background: #F4F5F7; border: 1px solid var(--line); border-radius: 10px; font-size: 12.5px; color: #3B3F45; }
+  .attach-chip .fname { font-weight: 600; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .attach-chip .fsize { color: #A2A7AF; font-family: var(--mono); font-size: 11px; }
+  .attach-chip button { border: 0; background: none; color: #A2A7AF; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+  .attach-chip button:hover { color: #EF4444; }
+
+  /* ② 진행 로그 — 카톡형 핑퐁 (로컬=왼쪽, 원격=오른쪽) */
   .log-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
-  .log-body { padding: 20px 22px; overflow-y: auto; max-height: 460px; }
-  .log-item { margin-bottom: 15px; }
-  .log-item:last-child { margin-bottom: 0; }
-  .log-line { display: flex; gap: 11px; font-size: 14px; align-items: flex-start; }
-  .log-line .ts { color: #A79E95; flex: 0 0 auto; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; padding-top: 1px; }
+  .log-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 13px; }
+  .log-item { margin-bottom: 0; display: flex; flex-direction: column; max-width: 82%; }
+  .log-item.from-local { align-self: flex-start; align-items: flex-start; }
+  .log-item.from-remote { align-self: flex-end; align-items: flex-end; }
+  .log-item.mask { max-width: 94%; }
+  .log-line { display: inline-flex; gap: 9px; font-size: 14px; align-items: center; flex-wrap: wrap; background: var(--tint); border-radius: 15px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(20,18,16,0.05); }
+  .log-item.from-remote .log-line { background: #EEF0FE; flex-direction: row-reverse; }
+  .log-line .ts { color: #A79E95; flex: 0 0 auto; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12px; }
   .log-line .msg { color: #3f3a34; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 
   /* 소스 뱃지 — 앞의 컬러 도트로 로컬/원격 구분 (이모지 대체) */
@@ -94,11 +113,12 @@
   .badge-remote { background: #EEF0FE; color: #4338ca; }
   .badge-system { background: var(--soft); color: var(--muted); }
   .badge-source { flex: 0 0 auto; align-self: flex-start; }
+  .log-item.from-remote .badge-source { align-self: flex-end; }
 
   .log-legend { margin: 0 0 20px; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .log-legend .badge { flex: 0 0 auto; }
 
-  .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; width: 100%; }
   @media (max-width: 620px) { .diff { grid-template-columns: 1fr; } }
   .diff-col {
     border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px;
@@ -148,7 +168,7 @@
   .copy-btn[hidden] { display: none; }
   .copy-btn.copied { background: #f0fdf4; border-color: #16a34a; color: #166534; }
   .copy-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
-  .report-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 34px 38px; min-height: 60vh; }
+  .report-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 34px 38px; }
   #report h1, #report h2, #report h3, #report p, #report li, #report code { overflow-wrap: anywhere; }
   #report h1, #report h2, #report h3 { line-height: 1.35; }
   #report h1 { font-size: 24px; font-weight: 800; color: var(--ink); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); letter-spacing: -0.4px; }
@@ -180,6 +200,15 @@
   <section id="input-area">
     <label class="field-label" for="query">문의 내용</label>
     <textarea id="query" placeholder="예: 고객사 A 로그인 실패 — 어제 오전부터 특정 계정(kim@aaa.com)이 로그인되지 않는다는 문의가 들어왔습니다. 원인 분석과 조치 방법을 알려주세요."></textarea>
+    <div class="attach">
+      <span class="attach-label">로그·파일 첨부 <span style="color:#B4B9C0;">(선택)</span></span>
+      <label class="attach-zone" id="attach-zone">
+        <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M12 3v13"/><path d="M7 8l5-5 5 5"/></svg></span>
+        <span class="txt"><b>파일 선택</b> 또는 드래그해서 첨부 · 로그(.log·.txt), 스크린샷 등</span>
+        <input id="attach-input" type="file" multiple style="display:none">
+      </label>
+      <div class="attach-list" id="attach-list" aria-live="polite"></div>
+    </div>
     <div class="row">
       <button id="submit">분석 시작</button>
       <span id="status" role="status"></span>
@@ -485,7 +514,7 @@ function makeSourceBadge(source) {
 function appendLog(logEl, message, tsText, source) {
   clearEmpty(logEl);
   var item = document.createElement('div');
-  item.className = 'log-item';
+  item.className = 'log-item ' + (source === 'remote' ? 'from-remote' : 'from-local');
   var line = document.createElement('div');
   line.className = 'log-line';
   var ts = document.createElement('span');
@@ -506,7 +535,7 @@ function appendLog(logEl, message, tsText, source) {
 function appendMaskDiff(logEl, raw, masked, tsText) {
   clearEmpty(logEl);
   var item = document.createElement('div');
-  item.className = 'log-item';
+  item.className = 'log-item from-local mask';
 
   var line = document.createElement('div');
   line.className = 'log-line';
@@ -558,7 +587,7 @@ function appendMaskDiff(logEl, raw, masked, tsText) {
 function appendCompress(logEl, before, after, tsText) {
   clearEmpty(logEl);
   var item = document.createElement('div');
-  item.className = 'log-item';
+  item.className = 'log-item from-local';
   var line = document.createElement('div');
   line.className = 'log-line';
   var ts = document.createElement('span');
@@ -977,6 +1006,10 @@ if (typeof document !== 'undefined') {
 if (typeof window !== 'undefined') {
   (function () {
     var timers = [], typeTimer = null;
+    function postParent(msg) { try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*'); } catch (e) {} }
+    function reportHeight() { postParent({ type: 'answerni-height', h: Math.ceil(document.body.scrollHeight) }); }
+    function askScroll(el) { if (el) postParent({ type: 'answerni-scroll', y: el.offsetTop }); }
+    function askFollow(el) { if (el) postParent({ type: 'answerni-follow', y: el.offsetTop + el.offsetHeight }); }
     function cancel() { timers.forEach(clearTimeout); timers = []; if (typeTimer) { clearInterval(typeTimer); typeTimer = null; } }
     function at(d, f) { timers.push(setTimeout(f, d)); }
     function cursorEl() {
@@ -999,7 +1032,8 @@ if (typeof window !== 'undefined') {
           statusEl = document.getElementById('status'),
           spinner = document.getElementById('log-spinner'),
           jSec = document.getElementById('jira-section'),
-          jGrid = document.getElementById('jira-grid');
+          jGrid = document.getElementById('jira-grid'),
+          attachList = document.getElementById('attach-list');
       if (!q || !btn || !logEl || !reportEl) return;
       cancel();
 
@@ -1008,10 +1042,30 @@ if (typeof window !== 'undefined') {
       reportEl.innerHTML = '<div class="empty">분석이 끝나면 최종 보고서가 여기에 렌더링됩니다.</div>';
       if (jSec) jSec.hidden = true;
       if (jGrid) jGrid.innerHTML = '';
+      if (attachList) attachList.innerHTML = '';
       if (statusEl) statusEl.textContent = '';
       if (spinner) spinner.hidden = true;
       btn.disabled = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      reportHeight();
+
+      // attach the case's log file(s) with a soft fade-in
+      if (attachList && sc.attachments && sc.attachments.length) {
+        sc.attachments.forEach(function (f, k) {
+          at(300 + k * 260, function () {
+            var chip = document.createElement('span');
+            chip.className = 'attach-chip';
+            chip.style.opacity = '0';
+            chip.style.transform = 'translateY(4px)';
+            chip.style.transition = 'opacity .25s ease, transform .25s ease';
+            var n = document.createElement('span'); n.className = 'fname'; n.textContent = f.name;
+            var s = document.createElement('span'); s.className = 'fsize'; s.textContent = 'LOG';
+            chip.appendChild(n); chip.appendChild(s);
+            attachList.appendChild(chip);
+            requestAnimationFrame(function () { chip.style.opacity = '1'; chip.style.transform = 'translateY(0)'; });
+            reportHeight();
+          });
+        });
+      }
 
       var startType = 650;
       at(startType, function () {
@@ -1047,18 +1101,20 @@ if (typeof window !== 'undefined') {
         if (statusEl) statusEl.textContent = '분석 중...';
         if (spinner) spinner.hidden = false;
         logEl.innerHTML = '';
-        try { var ls = logEl.closest('section'); if (ls) window.scrollTo({ top: ls.offsetTop - 20, behavior: 'smooth' }); } catch (e) {}
+        askScroll(logEl.closest('section'));
       });
       t += 550;
       at(t, function () { var cur = document.getElementById('__democursor'); if (cur) cur.style.opacity = '0'; });
 
       (sc.logs || []).forEach(function (ev) {
         at(t, function () {
-          if (ev.k === 'log') appendLog(logEl, ev.m, nowTs(), ev.s);
-          else if (ev.k === 'mask') appendMaskDiff(logEl, ev.raw, ev.masked, nowTs());
-          else if (ev.k === 'compress') appendCompress(logEl, ev.before, ev.after, nowTs());
+          if (ev.k === 'log') appendLog(logEl, ev.m, ev.ts || nowTs(), ev.s);
+          else if (ev.k === 'mask') appendMaskDiff(logEl, ev.raw, ev.masked, ev.ts || nowTs());
+          else if (ev.k === 'compress') appendCompress(logEl, ev.before, ev.after, ev.ts || nowTs());
+          reportHeight();
+          askFollow(logEl.closest('section'));
         });
-        t += ev.k === 'mask' ? 1100 : 850;
+        t += ev.k === 'mask' ? 950 : (ev.k === 'analyze' ? 700 : 620);
       });
 
       if (sc.jira && sc.jira.length && jSec && jGrid) {
@@ -1066,22 +1122,39 @@ if (typeof window !== 'undefined') {
           jSec.hidden = false;
           jGrid.innerHTML = '';
           sc.jira.forEach(function (iss) { jGrid.appendChild(renderJiraCard(iss)); });
+          reportHeight();
         });
         t += 900;
       }
 
       at(t, function () {
-        reportEl.innerHTML = renderMarkdown(sc.report || '');
+        if (sc.reportUrl) {
+          reportEl.innerHTML = '<iframe id="report-embed" src="' + sc.reportUrl + '" style="width:100%; border:0; display:block; border-radius:12px; overflow:hidden; background:#fff; min-height:600px;"></iframe>';
+          var emb = document.getElementById('report-embed');
+          emb.addEventListener('load', function () {
+            try {
+              var rd = emb.contentDocument;
+              var st = rd.createElement('style');
+              st.textContent = '.container{min-height:0 !important; box-shadow:none !important;} body{background:#fff !important;}';
+              rd.head.appendChild(st);
+              var h = rd.body.scrollHeight;
+              emb.style.height = (h + 2) + 'px';
+            } catch (e) { emb.style.height = '2600px'; }
+            reportHeight();
+          });
+        } else {
+          reportEl.innerHTML = renderMarkdown(sc.report || '');
+        }
         if (spinner) spinner.hidden = true;
         if (statusEl) statusEl.textContent = '완료';
         btn.disabled = false;
+        reportHeight();
       });
       t += 500;
       at(t, function () {
-        try {
-          var target = (jSec && !jSec.hidden) ? jSec : reportEl.closest('section');
-          if (target) window.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
-        } catch (e) {}
+        var target = (jSec && !jSec.hidden) ? jSec : reportEl.closest('section');
+        reportHeight();
+        askScroll(target);
       });
     }
     window.addEventListener('message', function (ev) {
@@ -1089,6 +1162,46 @@ if (typeof window !== 'undefined') {
       if (!d || d.type !== 'answerni-demo') return;
       play(d.script);
     });
+    // report height to parent so the iframe can auto-size (no inner scroll)
+    if (typeof ResizeObserver !== 'undefined') {
+      try { new ResizeObserver(reportHeight).observe(document.body); } catch (e) {}
+    }
+    window.addEventListener('load', reportHeight);
+    window.addEventListener('resize', reportHeight);
+    reportHeight();
+  })();
+}
+
+// ==========================================================================
+// 로그·파일 첨부 UI
+// ==========================================================================
+if (typeof document !== 'undefined') {
+  (function () {
+    function init() {
+      var zone = document.getElementById('attach-zone'),
+          input = document.getElementById('attach-input'),
+          list = document.getElementById('attach-list');
+      if (!zone || !input || !list) return;
+      var files = [];
+      function fmt(b) { if (b < 1024) return b + 'B'; if (b < 1048576) return (b / 1024).toFixed(1) + 'KB'; return (b / 1048576).toFixed(1) + 'MB'; }
+      function render() {
+        list.innerHTML = '';
+        files.forEach(function (f, idx) {
+          var chip = document.createElement('span'); chip.className = 'attach-chip';
+          var n = document.createElement('span'); n.className = 'fname'; n.textContent = f.name;
+          var s = document.createElement('span'); s.className = 'fsize'; s.textContent = fmt(f.size);
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = '✕'; b.setAttribute('aria-label', '첨부 제거');
+          b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); files.splice(idx, 1); render(); });
+          chip.appendChild(n); chip.appendChild(s); chip.appendChild(b); list.appendChild(chip);
+        });
+      }
+      function add(fl) { for (var i = 0; i < fl.length; i++) files.push(fl[i]); render(); }
+      input.addEventListener('change', function () { add(input.files); input.value = ''; });
+      ['dragover', 'dragenter'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('drag'); }); });
+      ['dragleave', 'dragend', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('drag'); }); });
+      zone.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) add(e.dataTransfer.files); });
+    }
+    if (document.readyState !== 'loading') init(); else document.addEventListener('DOMContentLoaded', init);
   })();
 }
 

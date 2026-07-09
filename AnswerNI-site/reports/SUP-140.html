@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-140 — 결재 의견 작은따옴표(') 500 에러 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">📋 결재 · Approval</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-140 — 결재 의견에 작은따옴표(') 입력 시<br>500 Internal Server Error</h1>
+    <p class="subtitle"><b>고객사 A</b> &nbsp;|&nbsp; 접수 2026-04-10 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 dlp / admin-approve &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 A의 관리자가 DLP 결재(승인) 화면에서 <strong>반려/승인 의견을 저장할 때 'Internal Server Error'(HTTP 500)</strong>가 발생하여 의견이 저장되지 않는다고 문의했다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 관련 로그와 사내 Jira 이력을 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "결재 의견 저장 시 Internal Server Error가 난다는 문의예요. 원인과 해결책 정리해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 의견 텍스트에 포함된 <strong>작은따옴표(')</strong>가 SQL 문자열 경계로 오인되어 쿼리가 파손(<code>unterminated quoted string</code>)되는 것이 원인. <strong>Prepared Statement(파라미터 바인딩)</strong> 적용으로 근본 차단하며, 배포 전까지는 <code>'</code>→<code>''</code> 이스케이프로 즉시 완화한다.</p></div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">결재</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 A</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-04-10</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">결재 의견 저장</div></div>
+    <div class="stat-card"><div class="label">데이터 유실</div><div class="value">없음 (저장 차단)</div></div>
+    <div class="stat-card"><div class="label">재현성</div><div class="value">100% (조건부)</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>결재 워크플로우 중단 — 특수문자(')가 포함된 의견은 저장 불가. 30분 내 5건 저장 실패 관측(<code>5 approval-save failures in last 30m</code>).</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-required">중요</span> 사용자 입력을 쿼리에 직접 연결하는 구조 — <strong>SQL Injection 잠재 취약점</strong>과 동일 뿌리. 우발적 오류가 곧 공격 표면.</td></tr>
+      <tr><td>긴급도</td><td>High — 결재는 업무 핵심 경로이며, 재현 조건(<code>'</code> 1개 이상)이 매우 흔함.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 500 오류</td><td>결재 의견 저장 요청 시 <code>500 Internal Server Error</code> 알림창 노출, 의견 미저장.</td></tr>
+      <tr><td><span class="badge badge-warn">조건</span> 재현 트리거</td><td>의견 텍스트에 작은따옴표(<code>'</code>)가 <strong>1개 이상</strong> 포함될 때.</td></tr>
+      <tr><td><span class="badge badge-edit">정상</span> 대조군</td><td><code>'</code>가 없는 의견(doc=2438, 2440)은 <code>200</code>으로 정상 저장.</td></tr>
+      <tr><td><span class="badge badge-new">범위</span> 처리 경로</td><td><code>admin-approve</code> 저장 경로에 국한. <code>dlp-approve-api.log</code>에는 ERROR 없음.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/admin-approve.log</code>. 저장 성공(200)과 실패(500)가 <strong>입력값의 <code>'</code> 유무</strong>에 따라 정확히 갈린다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-09 14:20:11</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] POST /admin/approve/opinion doc=2438 <span class="lv-info">200</span> 18ms</span>
+<span class="ts">2026-07-09 14:21:03</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] POST /admin/approve/opinion doc=2439</span>
+<span class="ts">2026-07-09 14:21:03</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] <span class="hl">500 Internal Server Error</span> while saving opinion doc=2439</span>
+<span class="ts">2026-07-09 14:21:03</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] org.postgresql.util.PSQLException: <span class="hl">unterminated quoted string at or near "'"</span></span>
+<span class="ts">2026-07-09 14:21:03</span> <span class="lv-detect">DEBUG</span> <span class="msg">[adm] opinion_raw="반려합니다 <span class="hl">'A안'</span>은 재검토 필요" approver=[EMAIL_1] contact=[PHONE_1]</span>
+<span class="ts">2026-07-09 14:23:40</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] POST /admin/approve/opinion doc=2440 <span class="lv-info">200</span> 21ms</span>
+<span class="ts">2026-07-09 14:25:12</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] <span class="hl">500 Internal Server Error</span> while saving opinion doc=2441</span>
+<span class="ts">2026-07-09 14:25:12</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] PSQLException: <span class="hl">unterminated quoted string at or near "'"</span></span>
+<span class="ts">2026-07-09 14:25:12</span> <span class="lv-detect">DEBUG</span> <span class="msg">[adm] opinion_raw="<span class="hl">'긴급'</span> 승인 요청 반려" approver=[EMAIL_2]</span>
+<span class="ts">2026-07-09 14:40:55</span> <span class="lv-warn">WARN</span>  <span class="msg">[adm] <span class="hl">5 approval-save failures in last 30m</span> (all: quoted string)</span></div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>문서</th><th>의견 원문(발췌)</th><th><code>'</code> 포함</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>doc=2438</td><td>(따옴표 없음)</td><td>—</td><td><span class="badge badge-done">200 정상</span></td></tr>
+      <tr><td>doc=2439</td><td>반려합니다 <code>'A안'</code>은 재검토 필요</td><td>2개</td><td><span class="badge badge-required">500 실패</span></td></tr>
+      <tr><td>doc=2440</td><td>(따옴표 없음)</td><td>—</td><td><span class="badge badge-done">200 정상</span></td></tr>
+      <tr><td>doc=2441</td><td><code>'긴급'</code> 승인 요청 반려</td><td>2개</td><td><span class="badge badge-required">500 실패</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의:</strong> <code>opinion_raw</code>가 <code>DEBUG</code> 레벨로 평문 로깅되고 있다. 결재자 이메일·연락처(PII)가 함께 남으므로, 운영 환경에서는 DEBUG 로깅 비활성화 또는 마스킹 적용을 권장한다.</p></div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p><code>unterminated quoted string</code> 예외는 사용자 입력값을 <strong>문자열 연결(string concatenation)</strong> 방식으로 SQL에 직접 삽입할 때 나타나는 전형적 증상이다. 입력에 포함된 <code>'</code>가 문자열 리터럴의 <strong>종료 경계로 오인</strong>되어 쿼리 구문이 붕괴한다.</p>
+
+  <div class="flow-box">[결재 의견 입력]  "반려합니다 'A안'은..."
+     |
+     v
+[쿼리 조립 — 문자열 연결]  ❌ 취약 지점
+     INSERT INTO opinion(...) VALUES('반려합니다 'A안'은...')
+                                     └──┬──┘└──────────── ' 가 문자열을 조기 종료
+     |
+     v
+[PostgreSQL 파서]  →  unterminated quoted string at or near "'"
+     |
+     v
+[예외 → HTTP 500]  →  의견 저장 실패 · 사용자에게 오류 알림</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>의견 문자열의 <code>'</code>가 SQL 문자열 경계로 해석되어 쿼리 구문 파손.</td></tr>
+      <tr><td>근본 원인</td><td>입력값을 바인딩 파라미터가 아닌 <strong>문자열 연결로 쿼리를 구성</strong>하는 저장 로직.</td></tr>
+      <tr><td>기여 요인</td><td>특수문자 입력에 대한 회귀 테스트 부재 · 입력 검증/이스케이프 계층 없음.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>보안 관점:</strong> 동일한 결함은 악의적 입력 시 <strong>SQL Injection</strong>으로 악용될 수 있다. 우발적 500 오류와 인젝션 취약점은 같은 뿌리(문자열 연결 쿼리)를 공유하므로, 단순 이스케이프가 아닌 <strong>파라미터 바인딩으로 근본 차단</strong>해야 한다.</p></div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 <code>'unterminated quoted string'</code> 키워드로 사내 Jira를 조회해 <strong>동일 증상의 과거 이슈 SUP-140</strong>을 회수했다(현재 문의가 곧 이 이슈의 재현).</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-140</strong></td><td>결재 의견에 작은따옴표(') 입력 시 500 Internal Server Error</td><td>고객사 A · 2026-04-10</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-140 조치 이력(resolution)</h4>
+    <p>입력 의견의 작은따옴표를 이스케이프(<code>'</code>→<code>''</code>)하여 저장하도록 수정하고, 서버측 <strong>파라미터 바인딩(Prepared Statement)</strong>을 병행 적용해 근본 차단. 재현 조건: 의견 텍스트에 <code>'</code> 1개 이상 포함. 수정 후 정상 저장 확인.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 파라미터 바인딩 (권장)</h3>
+  <p>의견 저장 쿼리에서 입력값을 문자열로 직접 연결하지 말고 <strong>바인딩 파라미터(placeholder)</strong>로 전달하도록 수정한다. <code>'</code> 등 특수문자가 데이터로만 처리되어 쿼리 파손·SQL 인젝션이 원천 차단된다.</p>
+  <pre><span class="comment">// ❌ 취약 — 문자열 연결</span>
+"INSERT INTO opinion(doc_id, body) VALUES('" + docId + "', '" + opinion + "')"
+
+<span class="comment">// ✅ 안전 — Prepared Statement (파라미터 바인딩)</span>
+<span class="key">PreparedStatement</span> ps = conn.prepareStatement(
+  <span class="string">"INSERT INTO opinion(doc_id, body) VALUES(?, ?)"</span>);
+ps.setLong(<span class="number">1</span>, docId);
+ps.setString(<span class="number">2</span>, opinion);  <span class="comment">// ' 가 데이터로만 처리됨</span>
+ps.executeUpdate();</pre>
+
+  <h3>7-2. 즉시 완화 — 작은따옴표 이스케이프</h3>
+  <p>코드 수정 배포 전 임시 대응으로, 저장 직전 의견 문자열의 <code>'</code>를 <code>''</code>로 이스케이프한다. (SUP-140에서도 병행 적용) 단, 이는 <strong>한시적 대응</strong>이며 근본 해결(7-1)로 대체되어야 한다.</p>
+
+  <h3>7-3. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (문자열 연결 쿼리 → <code>unterminated quoted string</code>)</li>
+    <li>결재 의견 저장 쿼리를 Prepared Statement로 전환</li>
+    <li>임시 완화(<code>'</code>→<code>''</code>)를 배포 전까지 적용</li>
+    <li>회귀 테스트: <code>'</code>, <code>"</code>, 개행, 유니코드 특수문자 포함 케이스 저장 검증</li>
+    <li>배포 후 <code>admin-approve.log</code>에서 500 / <code>unterminated quoted string</code> 미재발 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>코드 전수 점검:</strong> 결재/의견 저장 외에도 사용자 입력을 쿼리에 직접 연결하는 다른 API 경로가 있는지 점검하여 동일 패턴의 잠재 결함 및 SQL 인젝션 위험을 제거한다.</li>
+    <li><strong>회귀 테스트 추가:</strong> <code>'</code>, <code>"</code>, 개행 등 특수문자 입력에 대한 저장 테스트 케이스를 CI에 편입한다.</li>
+    <li><strong>모니터링:</strong> <code>admin-approve.log</code>의 <code>unterminated quoted string</code> / <code>500</code> / <code>N approval-save failures</code> 패턴을 알림 규칙으로 등록해 조기 감지한다.</li>
+    <li><strong>DEBUG 로깅 정리:</strong> <code>opinion_raw</code> 평문 + PII 동시 로깅은 운영 환경에서 비활성화하거나 마스킹한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-140과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>결재 의견 저장 API</td><td><span class="badge badge-required">직접</span></td><td>수정 대상 핵심 경로</td></tr>
+      <tr><td>동일 패턴 타 저장 API</td><td><span class="badge badge-warn">잠재</span></td><td>문자열 연결 쿼리 전수 점검 필요</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>저장 자체가 차단되어 오염 데이터 없음</td></tr>
+      <tr><td>보안(SQLi)</td><td><span class="badge badge-required">중요</span></td><td>파라미터 바인딩으로 근본 차단</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>4회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-time">20:56:20 · 도구</div><div class="tl-body">로그 조회 <code>dlp-approve-api.log</code> (키워드 ERROR) → 결과 0줄 (ERROR 없음 → 경로 배제)</div></div>
+    <div class="tl-item err"><div class="tl-time">20:56:20 · 도구</div><div class="tl-body">로그 조회 <code>admin-approve.log</code> (키워드 ERROR) → 4줄 회수 (500 · PSQLException 확인)</div></div>
+    <div class="tl-item"><div class="tl-time">20:56:20 · 도구</div><div class="tl-body">Jira 검색 <code>'결재 의견 저장 Internal Server Error'</code> → 매치 0건</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:56:27 · 도구</div><div class="tl-body">Jira 검색 <code>'unterminated quoted string'</code> → 매치 1건 (<strong>SUP-140</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:56:54 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 4회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 첫 Jira 검색(자연어)은 0건이었으나, <strong>로그에서 추출한 정확한 예외 문구</strong>로 재검색하여 정답 이슈를 회수했다 — 로그 근거 → 키워드 정제 → 이력 매칭의 전형적 성공 패턴.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>결재자 이메일</td><td>doc=2439 DEBUG 라인 (<code>park@corp.example.com</code>)</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>연락처</td><td>doc=2439 DEBUG 라인 (<code>010-1234-5678</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>결재자 이메일</td><td>doc=2441 DEBUG 라인 (<code>kim@aaa.com</code>)</td></tr>
+    </tbody>
+  </table>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-140 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-145 — 디스크 사용률 100% 로그 적재 실패 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🏗️ 인프라 · Infrastructure</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-145 — 디스크 사용률 100%로 인한<br>로그 적재 실패 및 서비스 지연</h1>
+    <p class="subtitle"><b>고객사 F</b> &nbsp;|&nbsp; 접수 2025-08-19 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 인프라 / 시스템·디스크 &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 F에서 <strong>새벽 시간대부터 관리서버의 응답이 느려지고 로그가 정상적으로 적재되지 않는다</strong>는 문의를 접수했다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 시스템 로그(<code>logs/system.log</code>)와 부수 로그(<code>db.log</code>, <code>agent-perf.log</code>), 그리고 사내 Jira 이력을 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "새벽부터 관리서버가 느리고 로그가 안 쌓인대요. 원인 분석해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 로그 파티션 <code>/var/log</code>가 <strong>디스크 풀(100%)</strong> 상태에 도달하여 로그·감사 기록 쓰기가 실패(<code>No space left on device</code>)했고, 감사 로그 쓰기 실패에 연동된 API가 <code>503 Service Unavailable</code>을 반환했다. 근본 원인은 <strong>로그 로테이션(logrotate) 미설정</strong>으로 대용량 로그가 누적된 것. 오래된 로그 정리(약 18GB 확보)와 logrotate 구성으로 사용률 41% 정상화.</p></div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">인프라</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 F</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2025-08-19</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 파티션</div><div class="value">/var/log</div></div>
+    <div class="stat-card"><div class="label">피크 사용률</div><div class="value">100%</div></div>
+    <div class="stat-card"><div class="label">확보 용량</div><div class="value">약 18GB</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>관리서버 응답 지연 및 일부 API <code>503 Service Unavailable</code> 반환. 감사 로그(audit log) 쓰기 실패로 <strong>기록 유실</strong> 발생.</td></tr>
+      <tr><td>보안·컴플라이언스 영향</td><td><span class="badge badge-required">중요</span> 감사 로그 append 실패(<code>failed to append audit log</code>)로 해당 시간대의 <strong>감사 추적성이 훼손</strong>됨 — 컴플라이언스 리스크.</td></tr>
+      <tr><td>긴급도</td><td>High — 서비스 가용성 저하(503)가 실사용 시간이 아닌 <strong>새벽 무인 시간대</strong>에 발생해 인지·대응이 지연됨.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>심각도 근거:</strong> ① 감사 로그 유실(컴플라이언스), ② API 503(서비스 가용성 저하), ③ 새벽 무인 시간대 장기 방치(02시 92% 경고 이후 08시 수동 조치 전까지 미인지)의 3중 요인으로 <strong>High</strong>로 평가한다.</p></div>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-warn">증상</span> 새벽 응답 지연</td><td>새벽 시간대부터 관리서버 응답이 느려짐 — 디스크 풀에 따른 I/O 실패의 연쇄 결과.</td></tr>
+      <tr><td><span class="badge badge-required">증상</span> 로그 미적재</td><td>로그가 정상적으로 쌓이지 않음. 실체는 <strong>디스크 쓰기 실패</strong>(<code>No space left on device</code>).</td></tr>
+      <tr><td><span class="badge badge-required">지표</span> 디스크 100%</td><td><code>/var/log</code> 사용률이 92%(02:14) → 100%(03:42)로 상승.</td></tr>
+      <tr><td><span class="badge badge-required">오류</span> No space left</td><td><code>write failed: No space left on device (/var/log/app.log)</code> 발생.</td></tr>
+      <tr><td><span class="badge badge-required">장애</span> 503</td><td>감사 로그 쓰기 실패에 연동되어 API가 <code>503 Service Unavailable (audit write failed)</code> 반환.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/system.log</code>. 디스크 사용률 상승 → 쓰기 실패 → 감사 로그 실패 → API 503의 인과 사슬이 <strong>02~03시대 타임라인</strong>에 그대로 드러난다. 문의(새벽·느림·로그 미적재) 시점과 정확히 일치한다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-08 02:00:01</span> <span class="lv-info">INFO</span>  <span class="msg">[sys] nightly job start</span>
+<span class="ts">2026-07-08 02:14:52</span> <span class="lv-warn">WARN</span>  <span class="msg">[sys] disk usage /var/log at <span class="hl">92%</span></span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg">[sys] write failed: <span class="hl">No space left on device</span> (/var/log/app.log)</span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg">[app] failed to append audit log: <span class="hl">No space left on device</span></span>
+<span class="ts">2026-07-08 03:42:33</span> <span class="lv-warn">WARN</span>  <span class="msg">[sys] disk usage /var/log at <span class="hl">100%</span></span>
+<span class="ts">2026-07-08 03:45:00</span> <span class="lv-error">ERROR</span> <span class="msg">[api] <span class="hl">503 Service Unavailable</span> (audit write failed)</span>
+<span class="ts">2026-07-08 08:12:00</span> <span class="lv-info">INFO</span>  <span class="msg">[ops] admin=[EMAIL_1] cleaned old logs, <span class="lv-info">freed 18GB</span></span>
+<span class="ts">2026-07-08 08:15:00</span> <span class="lv-info">INFO</span>  <span class="msg">[sys] disk usage /var/log at <span class="lv-info">41%</span></span></div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>시각</th><th>이벤트</th><th>/var/log 사용률</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>02:00:01</td><td>nightly job start</td><td>—</td><td>야간 배치 시작</td></tr>
+      <tr><td>02:14:52</td><td>disk usage warn</td><td>92%</td><td><span class="badge badge-warn">경고</span> 임계 근접</td></tr>
+      <tr><td>03:41:10</td><td>write failed / audit append 실패</td><td>~100%</td><td><span class="badge badge-required">쓰기 실패</span> 로그 미적재 실체</td></tr>
+      <tr><td>03:42:33</td><td>disk usage warn</td><td>100%</td><td><span class="badge badge-required">디스크 풀</span></td></tr>
+      <tr><td>03:45:00</td><td>API 503</td><td>100%</td><td><span class="badge badge-required">서비스 지연</span> 가용성 저하</td></tr>
+      <tr><td>08:12:00</td><td>cleaned old logs</td><td>—</td><td><span class="badge badge-done">조치</span> 18GB 확보</td></tr>
+      <tr><td>08:15:00</td><td>disk usage</td><td>41%</td><td><span class="badge badge-done">정상화</span></td></tr>
+    </tbody>
+  </table>
+
+  <h4>부수 관찰 (직접 원인 아님)</h4>
+  <p>본 케이스의 인과 사슬과는 <strong>시간대·성격이 상이</strong>하여 직접 원인에서 배제하되, 별도 모니터링 대상으로 기록한다.</p>
+  <table>
+    <thead><tr><th>로그</th><th>관찰 내용</th><th>판정</th></tr></thead>
+    <tbody>
+      <tr><td><code>db.log</code></td><td>16:40:35 <code>lock wait timeout exceeded</code> / <code>approve save failed doc=3120 reason=lock_wait_timeout</code></td><td><span class="badge badge-review">별도 추적</span> 오후 시간대·DB 락 이슈로 본 건과 무관</td></tr>
+      <tr><td><code>agent-perf.log</code></td><td>RSS 15시 1180MB → 18시 1890MB (<code>handles=8421</code>) 메모리 증가 추세</td><td><span class="badge badge-review">별도 관찰</span> 에이전트 리소스 누수 가능성, 추이 관찰 필요</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의:</strong> 위 두 관찰은 디스크 풀 사건과 <strong>인과 관계가 확인되지 않았다.</strong> 동일 보고서에 근본 원인처럼 혼입하지 않도록 분리하여 기록한다.</p></div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p><code>No space left on device</code>는 파일시스템에 <strong>쓸 공간이 없을 때</strong> 발생하는 전형적 오류다. 로그 파티션 <code>/var/log</code>가 가득 차(<strong>logrotate 미설정</strong>으로 대용량 로그 누적) 로그·감사 기록 쓰기가 실패했고, 감사 로그 쓰기 실패에 연동된 API가 503을 반환했다. 고객이 체감한 <strong>'로그가 안 쌓임' = 쓰기 실패</strong>, <strong>'느림/일부 장애' = 503</strong>이다.</p>
+
+  <div class="flow-box">[02:00 nightly job start]
+     |
+     v
+[로그 누적 — 로테이션(logrotate) 미설정]   ❌ 근본 원인
+     |
+     v
+[/var/log 92% (02:14 WARN)]  →  [/var/log 100% (03:42 WARN)]
+     |
+     v
+[write failed: No space left on device (/var/log/app.log)]
+     |
+     v
+[audit log append 실패]  →  ('로그가 안 쌓임'의 실체)
+     |
+     v
+[API 503 Service Unavailable (audit write failed)]
+     |
+     v
+[관리서버 느림 / 일부 장애]   ('느림'의 실체)
+     |
+     v
+[(조치) 오래된 로그 18GB 정리]  →  [/var/log 41% 정상화]</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td><code>/var/log</code> 디스크 풀(100%) → 로그·감사 기록 쓰기 실패(<code>No space left on device</code>).</td></tr>
+      <tr><td>근본 원인</td><td><strong>로그 로테이션(logrotate) 미설정</strong>으로 대용량 로그가 무제한 누적되어 파티션이 가득 참(02:14 92% → 03:42 100%).</td></tr>
+      <tr><td>기여 요인</td><td>디스크 사용률 사전 경보 임계치 부재 — 92%→100% 도달 후에야 인지. 새벽 무인 시간대라 수동 대응이 08시까지 지연.</td></tr>
+      <tr><td>연쇄 영향</td><td>감사 로그 append 실패 → 해당 API가 503 반환 → 관리서버 응답 지연.</td></tr>
+    </tbody>
+  </table>
+  <div class="info"><strong>타임라인 일치:</strong> 문의(새벽·느림·로그 미적재) 시점과 로그 타임라인(02~03시대 92%→100%)이 정확히 일치하여, 본 건이 디스크 풀 사건임을 높은 확신으로 확정할 수 있다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 <code>'디스크'</code> 및 <code>'No space left on device'</code> 키워드로 사내 Jira를 조회해 <strong>동일 증상의 이슈 SUP-145</strong>를 회수했다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-145</strong></td><td>디스크 사용률 100%로 로그 적재 실패 및 서비스 지연</td><td>고객사 F · 2025-08-19</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-145 조치 이력(resolution)</h4>
+    <p>오래된 로그를 정리하여 <strong>약 18GB를 확보</strong>하고, <strong>logrotate를 일 단위·보관 14일</strong>로 설정, <strong>디스크 사용률 85% 초과 시 알림 임계치</strong>를 등록해 재발을 방지했다. 조치 후 사용률 <strong>41%</strong>로 정상화되었다.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 즉시 조치 — 디스크 공간 확보</h3>
+  <p><code>/var/log</code>의 오래된·대용량 로그를 정리하여 공간을 확보한다. SUP-145에서는 약 18GB 확보로 사용률이 즉시 정상화되었다.</p>
+  <pre><span class="comment"># 대용량 로그 상위 확인</span>
+du -ah /var/log | sort -rh | head -n 20
+
+<span class="comment"># 오래된 로그 정리 (예: 14일 초과 회전 로그 제거)</span>
+find /var/log -name <span class="string">"*.log.*"</span> -mtime +14 -delete
+find /var/log -name <span class="string">"*.gz"</span> -mtime +14 -delete</pre>
+
+  <h3>7-2. 서비스 정상화 확인</h3>
+  <p>공간 확보 후 <strong>로그 append 성공</strong>과 <strong>API 503 해소</strong>를 확인한다. SUP-145 기준 조치 후 <code>/var/log</code> 사용률이 41%로 내려가고 정상 적재가 재개되었다.</p>
+  <ul>
+    <li><code>system.log</code>에서 <code>No space left on device</code> 미재발 확인</li>
+    <li>감사 로그 append 성공(신규 라인 적재) 확인</li>
+    <li>API 응답이 <code>200</code> 정상으로 복귀했는지 확인 (503 해소)</li>
+  </ul>
+
+  <h3>7-3. 재발 방지 — logrotate 구성</h3>
+  <p>로그 로테이션을 <strong>일 단위·보관 14일</strong>로 구성하여 로그가 무제한 누적되지 않도록 한다. 아래는 예시 설정이다.</p>
+  <pre><span class="comment"># /etc/logrotate.d/app</span>
+/var/log/app.log {
+    <span class="key">daily</span>
+    <span class="key">rotate</span> <span class="number">14</span>
+    <span class="key">compress</span>
+    <span class="key">missingok</span>
+    <span class="key">notifempty</span>
+    <span class="key">copytruncate</span>
+}</pre>
+
+  <h3>7-4. 조치 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (logrotate 미설정 → <code>/var/log</code> 디스크 풀)</li>
+    <li>오래된/대용량 로그 정리로 즉시 공간 확보 (약 18GB)</li>
+    <li>로그 append 성공 · API 503 해소 확인</li>
+    <li>logrotate 일 단위·보관 14일 구성 및 <code>logrotate -d</code> 문법 검증</li>
+    <li>디스크 사용률 85% 초과 알림 임계치 등록</li>
+    <li>조치 후 <code>/var/log</code> 사용률 41% 정상화 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>디스크 사전 경보:</strong> <code>/var/log</code> 사용률 <strong>85% 초과 시 사전 경보</strong>를 등록한다. 현재는 92%→100% 도달 후에야 인지되어 무인 시간대에 장기 방치되었다.</li>
+    <li><strong>로그 로테이션 상시화:</strong> 모든 주요 로그에 logrotate(일 단위·보관 14일·압축)를 적용하여 누적을 원천 차단한다.</li>
+    <li><strong>DB 락 별도 추적:</strong> <code>db.log</code>의 <code>lock wait timeout exceeded</code>(오후 시간대)는 본 건과 무관하나, 결재 저장 실패(<code>doc=3120</code>)를 유발하므로 별도 이슈로 추적한다.</li>
+    <li><strong>에이전트 리소스 관찰:</strong> <code>agent-perf.log</code>의 RSS 증가(1180MB→1890MB, handles=8421)는 메모리·핸들 누수 가능성이 있으므로 추이를 관찰한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-145와 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>로그 / 감사 기록</td><td><span class="badge badge-required">직접</span></td><td>쓰기 실패로 해당 시간대 기록 <strong>유실 위험</strong> (컴플라이언스)</td></tr>
+      <tr><td>API 가용성</td><td><span class="badge badge-required">직접</span></td><td><code>503 Service Unavailable</code> — 관리서버 응답 지연</td></tr>
+      <tr><td>새벽 무인 대응</td><td><span class="badge badge-warn">잠재</span></td><td>사전 경보 부재로 인지·조치 지연 (02시 경고 → 08시 조치)</td></tr>
+      <tr><td>DB / 에이전트</td><td><span class="badge badge-review">별도</span></td><td>부수 관찰 항목 — 본 건과 인과 무관, 별도 모니터링</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>7회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">21:00:10 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (레벨 ERROR) → 3줄 회수 (write failed · audit append 실패 · 503 확인)</div></div>
+    <div class="tl-item warn"><div class="tl-time">21:00:10 · 도구</div><div class="tl-body">로그 조회 <code>system.log</code> (레벨 WARN) → 2줄 회수 (92% · 100% 사용률)</div></div>
+    <div class="tl-item"><div class="tl-time">21:00:10 · 도구</div><div class="tl-body">로그 조회 <code>db.log</code> (레벨 ERROR) → 2줄 회수 (lock_wait_timeout → 부수 관찰로 분리)</div></div>
+    <div class="tl-item"><div class="tl-time">21:00:10 · 도구</div><div class="tl-body">로그 조회 <code>agent-perf.log</code> (레벨 WARN) → 2줄 회수 (RSS 증가 → 부수 관찰로 분리)</div></div>
+    <div class="tl-item"><div class="tl-time">21:00:10 · 도구</div><div class="tl-body">Jira 검색 <code>'관리서버 느림 로그 미적재'</code> → 매치 0건</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:00:20 · 도구</div><div class="tl-body">Jira 검색 <code>'디스크'</code> → <strong>SUP-145</strong> / <code>'No space left on device'</code> → <strong>SUP-145</strong></div></div>
+    <div class="tl-item ok"><div class="tl-time">21:00:50 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 7회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 첫 Jira 검색(자연어 '관리서버 느림 로그 미적재')은 0건이었으나, <strong>로그에서 추출한 정확한 오류 문구</strong>(<code>디스크</code>, <code>No space left on device</code>)로 재검색하여 정답 이슈를 회수했다 — 로그 근거 → 키워드 정제 → 이력 매칭의 전형적 성공 패턴. 부수 로그(<code>db.log</code>, <code>agent-perf.log</code>)는 인과 검증을 통해 별도 관찰로 분리했다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>로그 정리 담당 관리자 이메일</td><td><code>system.log</code> 08:12 <code>ops</code> 라인 (<code>oh@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>참고:</strong> 부수 관찰 <code>db.log</code>에 등장하는 <code>han@corp.example.com</code>은 <strong>본 케이스 트레이스의 마스킹 대상이 아니다</strong>(직접 원인 로그 범위에 포함되지 않음). 별도 이슈로 분리 추적 시 해당 로그에서 마스킹 처리한다.</p></div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-145 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

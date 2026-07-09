@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-141 — 이미 승인 완료된 결재 재요청 시 재승인 미반영 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">📋 결재 · Approval</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-141 — 이미 승인 완료된 결재를 재요청 시<br>재승인이 반영되지 않음</h1>
+    <p class="subtitle"><b>고객사 B</b> &nbsp;|&nbsp; 접수 2025-12-03 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 dlp / admin-approve &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 B의 사용자가 DLP 파일첨부 결재(승인) 경로에서 <strong>이미 승인이 완료된 문서를 동일한 파일로 다시 업로드하여 재승인을 요청했으나, 관리자 페이지에서 재승인이 처리(반영)되지 않는다</strong>고 문의했다. 사용자 관점에서는 재요청이 정상적으로 접수(HTTP 200)된 것처럼 보이지만, 결재 상태는 계속 '완료(<code>approve_status=1</code>)'로 고정되어 새로운 승인 데이터가 생성되지 않는 상황이었다.</p>
+  <p>본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 관련 API 로그와 사내 Jira 이력을 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다. 특히 이번 건은 <strong>모든 API가 200으로 응답하는데도 실제 결과가 반영되지 않는</strong> '조용한 실패(silent failure)' 유형으로, 오류 코드만으로는 원인을 판단할 수 없어 상태값 흐름 추적이 핵심이었다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "이미 승인된 파일을 다시 올렸더니 관리자페이지에서 재승인이 안 된대요. 분석해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 문서가 <strong>'완료(<code>approve_status=1</code>)'</strong> 상태가 되면 승인 갱신(<code>UPDATE</code>) 쿼리의 조건이 충족되지 않아 재승인이 <strong>무시(<code>already_completed</code>)</strong>된다. 근본 원인은 <strong>승인 갱신 로직의 상태 분기 누락</strong> — 완료 상태에서는 기존 데이터를 갱신할 수 없으므로 <strong>신규 승인 데이터(신규 <code>approve_no</code>)를 생성</strong>하도록 로직을 수정해야 한다. 배포 전까지는 <code>approve_no</code> 초기화로 즉시 완화한다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">결재</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 B</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2025-12-03</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">결재 재승인</div></div>
+    <div class="stat-card"><div class="label">대상 문서</div><div class="value">doc=2438</div></div>
+    <div class="stat-card"><div class="label">재현성</div><div class="value">100% (완료 상태)</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>결재 워크플로우 정지 — 이미 완료된 문서는 파일을 다시 올려 재승인을 요청해도 상태가 <code>완료</code>로 고정되어 갱신되지 않는다. 재승인이 필요한 업무(재검토·재배포 등)가 진행 불가.</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-warn">주의</span> 재요청은 <code>200</code>으로 성공한 것처럼 응답되나 실제 승인 데이터는 생성되지 않아, 화면 상태와 실제 처리 결과가 어긋난다(운영 혼란 유발).</td></tr>
+      <tr><td>운영 부담</td><td><span class="badge badge-required">중요</span> 임시 조치로 <strong>매번 수동으로 <code>approve_no</code>를 초기화</strong>해야 재승인이 가능. 반복 발생 시 지원 인력의 상시 개입이 필요.</td></tr>
+      <tr><td>긴급도</td><td>High — 결재는 업무 핵심 경로이며, 재승인 불가 시 워크플로우가 정지되고 수동 개입 없이는 복구되지 않음.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>심각도 판정 근거:</strong> 결재는 업무 핵심 경로이고, 재승인 불가 시 워크플로우가 완전히 멈춘다. 매 발생마다 <code>approve_no</code> 수동 초기화라는 운영 부담이 수반되며 근본 코드 수정 전까지 재발이 반복되므로 <strong>심각도 High</strong>로 평가한다.</div>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 재승인 미반영</td><td>이미 <code>완료</code>된 문서(doc=2438)를 동일 파일로 재업로드·재요청해도 결재 상태가 <code>완료</code>로 고정되어 재승인이 반영되지 않음.</td></tr>
+      <tr><td><span class="badge badge-warn">특이점</span> 200 응답</td><td>재승인 체크(<code>PUT .../approve/check/...</code>)와 요청(<code>POST .../approve/...</code>)이 모두 <code>200</code>으로 정상 응답 — 오류 코드가 없어 사용자·API 관점에서는 성공처럼 보임.</td></tr>
+      <tr><td><span class="badge badge-warn">조건</span> 재현 트리거</td><td>대상 문서의 승인 상태가 <code>완료(approve_status=1)</code>일 때 100% 재현.</td></tr>
+      <tr><td><span class="badge badge-edit">정상</span> 대조군</td><td>승인 상태가 <code>대기</code>인 경우, 동일 요청은 기존 데이터를 정상 갱신하여 승인이 반영됨.</td></tr>
+      <tr><td><span class="badge badge-new">복구</span> 임시 정상화</td><td><code>approve_no</code> 값을 초기화한 뒤 재요청하면 재승인이 정상 생성됨(로그상 <code>result=완료 (after reset)</code>).</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/dlp-approve-api.log</code>. 재승인 체크·요청 API는 모두 <code>200</code>을 반환하지만, 문서가 <code>완료</code> 상태가 되는 순간부터 갱신이 <strong>무시(<code>already_completed</code>)</strong>되고 상태가 <code>완료</code>로 고정된다. <code>approve_no</code> 초기화 이후에야 재승인이 정상 생성됨을 확인할 수 있다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-08 15:01:04 +0900</span> <span class="msg">"PUT /client/v1/dlp/approve/check/CUST9931/2438/fileattach HTTP/1.1" <span class="lv-info">200</span> 100 agent_ip=[IP_1]</span>
+<span class="ts">2026-07-08 15:01:48 +0900</span> <span class="msg">"POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" <span class="lv-info">200</span> 81</span>
+<span class="ts">2026-07-08 15:02:33</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] approve changed doc=2438 file="조직도_일괄등록.xlsx" by=[EMAIL_1] ip=[IP_2] <span class="lv-info">result=완료</span></span>
+<span class="ts">2026-07-08 15:03:08 +0900</span> <span class="msg">"PUT /client/v1/dlp/approve/check/CUST9931/2438/fileattach HTTP/1.1" <span class="lv-info">200</span> 100</span>
+<span class="ts">2026-07-08 15:04:19 +0900</span> <span class="msg">"POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" <span class="lv-info">200</span> 81</span>
+<span class="ts">2026-07-08 15:55:54 +0900</span> <span class="msg">"POST /client/v1/dlp/approve/CUST9931/2438/fileattach HTTP/1.1" <span class="lv-info">200</span> 81</span>
+<span class="ts">2026-07-08 15:57:45</span> <span class="lv-warn">WARN</span>  <span class="msg">[adm] approve update <span class="hl">ignored</span> doc=2438 reason=<span class="hl">already_completed(approve_status=1)</span></span>
+<span class="ts">2026-07-08 16:10:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[adm] <span class="hl">re-approval requested but not reflected</span> doc=2438 (status stays 완료)</span>
+<span class="ts">2026-07-08 17:06:00</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] tmp-fix <span class="lv-detect">approve_no reset</span> doc=2438 by=[EMAIL_2]</span>
+<span class="ts">2026-07-08 17:13:47</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] approve changed doc=2438 <span class="lv-info">result=완료 (after reset)</span></span></div>
+
+  <h4>로그 이벤트 상관관계 표</h4>
+  <table>
+    <thead><tr><th>시각</th><th>이벤트</th><th>HTTP / 결과</th><th>해석</th></tr></thead>
+    <tbody>
+      <tr><td>15:01:04</td><td>재승인 체크 <code>PUT .../check/...</code></td><td><span class="badge badge-done">200</span></td><td>1차 승인 흐름 시작 — 체크 정상</td></tr>
+      <tr><td>15:01:48</td><td>승인 요청 <code>POST .../approve/...</code></td><td><span class="badge badge-done">200</span></td><td>승인 요청 접수</td></tr>
+      <tr><td>15:02:33</td><td><code>approve changed result=완료</code></td><td><span class="badge badge-done">완료</span></td><td>doc=2438이 <strong>완료(approve_status=1)</strong>로 전환</td></tr>
+      <tr><td>15:03~15:55</td><td>재요청 체크/POST 반복</td><td><span class="badge badge-done">200</span></td><td>API는 성공 응답하나 상태 변화 없음</td></tr>
+      <tr><td>15:57:45</td><td><code>approve update ignored</code></td><td><span class="badge badge-warn">무시</span></td><td><strong>already_completed</strong> — 완료 상태라 UPDATE 무시</td></tr>
+      <tr><td>16:10:02</td><td><code>re-approval not reflected</code></td><td><span class="badge badge-required">미반영</span></td><td>상태 <code>완료</code> 고정 — 재승인 반영 실패 확정</td></tr>
+      <tr><td>17:06:00</td><td><code>approve_no reset</code> (임시 조치)</td><td><span class="badge badge-review">조치</span></td><td>지원 담당이 <code>approve_no</code> 초기화</td></tr>
+      <tr><td>17:13:47</td><td><code>approve changed 완료 (after reset)</code></td><td><span class="badge badge-done">정상</span></td><td>초기화 후 재요청 → 신규 승인 정상 생성</td></tr>
+    </tbody>
+  </table>
+  <div class="info"><strong>핵심 관측:</strong> 재승인 체크·요청 API는 <strong>전부 <code>200</code></strong>을 반환한다. 그러나 doc=2438이 <code>완료(approve_status=1)</code>가 되는 순간부터 재승인 <code>UPDATE</code>가 <code>already_completed</code>로 무시되고 상태가 <code>완료</code>로 고정된다. <strong>오직 <code>approve_no</code>를 초기화한 뒤에만 재승인이 성공</strong>한다 — 즉 실패의 원인은 오류가 아니라 <strong>상태 조건 로직</strong>에 있다.</div>
+  <div class="note"><strong>주의:</strong> 이번 분석 과정에서 별도로 조회한 <code>admin-approve.log</code>의 <code>PSQLException</code>(doc=2439 / doc=2441)은 이번 재승인 건(doc=2438)과 <strong>무관한 별개 이슈</strong>이다. 문서 번호가 다르고 예외 유형(따옴표 파싱 오류)도 상이하므로 본 건의 원인 판단에서 제외했다. (상세 구분은 부록 A 참조)</div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>이번 장애는 오류(예외)가 발생해 실패한 것이 아니라, <strong>승인 갱신 로직이 '완료' 상태를 신규 승인이 아닌 갱신 대상으로만 처리</strong>하기 때문에 발생한 '조용한 실패'이다. 승인 갱신 쿼리는 대상 문서가 <code>대기</code> 상태일 때만 유효한 <code>UPDATE</code> 조건을 만족한다. 문서가 이미 <code>완료(approve_status=1)</code>이면 <code>UPDATE</code> 조건이 충족되지 않아 갱신이 <strong>무시(<code>already_completed</code>)</strong>되고, 그렇다고 신규 승인 데이터를 생성하는 분기도 없어 아무 일도 일어나지 않는다.</p>
+
+  <div class="flow-box">[재승인 요청]  doc=2438 파일 재업로드 → 재요청
+     |
+     v
+[approve check]  PUT .../check/...  →  200 (체크 통과)
+     |
+     v
+[approve POST]  POST .../approve/...  →  200 (요청 접수)
+     |
+     v
+[승인 갱신 로직]  ❌ 상태 분기 누락
+     doc already 완료 (approve_status=1)
+     UPDATE ... WHERE approve_status='대기'  →  조건 불충족
+     |
+     v
+[무시(ignored)]  reason=already_completed  ·  신규 데이터 생성 없음
+     |
+     v
+[상태 그대로 완료]  status stays 완료
+     |
+     v
+[사용자엔 재승인 안됨]  화면상 재승인 미반영 · 안내 메시지도 없음</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>대상 문서가 <code>완료(approve_status=1)</code> 상태여서 승인 갱신 <code>UPDATE</code> 조건이 충족되지 않아 재승인이 무시됨(<code>already_completed</code>).</td></tr>
+      <tr><td>근본 원인</td><td><strong>승인 갱신 로직의 상태 분기 누락</strong> — '완료' 상태에서 기존 데이터를 갱신할 수 없을 때 <strong>신규 승인 데이터(신규 <code>approve_no</code>)를 생성하는 경로가 없음.</strong></td></tr>
+      <tr><td>기여 요인 ①</td><td>재승인 흐름에 대한 <strong>완료 상태 회귀 테스트 부재</strong> — '대기' 상태 시나리오만 검증되어 완료 상태 재요청이 누락됨.</td></tr>
+      <tr><td>기여 요인 ②</td><td><strong>사용자 피드백 부재</strong> — <code>already_completed</code>로 무시될 때 사용자/화면에 아무런 안내가 없어 '성공한 줄' 오인.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>정합성 관점:</strong> API가 <code>200</code>을 반환하면서도 실제 상태가 변하지 않는 '조용한 실패'는, 사용자에게 성공으로 오인되어 <strong>화면 상태와 실제 데이터가 어긋나는 정합성 문제</strong>로 이어진다. 단순히 재승인만 막히는 것이 아니라, 재요청 시각이 로그에는 여러 번 남으므로 운영자가 처리 이력을 오독할 위험이 있다. 응답 코드가 아니라 <strong>상태 전이(state transition)를 기준으로 성공/실패를 판정</strong>하도록 로직과 응답 설계를 함께 개선해야 한다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 <code>'재승인'</code> 키워드로 사내 Jira를 조회해 <strong>동일 증상의 이슈 SUP-141</strong>을 회수했다(현재 문의가 곧 이 이슈의 재현).</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-141</strong></td><td>이미 승인 완료된 결재를 재요청 시 재승인이 반영되지 않음</td><td>고객사 B · 2025-12-03</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-141 조치 이력(resolution)</h4>
+    <p>승인 상태가 <strong>'대기'일 때만 기존 데이터를 갱신</strong>하고, 이미 <strong>'완료'된 경우에는 신규 승인 데이터가 생성</strong>되도록 로직을 수정. 긴급 시 임시조치로 <code>approve_no</code> 값을 초기화해 재승인이 가능하도록 처리. 수정 후 재요청 → 신규 승인이 정상 생성됨을 확인.</p>
+  </div>
+  <div class="info"><strong>매칭 근거:</strong> 로그에서 확인된 <code>already_completed(approve_status=1)</code> · <code>re-approval requested but not reflected</code> 패턴이 SUP-141의 증상 기술과 정확히 일치하며, 조치 이력의 <code>approve_no</code> 초기화 흐름이 로그의 <code>approve_no reset → result=완료 (after reset)</code> 시퀀스와 동일하다.</div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 승인 상태 분기 추가 (권장)</h3>
+  <p>승인 갱신 로직을 <strong>상태 기반 분기</strong>로 재설계한다. 대상 문서가 <code>대기</code> 상태이면 기존 승인 데이터를 <code>UPDATE</code>로 갱신하고, 이미 <code>완료</code> 상태이면 <strong>신규 승인 데이터(신규 <code>approve_no</code>)를 <code>INSERT</code></strong>하여 재승인이 별도 이력으로 정상 생성되도록 한다. 이렇게 하면 완료 문서의 재승인이 무시되지 않고 항상 처리된다.</p>
+  <pre><span class="comment">-- ❌ 현재 — '대기'일 때만 갱신, '완료'면 조건 불충족으로 무시</span>
+<span class="key">UPDATE</span> approve
+<span class="key">SET</span> approve_status = <span class="string">'완료'</span>, approved_at = now()
+<span class="key">WHERE</span> doc_id = <span class="number">2438</span>
+  <span class="key">AND</span> approve_status = <span class="string">'대기'</span>;   <span class="comment">-- 완료 상태면 0 rows → already_completed</span>
+
+<span class="comment">-- ✅ 개선 — 상태 분기: 대기면 갱신, 완료면 신규 승인 생성</span>
+<span class="new">IF</span> (current_status = <span class="string">'대기'</span>) <span class="new">THEN</span>
+    <span class="key">UPDATE</span> approve
+    <span class="key">SET</span> approve_status = <span class="string">'완료'</span>, approved_at = now()
+    <span class="key">WHERE</span> doc_id = <span class="number">2438</span> <span class="key">AND</span> approve_status = <span class="string">'대기'</span>;
+<span class="new">ELSE</span>  <span class="comment">-- 이미 '완료' → 신규 approve_no 발급하여 재승인 이력 생성</span>
+    <span class="key">INSERT INTO</span> approve (doc_id, approve_no, approve_status, requested_at)
+    <span class="key">VALUES</span> (<span class="number">2438</span>, next_approve_no(<span class="number">2438</span>), <span class="string">'대기'</span>, now());
+<span class="new">END IF</span>;</pre>
+  <div class="success"><strong>기대 효과:</strong> 완료 상태 문서를 재요청해도 <code>next_approve_no()</code>로 새 승인 건이 생성되어 재승인이 정상 반영된다. 기존 완료 이력은 보존되므로 감사(audit) 추적성도 유지된다.</div>
+
+  <h3>7-2. 즉시 완화 — approve_no 초기화</h3>
+  <p>코드 수정 배포 전 임시 대응으로, 지원 담당이 대상 문서의 <code>approve_no</code> 값을 초기화한 뒤 재요청하도록 한다(로그의 <code>tmp-fix approve_no reset → result=완료 (after reset)</code> 시퀀스). 초기화 시 문서가 다시 <code>대기</code> 상태의 갱신 대상이 되어 재승인이 처리된다.</p>
+  <div class="note"><strong>한시적 대응:</strong> <code>approve_no</code> 초기화는 발생 건마다 수동 개입이 필요하고 기존 승인 이력을 덮어쓸 수 있으므로, 반드시 근본 해결(7-1)로 대체되어야 한다. 운영 중 반복 적용은 지양한다.</div>
+
+  <h3>7-3. UX 개선 — 무시 상황 안내 메시지</h3>
+  <p>승인 갱신이 <code>already_completed</code>로 무시되는 경우, API가 <code>200</code>만 반환하고 조용히 끝내지 말고 <strong>사용자에게 명확한 안내 메시지를 노출</strong>해야 한다. 예: "이미 승인이 완료된 문서입니다. 재승인을 진행하시겠습니까?"와 같이 상태를 알리고 재승인 경로(신규 승인 생성)를 안내한다. 이는 '조용한 실패'로 인한 사용자 오인과 운영 혼란을 근본적으로 줄인다.</p>
+
+  <h3>7-4. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (완료 상태에서 승인 갱신 <code>UPDATE</code> 조건 불충족 → 무시)</li>
+    <li>승인 갱신 로직에 상태 분기 추가 (대기=UPDATE / 완료=신규 <code>approve_no</code> INSERT)</li>
+    <li>임시 완화(<code>approve_no</code> 초기화 절차)를 배포 전까지 운영 가이드로 공유</li>
+    <li>무시 상황 시 사용자 안내 메시지(UX) 노출 반영</li>
+    <li>회귀 테스트: '완료' 상태 문서 재요청 시 신규 승인 정상 생성 검증</li>
+    <li>배포 후 <code>dlp-approve-api.log</code>에서 <code>already_completed</code> / <code>not reflected</code> 미재발 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>상태 전이 기준 판정:</strong> 결재/승인 처리 결과를 응답 코드(<code>200</code>)가 아니라 <strong>실제 상태 전이</strong>를 기준으로 성공/실패 판정하도록 로직과 응답 설계를 일관화한다.</li>
+    <li><strong>완료 상태 재요청 로직 전수 점검:</strong> 결재뿐 아니라 '완료/종결' 상태에서 재요청·재처리가 가능한 다른 경로(재배포·재검사 등)에서도 동일한 상태 분기 누락이 없는지 점검한다.</li>
+    <li><strong>회귀 테스트 추가:</strong> 승인 상태별(대기 / 완료) 재요청 시나리오를 CI 테스트 케이스로 편입하여, 완료 상태 재승인이 신규 데이터로 생성되는지 자동 검증한다.</li>
+    <li><strong>모니터링:</strong> <code>dlp-approve-api.log</code>의 <code>already_completed(approve_status=1)</code> / <code>re-approval requested but not reflected</code> / <code>approve_no reset</code> 패턴을 알림 규칙으로 등록해 '조용한 실패'와 임시 조치 발생을 조기 감지한다.</li>
+    <li><strong>임시 조치 최소화:</strong> <code>approve_no</code> 초기화 발생 건수를 대시보드로 추적하여, 근본 수정 배포 이후 0건으로 수렴하는지 확인한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-141과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>결재 재승인 경로</td><td><span class="badge badge-required">직접</span></td><td>수정 대상 핵심 경로 — 완료 상태 문서의 재승인 처리</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-warn">주의</span></td><td>완료 상태 문서 재승인 누락 — 화면 상태와 실제 처리 불일치(운영 혼란)</td></tr>
+      <tr><td>동일 패턴 타 상태전이 경로</td><td><span class="badge badge-warn">잠재</span></td><td>완료/종결 상태 재요청 로직 전수 점검 필요</td></tr>
+      <tr><td>임시 조치(approve_no reset)</td><td><span class="badge badge-review">한시적</span></td><td>수동 개입 필요 — 근본 수정으로 대체 전제</td></tr>
+      <tr><td>기존 승인 이력</td><td><span class="badge badge-done">영향 없음</span></td><td>신규 approve_no 방식은 기존 완료 이력 보존</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>4회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item warn"><div class="tl-time">20:57:02 · 도구</div><div class="tl-body">로그 조회 <code>admin-approve.log</code> (키워드 ERROR) → 4줄 회수 (PSQLException doc=2439/2441 — <strong>별개 이슈</strong>로 판별)</div></div>
+    <div class="tl-item"><div class="tl-time">20:57:02 · 도구</div><div class="tl-body">로그 조회 <code>dlp-approve-api.log</code> (키워드 ERROR) → 결과 0줄 (오류성 이벤트 없음 — 조용한 실패 시사)</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:57:02 · 도구</div><div class="tl-body">Jira 검색 <code>'재승인'</code> → 매치 1건 (<strong>SUP-141</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:57:13 · 도구</div><div class="tl-body">로그 조회 <code>dlp-approve-api.log</code> (키워드 approve) → 9줄 회수 (200 응답 · <code>already_completed</code> · <code>approve_no reset</code> 시퀀스 확보)</div></div>
+    <div class="tl-item ok"><div class="tl-time">20:57:47 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 4회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> <code>dlp-approve-api.log</code>의 ERROR 검색이 0줄이었던 점이 오히려 결정적 단서였다 — 오류가 없는데도 결과가 반영되지 않는 '조용한 실패'임을 시사했고, 이에 키워드를 <code>approve</code>로 바꿔 <strong>상태값 흐름(200 → already_completed → reset)</strong>을 추적함으로써 원인을 규명했다.</div>
+  <div class="danger"><strong>오탐 배제:</strong> <code>admin-approve.log</code>에서 함께 조회된 <code>PSQLException</code>(doc=2439 / doc=2441)은 <strong>따옴표 파싱 계열의 다른 장애(SUP-140 유형)</strong>로, 문서 번호(2438과 상이)와 예외 유형이 모두 달라 이번 재승인 건과 무관하다. 에이전트는 이를 원인 후보에서 명시적으로 제외하여 오진을 방지했다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보·네트워크 식별자를 토큰으로 치환했다. 원문 PII는 원격 LLM에 전달되지 않는다.</p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>승인 처리자 이메일</td><td>doc=2438 <code>approve changed</code> 라인 (<code>admin@corp.example.com</code>)</td></tr>
+      <tr><td><code>[IP_1]</code></td><td>에이전트 IP</td><td><code>PUT .../check/...</code> 라인 <code>agent_ip</code> (<code>192.168.10.22</code>)</td></tr>
+      <tr><td><code>[IP_2]</code></td><td>공인 IP</td><td>doc=2438 <code>approve changed</code> 라인 <code>ip</code> (<code>203.0.113.42</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>지원 담당 이메일</td><td><code>tmp-fix approve_no reset</code> 라인 (<code>support@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-141 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>
