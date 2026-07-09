@@ -11,10 +11,12 @@
 - 상한 도달 시 "지금까지 수집한 정보로 결론 내라" 지시 후 마지막 요청 1회
 
 emit 페이로드 (daemon/frontend 와 공유된 고정 계약 — JSON dict 3종):
-- {"type": "log", "message": str, "source"?: "local"|"remote"|"system"}
-    source(옵션 필드): 진행 활동의 출처 구분 — local=로컬 SLM(Ollama gemma3n) 요약,
-    remote=원격 Claude 추론, system=도구 실행·마스킹·데몬 상태. 기존 필드는 불변이며
-    source 없는 log 도 유효하다(하위호환 — frontend 는 source 유무로 뱃지만 분기).
+- {"type": "log", "message": str, "source"?: "local"|"remote"}
+    source(옵션 필드): 진행 활동의 출처를 2종으로 구분 —
+    local=로컬 에이전트(도구 실행·PII 마스킹·SLM 요약·데몬 라이프사이클 전부),
+    remote=원격 Claude 의 판단/추론. "system"(구 값)은 폐기: 시스템 도구 실행도
+    로컬 에이전트의 일부이므로 local 로 흡수한다. 기존 필드는 불변이며 source 없는
+    log 도 유효하다(하위호환 — frontend 는 source 유무/값으로 뱃지만 분기).
 - {"type": "mask_diff", "raw": <앞 500자>, "masked": <앞 500자>}
 - {"type": "slm_compress", "before": int, "after": int}
   (mask_diff/slm_compress 는 스키마 불변 — frontend 가 각각 masking/local 로 취급)
@@ -24,7 +26,7 @@ import json
 
 from .tools import TOOLS, execute_tool
 from .pii import mask
-from .slm import summarize_if_long
+from .slm import summarize_if_long, current_model
 
 # 로컬 SLM 요약 트리거 기준(len(raw) > limit 이면 요약 대상)을 slm.summarize_if_long 의
 # 기본 인자값에서 그대로 읽어 동기화한다. slm.py 에 별도 상수가 없고 수정 대상도 아니므로,
@@ -97,7 +99,7 @@ def run_agent(user_query: str, emit, client=None) -> str:
             client = ClaudeCLIClient()
             emit({"type": "log",
                   "message": "ℹ️ API 키 미설정 — 로컬 Claude Code CLI 백엔드로 실행",
-                  "source": "system"})
+                  "source": "local"})
 
     messages = [{"role": "user", "content": mask(user_query)}]
     tool_calls = 0  # 누적 도구 호출 수 (종료 로그용 + 조사 없이 결론 감지용)
@@ -127,13 +129,15 @@ def run_agent(user_query: str, emit, client=None) -> str:
 
         if stop in ("max_tokens", "model_context_window_exceeded"):
             # 응답이 잘림 — 지금까지의 텍스트를 truncated 로 반환.
-            emit({"type": "log", "message": f"⚠️ 응답이 잘렸습니다 (stop_reason={stop})"})
+            emit({"type": "log", "message": f"⚠️ 응답이 잘렸습니다 (stop_reason={stop})",
+                  "source": "local"})
             _emit_final_log(emit, stop, tool_calls)
             return _extract_text(response)
 
         if stop == "refusal":
             # 모델 거부 — 예외로 죽이지 않고 안내 문구를 반환해 main.py 가 report 로 처리 가능하게.
-            emit({"type": "log", "message": "⚠️ 모델이 응답을 거부했습니다 (stop_reason=refusal)"})
+            emit({"type": "log", "message": "⚠️ 모델이 응답을 거부했습니다 (stop_reason=refusal)",
+                  "source": "local"})
             _emit_final_log(emit, stop, tool_calls)
             return "(모델이 요청에 대한 응답을 거부했습니다.)"
 
@@ -145,7 +149,7 @@ def run_agent(user_query: str, emit, client=None) -> str:
             investigation_retried = True
             emit({"type": "log",
                   "message": "도구 조사 없이 결론 감지 — 조사 지시 후 재시도",
-                  "source": "system"})
+                  "source": "local"})
             messages.append({"role": "assistant", "content": response.content})
             messages.append({"role": "user",
                              "content": [{"type": "text",
@@ -159,7 +163,8 @@ def run_agent(user_query: str, emit, client=None) -> str:
     # 상한 도달: 결론 지시를 덧붙여 마지막 요청 1회.
     # 마지막 메시지가 assistant 면(직전이 pause_turn) 거기 append 하면 assistant prefill 이 되어
     # 400 이 나므로, 새 user 메시지로 지시를 전달한다. user(tool_result 묶음)면 기존대로 그 content 에 붙인다.
-    emit({"type": "log", "message": f"반복 상한({MAX_ITERATIONS}회) 도달 — 결론 요청"})
+    emit({"type": "log", "message": f"반복 상한({MAX_ITERATIONS}회) 도달 — 결론 요청",
+          "source": "local"})
     if messages[-1]["role"] == "assistant":
         messages.append({"role": "user",
                          "content": [{"type": "text", "text": _CONCLUDE_INSTRUCTION}]})
@@ -174,7 +179,7 @@ def _emit_final_log(emit, stop_reason, tool_calls) -> None:
     """종료 시 마지막 stop_reason 과 누적 도구 호출 수를 log 이벤트로 남긴다 (PLAN_REVIEW §3)."""
     emit({"type": "log",
           "message": f"에이전트 종료 (stop_reason={stop_reason}, 누적 도구 호출 {tool_calls}회)",
-          "source": "system"})
+          "source": "local"})
 
 
 def _create(client, messages):
@@ -200,7 +205,7 @@ def _run_tools(response, emit) -> list:
             continue
         emit({"type": "log",
               "message": f"도구 실행: {block.name} {block.input}",
-              "source": "system"})
+              "source": "local"})
         try:
             raw = execute_tool(block.name, block.input)
         except Exception as e:  # execute_tool 은 문자열 반환 설계지만 겸용 방어
@@ -211,7 +216,7 @@ def _run_tools(response, emit) -> list:
         # 직전에 남겨야 이후 slm_compress(스키마 불변, frontend 가 local 로 취급)와 짝이 된다.
         if len(raw) > _SLM_SUMMARIZE_LIMIT:
             emit({"type": "log",
-                  "message": f"로컬 SLM(gemma3n) 요약 중... (원본 {len(raw)}자)",
+                  "message": f"로컬 SLM({current_model()}) 요약 중... (원본 {len(raw)}자)",
                   "source": "local"})
         summarized = summarize_if_long(raw)  # 요약 → 마스킹 순서 (PLAN.md 4.1)
         if len(summarized) != len(raw):
@@ -234,17 +239,18 @@ def _run_tools(response, emit) -> list:
     return results
 
 
-_JIRA_FIELDS = ("key", "summary", "description", "resolution")
+_JIRA_FIELDS = ("key", "summary", "description", "resolution", "customer", "created")
 
 
 def _emit_jira_results(raw: str, emit) -> None:
     """search_jira 원본 반환값(JSON 문자열)을 파싱해 jira_results 이벤트를 emit.
 
     frontend 와 고정된 계약:
-      {"type": "jira_results", "issues": [{key, summary, description, resolution}, ...]}
+      {"type": "jira_results",
+       "issues": [{key, summary, description, resolution, customer, created}, ...]}
     - 각 텍스트 필드는 mask() 적용 후 실어 로컬 PII 마스킹 원칙을 유지한다(mask_diff 와 동일 철학).
     - 파싱 실패/비리스트/빈 리스트(매치 0건 안내문·'에러:' 접두 실패 문자열 포함)면 조용히 생략.
-      누적/중복 제거(key 기준)는 frontend 담당. source="system" 으로 log 와 구분 가능하게 표기.
+      누적/중복 제거(key 기준)는 frontend 담당. source="local"(로컬 에이전트의 도구 실행 산출물).
     """
     try:
         issues = json.loads(raw)
@@ -259,7 +265,7 @@ def _emit_jira_results(raw: str, emit) -> None:
     ]
     if not payload:
         return
-    emit({"type": "jira_results", "issues": payload, "source": "system"})
+    emit({"type": "jira_results", "issues": payload, "source": "local"})
 
 
 def _extract_text(response) -> str:

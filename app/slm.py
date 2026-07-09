@@ -24,6 +24,13 @@ def _resolve_model() -> str:
     return os.environ.get("SLM_MODEL", _DEFAULT_MODEL)
 
 
+def current_model() -> str:
+    """현재 해석되는 SLM 모델명(공개 헬퍼). 로그·UI 표기 등 실제 사용 모델명을
+    하드코딩 없이 얻기 위한 얇은 위임. 내부 _resolve_model 의 호출 시점 평가 규칙을
+    그대로 따른다(폴백 전 '시도 모델'을 반환 — 요약 시작 시점 표기용)."""
+    return _resolve_model()
+
+
 # 동적 컨텍스트 창 계산용 상수.
 # Ollama 는 요청에 options.num_ctx 를 안 주면 기본 컨텍스트(통상 2048~4096 토큰)로
 # 돌아 긴 프롬프트를 조용히 잘라버린다(입력 뒷부분 유실). 입력 길이에 맞춰 num_ctx 를

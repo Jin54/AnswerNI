@@ -91,9 +91,10 @@
     font-size: 12px;
     font-weight: 600;
   }
-  /* 소스별 뱃지 색 — 로컬 SLM(초록)/원격 LLM(파랑)/시스템(회색) 시각 구분 */
+  /* 소스별 뱃지 색 — 로컬 에이전트(초록)/원격 LLM(파랑) 2종 시각 구분 */
   .badge-local  { background: #dcfce7; color: #166534; }
   .badge-remote { background: #dbeafe; color: #1e40af; }
+  /* badge-system: 레거시 — 이제 system 소스도 로컬 에이전트(badge-local)로 흡수(하위호환용 유지) */
   .badge-system { background: #f1f5f9; color: #475569; }
   /* 로그 타임라인 소스 뱃지 — ts 와 msg 사이, 줄바꿈 시 밀리지 않게 고정 */
   .badge-source { flex: 0 0 auto; align-self: flex-start; }
@@ -303,6 +304,27 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  /* 카드 메타(고객사·날짜) — PCFILTER 메타 정보 톤, 카드 하단 정렬 */
+  .jira-card-meta {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    font-size: 12px;
+  }
+  .jira-card-customer {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .jira-card-date {
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+  }
   .jira-nav {
     flex: 0 0 auto;
     width: 40px;
@@ -361,7 +383,7 @@
   <section class="section">
     <h2><span class="section-num">1.</span> 진행 로그</h2>
     <p class="log-legend">
-      <span class="badge badge-local">🖥️ 로컬 SLM</span> Ollama · gemma3n — 전처리·요약
+      <span class="badge badge-local">🖥️ 로컬 에이전트</span> 조회·마스킹·SLM 압축(Ollama)
       <span class="badge badge-remote">☁️ 원격 LLM</span> Claude — 분석·판단
     </p>
     <div class="log-card">
@@ -463,13 +485,14 @@ function highlightTokens(escaped) {
 }
 
 // log 이벤트의 옵션 필드 source("local"|"remote"|"system")를 소스 뱃지로 매핑.
-// 로컬 SLM(전처리·요약) vs 원격 LLM(추론·판단) vs 시스템/도구를 시각 구분한다.
-// source 미지정(구 서버/하위호환)이면 null → 뱃지 없이 기존처럼 렌더.
+// 로컬 에이전트(조회·마스킹·SLM 압축·시스템 도구) vs 원격 LLM(분석·판단)을 시각 구분한다.
+// "system"(도구 실행·백엔드 안내)은 로컬 에이전트의 활동 → local 과 동일 처리(서버 전환 전/후
+// 하위호환). source 미지정(구 서버/하위호환)이면 null → 뱃지 없이 기존처럼 렌더.
 function sourceBadgeInfo(source) {
   switch (source) {
-    case 'local':  return { className: 'badge-local',  text: '🖥️ 로컬 SLM' };
+    case 'local':  return { className: 'badge-local',  text: '🖥️ 로컬 에이전트' };
     case 'remote': return { className: 'badge-remote', text: '☁️ 원격 LLM' };
-    case 'system': return { className: 'badge-system', text: '시스템' };
+    case 'system': return { className: 'badge-local',  text: '🖥️ 로컬 에이전트' }; // 시스템 도구도 로컬 에이전트 활동
     default:       return null; // 하위호환 — source 없으면 무뱃지
   }
 }
@@ -684,10 +707,10 @@ function appendMaskDiff(logEl, raw, masked, tsText) {
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
   line.appendChild(ts);
-  // PII 마스킹은 로컬 데몬 처리 → 로컬 뱃지로 "전송 전 로컬 마스킹" 셀링포인트 강조.
+  // PII 마스킹은 로컬 에이전트 처리 → 로컬 뱃지로 "전송 전 로컬 마스킹" 셀링포인트 강조.
   var badge = document.createElement('span');
   badge.className = 'badge badge-local badge-source';
-  badge.textContent = '🖥️ 로컬 마스킹';
+  badge.textContent = '🖥️ 로컬 에이전트 · 마스킹';
   line.appendChild(badge);
   var msg = document.createElement('span');
   msg.className = 'msg';
@@ -735,8 +758,8 @@ function appendCompress(logEl, before, after, tsText) {
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
   var badge = document.createElement('span');
-  badge.className = 'badge badge-local';   // slm_compress 는 정의상 로컬 SLM
-  badge.textContent = '🖥️ 로컬 SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
+  badge.className = 'badge badge-local';   // slm_compress 는 정의상 로컬 에이전트 활동
+  badge.textContent = '🖥️ 로컬 에이전트 · SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
                       Number(after).toLocaleString() + '자';
   line.appendChild(ts);
   line.appendChild(badge);
@@ -792,6 +815,7 @@ function copyToClipboard(text) {
 
 // 유사 Jira 사례 카드 1장을 생성. 모든 필드는 textContent → XSS 안전.
 // 본문은 resolution 우선, 없으면 description(CSS -webkit-line-clamp 로 3~4줄 클램프).
+// customer/created 는 옵션 필드 — 없거나 빈 문자열이면 해당 표기를 생략(하위호환).
 function renderJiraCard(issue) {
   var card = document.createElement('div');
   card.className = 'jira-card';
@@ -812,6 +836,27 @@ function renderJiraCard(issue) {
            : (issue && issue.description) ? issue.description : '';
   body.textContent = text;
   card.appendChild(body);
+
+  // 고객사·날짜 메타 — 둘 다 없으면 메타 행 자체를 생략(레이아웃 톤 유지).
+  var customer = (issue && issue.customer != null) ? String(issue.customer) : '';
+  var created = (issue && issue.created != null) ? String(issue.created) : '';
+  if (customer || created) {
+    var meta = document.createElement('div');
+    meta.className = 'jira-card-meta';
+    if (customer) {
+      var cust = document.createElement('span');
+      cust.className = 'jira-card-customer';
+      cust.textContent = customer;    // textContent → XSS 안전
+      meta.appendChild(cust);
+    }
+    if (created) {
+      var date = document.createElement('span');
+      date.className = 'jira-card-date';
+      date.textContent = created;     // textContent → XSS 안전
+      meta.appendChild(date);
+    }
+    card.appendChild(meta);
+  }
 
   return card;
 }
@@ -1119,7 +1164,7 @@ if (typeof document !== 'undefined') {
 
 // Node 격리 테스트용 export (브라우저에는 영향 없음)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard, mergeJiraIssues, jiraPageCount, jiraClampPage, jiraPageSlice, JIRA_PAGE_SIZE };
+  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard, mergeJiraIssues, jiraPageCount, jiraClampPage, jiraPageSlice, renderJiraCard, JIRA_PAGE_SIZE };
 }
 </script>
 </body>
