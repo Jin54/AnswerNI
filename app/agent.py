@@ -98,7 +98,8 @@ def run_agent(user_query: str, emit, client=None) -> str:
             from .llm_cli import ClaudeCLIClient
             client = ClaudeCLIClient()
             emit({"type": "log",
-                  "message": "ℹ️ API 키 미설정 — 로컬 Claude Code CLI 백엔드로 실행",
+                  "message": "ℹ️ 원격 LLM 백엔드: Claude Code CLI "
+                             "(ANTHROPIC_API_KEY 미설정 — .env 추가 시 실 API 자동 전환)",
                   "source": "local"})
 
     messages = [{"role": "user", "content": mask(user_query)}]
@@ -194,6 +195,49 @@ def _create(client, messages):
     )
 
 
+def _humanize_request(name: str, tool_input) -> str:
+    """도구 요청을 '원격 LLM 이 무엇을 시켰는지' 드러나는 문장으로 변환.
+
+    raw dict 노출("도구 실행: read_file {'path':...}") 대신 원격 판단의 결과로
+    로컬 에이전트가 수행하는 작업임을 자연어로 보여준다. 알 수 없는 도구는 기존 형식 폴백.
+    """
+    if name == "read_file":
+        path = (tool_input or {}).get("path") or ""
+        fname = path.rsplit("/", 1)[-1] if path else "(경로 없음)"
+        keyword = (tool_input or {}).get("keyword")
+        kw = f"'{keyword}'" if keyword else "전체"
+        return f"원격 LLM 요청 수행 → 로그 파일 조회: {fname} (키워드 {kw})"
+    if name == "search_jira":
+        query = (tool_input or {}).get("query", "")
+        return f"원격 LLM 요청 수행 → Jira 검색: '{query}'"
+    return f"도구 실행: {name} {tool_input}"
+
+
+def _tool_result_summary(name: str, raw: str, is_error: bool) -> str:
+    """도구 실행 결과를 한 줄 요약 로그 문구로 변환(raw=마스킹 전 기준, 원문 내용 미노출).
+
+    - 실패(에러 문자열): "└ 결과: 실패 — <에러 첫 60자>"
+    - read_file 성공: "└ 결과: N줄 / N자 반환"
+    - search_jira: JSON 배열 파싱 성공 시 "└ 결과: 매치 K건 (키 최대 3개)",
+      아니면(0건 안내문 등) "└ 결과: 매치 0건". 매치 0건이 명확히 보이는 것이 핵심.
+    - 알 수 없는 도구: 글자수만.
+    """
+    if is_error:
+        return f"└ 결과: 실패 — {raw[:60]}"
+    if name == "read_file":
+        return f"└ 결과: {len(raw.splitlines())}줄 / {len(raw)}자 반환"
+    if name == "search_jira":
+        try:
+            issues = json.loads(raw)
+        except (ValueError, TypeError):
+            issues = None
+        if isinstance(issues, list) and issues:
+            keys = [str(i.get("key", "?")) for i in issues if isinstance(i, dict)][:3]
+            return f"└ 결과: 매치 {len(issues)}건 ({', '.join(keys)})"
+        return "└ 결과: 매치 0건"
+    return f"└ 결과: {len(raw)}자 반환"
+
+
 def _run_tools(response, emit) -> list:
     """응답의 모든 tool_use 블록을 실행해 tool_result 리스트로 반환.
 
@@ -204,13 +248,21 @@ def _run_tools(response, emit) -> list:
         if block.type != "tool_use":
             continue
         emit({"type": "log",
-              "message": f"도구 실행: {block.name} {block.input}",
+              "message": _humanize_request(block.name, block.input),
               "source": "local"})
         try:
             raw = execute_tool(block.name, block.input)
         except Exception as e:  # execute_tool 은 문자열 반환 설계지만 겸용 방어
             raw = f"에러: 도구 실행 중 예외 발생 ({e})."
         is_error = raw.startswith("에러:")
+
+        # 결과 요약 로그: 원격 요청이 실제로 무엇을 회수했는지(건수·글자수·매치 여부)를
+        # mask_diff 앞에 한 줄로 남긴다. 사용자가 "찾은 게 없는 건가?"를 바로 판단하도록
+        # search_jira 매치 0건이 명시적으로 보이게 한다. 요약은 raw(마스킹 전) 기준으로
+        # 계산하되 원문 줄 내용은 싣지 않고 건수/글자수/이슈 키만 노출한다(PII 안전).
+        emit({"type": "log",
+              "message": _tool_result_summary(block.name, raw, is_error),
+              "source": "local"})
 
         # 로컬 SLM 이 실제로 요약을 시도하는 순간을 표시(요약 대상일 때만). summarize_if_long
         # 직전에 남겨야 이후 slm_compress(스키마 불변, frontend 가 local 로 취급)와 짝이 된다.
