@@ -255,9 +255,88 @@
   #report pre code { background: none; border: 0; padding: 0; color: inherit; }
   #report strong { color: #0f172a; font-weight: 700; }
 
+  /* ③ 유사 Jira 사례 — PCFILTER 카드 톤 + 3장 그리드 캐러셀 */
+  #jira-section[hidden] { display: none; }
+  .jira-carousel { display: flex; align-items: stretch; gap: 12px; }
+  .jira-grid {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .jira-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .jira-card-key {
+    align-self: flex-start;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .jira-card-summary {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .jira-card-body {
+    color: #475569;
+    font-size: 13.5px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    /* 3~4줄 클램프 */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .jira-nav {
+    flex: 0 0 auto;
+    width: 40px;
+    padding: 0;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .jira-nav:hover:not(:disabled) { background: #f1f5f9; border-color: #3b82f6; color: #1e40af; }
+  .jira-nav:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+  .jira-nav:disabled { opacity: .4; cursor: default; }
+  .jira-nav[hidden] { display: none; }
+  .jira-pageinfo {
+    margin-top: 12px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .jira-pageinfo[hidden] { display: none; }
+
   @media (max-width: 860px) {
     .container { padding: 28px 18px 60px; }
     .report-card { padding: 24px 20px; }
+    /* 모바일 — 2열(3번째 카드는 다음 줄로 래핑) */
+    .jira-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .jira-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -295,9 +374,22 @@
     </div>
   </section>
 
-  <!-- ③ 최종 보고서 — 하단 전체폭 대형 섹션 -->
+  <!-- ③ 유사 Jira 사례 — 카드 캐러셀(사례 0건이면 숨김) -->
+  <section class="section" id="jira-section" hidden>
+    <h2><span class="section-num">2.</span> 유사 Jira 사례</h2>
+    <div class="jira-carousel">
+      <button id="jira-prev" class="jira-nav" type="button" hidden
+              aria-label="이전 사례 보기" title="이전">‹</button>
+      <div class="jira-grid" id="jira-grid" aria-live="polite"></div>
+      <button id="jira-next" class="jira-nav" type="button" hidden
+              aria-label="다음 사례 보기" title="다음">›</button>
+    </div>
+    <div class="jira-pageinfo" id="jira-pageinfo" role="status" hidden></div>
+  </section>
+
+  <!-- ④ 최종 보고서 — 하단 전체폭 대형 섹션 -->
   <section class="section" id="report-section">
-    <h2><span class="section-num">2.</span> 최종 보고서
+    <h2><span class="section-num">3.</span> 최종 보고서
       <button id="report-copy-btn" class="copy-btn" type="button" hidden
               aria-label="보고서 마크다운 복사" title="마크다운 원문 복사">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -380,6 +472,57 @@ function sourceBadgeInfo(source) {
     case 'system': return { className: 'badge-system', text: '시스템' };
     default:       return null; // 하위호환 — source 없으면 무뱃지
   }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 유사 Jira 사례 — 누적/중복제거 + 페이지네이션 순수 로직 (DOM 비의존)
+// jira_results 이벤트는 search_jira 1회당 1번 도착하므로 프론트가 누적하고 key 로
+// 중복 제거한다. onopen(replay) 시 상태를 리셋해 재수신 중복을 막는다(초기화는 UI 계층).
+// ──────────────────────────────────────────────────────────────────────────
+
+var JIRA_PAGE_SIZE = 3;
+
+// existing(누적본)에 incoming 이슈들을 key 기준 중복 제거하며 추가. 최초 등장 순서 보존.
+// key 없는/빈 이슈는 건너뛴다. existing 은 변형하지 않고 새 배열을 반환한다.
+function mergeJiraIssues(existing, incoming) {
+  var result = Array.isArray(existing) ? existing.slice() : [];
+  var seen = {};
+  for (var i = 0; i < result.length; i++) {
+    if (result[i] && result[i].key != null) { seen[result[i].key] = true; }
+  }
+  var list = Array.isArray(incoming) ? incoming : [];
+  for (var j = 0; j < list.length; j++) {
+    var issue = list[j];
+    if (!issue || issue.key == null || issue.key === '') { continue; }
+    if (seen[issue.key]) { continue; }
+    seen[issue.key] = true;
+    result.push(issue);
+  }
+  return result;
+}
+
+// 전체 개수 → 페이지 수 (0건이면 0).
+function jiraPageCount(total, pageSize) {
+  var size = pageSize || JIRA_PAGE_SIZE;
+  if (total <= 0) { return 0; }
+  return Math.ceil(total / size);
+}
+
+// page 를 [0, pageCount-1] 로 클램프 (0건이면 0).
+function jiraClampPage(page, total, pageSize) {
+  var count = jiraPageCount(total, pageSize);
+  if (count === 0) { return 0; }
+  if (page < 0) { return 0; }
+  if (page > count - 1) { return count - 1; }
+  return page;
+}
+
+// 해당 페이지에 표시할 이슈 슬라이스(최대 pageSize 장).
+function jiraPageSlice(issues, page, pageSize) {
+  var size = pageSize || JIRA_PAGE_SIZE;
+  var list = Array.isArray(issues) ? issues : [];
+  var start = page * size;
+  return list.slice(start, start + size);
 }
 
 // 요청/네트워크 오류를 고정 한국어 문구로 매핑 (영어 예외 문구 노출 방지).
@@ -647,7 +790,80 @@ function copyToClipboard(text) {
   return fallbackCopy(text);
 }
 
-// 이벤트 1건을 받아 알맞은 영역에 렌더. refs = {log, report}.
+// 유사 Jira 사례 카드 1장을 생성. 모든 필드는 textContent → XSS 안전.
+// 본문은 resolution 우선, 없으면 description(CSS -webkit-line-clamp 로 3~4줄 클램프).
+function renderJiraCard(issue) {
+  var card = document.createElement('div');
+  card.className = 'jira-card';
+
+  var key = document.createElement('span');
+  key.className = 'jira-card-key';
+  key.textContent = issue && issue.key != null ? issue.key : '';
+  card.appendChild(key);
+
+  var summary = document.createElement('div');
+  summary.className = 'jira-card-summary';
+  summary.textContent = issue && issue.summary != null ? issue.summary : '';
+  card.appendChild(summary);
+
+  var body = document.createElement('div');
+  body.className = 'jira-card-body';
+  var text = (issue && issue.resolution) ? issue.resolution
+           : (issue && issue.description) ? issue.description : '';
+  body.textContent = text;
+  card.appendChild(body);
+
+  return card;
+}
+
+// 유사 Jira 사례 섹션 컨트롤러 — 누적 이슈/현재 페이지 상태를 보유하고 렌더.
+// 순수 로직(mergeJiraIssues/jiraPageCount/jiraClampPage/jiraPageSlice)에 위임하고,
+// 여기서는 DOM 갱신만 담당한다. refs.jira 로 handleEvent 에 주입된다.
+function createJiraController(els) {
+  var issues = [];
+  var page = 0;
+
+  function render() {
+    var total = issues.length;
+    if (total === 0) {
+      if (els.section) { els.section.hidden = true; }
+      els.grid.innerHTML = '';
+      if (els.prev) { els.prev.hidden = true; }
+      if (els.next) { els.next.hidden = true; }
+      if (els.pageInfo) { els.pageInfo.hidden = true; }
+      return;
+    }
+    if (els.section) { els.section.hidden = false; }
+    page = jiraClampPage(page, total);
+    var pageCount = jiraPageCount(total);
+
+    els.grid.innerHTML = '';
+    var slice = jiraPageSlice(issues, page);
+    for (var i = 0; i < slice.length; i++) {
+      els.grid.appendChild(renderJiraCard(slice[i]));
+    }
+
+    // 3장 이하면 캐러셀 컨트롤 없이 그리드만 노출.
+    var hasNav = pageCount > 1;
+    if (els.prev) { els.prev.hidden = !hasNav; els.prev.disabled = !hasNav || page <= 0; }
+    if (els.next) { els.next.hidden = !hasNav; els.next.disabled = !hasNav || page >= pageCount - 1; }
+    if (els.pageInfo) {
+      els.pageInfo.hidden = !hasNav;
+      els.pageInfo.textContent = (page + 1) + ' / ' + pageCount;
+    }
+  }
+
+  return {
+    // jira_results 이벤트 수신 — 누적 + key 중복 제거 후 리렌더.
+    addIssues: function (incoming) { issues = mergeJiraIssues(issues, incoming); render(); },
+    // start()/onopen(replay) 리셋 — 누적/dedupe 세트와 페이지를 초기 상태로.
+    reset: function () { issues = []; page = 0; render(); },
+    prev: function () { page = jiraClampPage(page - 1, issues.length); render(); },
+    next: function () { page = jiraClampPage(page + 1, issues.length); render(); }
+  };
+}
+
+// 이벤트 1건을 받아 알맞은 영역에 렌더. refs = {log, report, jira}.
 // tsText: 해당 이벤트의 최초 관측 타임스탬프(replay 재도장 방지, 선택 — 없으면 nowTs()).
 // 반환값: 스트림 종료 여부 (done/error 시 true).
 function handleEvent(data, refs, tsText) {
@@ -663,6 +879,12 @@ function handleEvent(data, refs, tsText) {
       return false;
     case 'slm_compress':
       appendCompress(refs.log, data.before, data.after, tsText);
+      return false;
+    case 'jira_results':
+      // search_jira 1회당 1번 도착 — 프론트가 누적 + key 중복 제거(컨트롤러 위임).
+      if (refs.jira && typeof refs.jira.addIssues === 'function') {
+        refs.jira.addIssues(data.issues);
+      }
       return false;
     case 'report':
       renderReport(refs.report, data.markdown);
@@ -692,7 +914,21 @@ function initApp() {
   var spinnerEl = document.getElementById('log-spinner');
   var copyBtnEl = document.getElementById('report-copy-btn');
   var copyLabelEl = copyBtnEl ? copyBtnEl.querySelector('.copy-btn-label') : null;
-  var refs = { log: logEl, report: reportEl };
+
+  // 유사 Jira 사례 컨트롤러(누적/dedupe/페이지 상태 보유) — refs.jira 로 handleEvent 에 주입.
+  var jira = createJiraController({
+    section: document.getElementById('jira-section'),
+    grid: document.getElementById('jira-grid'),
+    prev: document.getElementById('jira-prev'),
+    next: document.getElementById('jira-next'),
+    pageInfo: document.getElementById('jira-pageinfo')
+  });
+  if (jira && document.getElementById('jira-prev')) {
+    document.getElementById('jira-prev').addEventListener('click', jira.prev);
+    document.getElementById('jira-next').addEventListener('click', jira.next);
+  }
+
+  var refs = { log: logEl, report: reportEl, jira: jira };
   var source = null;
 
   // 보고서 복사 상태 — 렌더 전 마크다운 원문을 보관(복사 대상). replay 시 report 이벤트가
@@ -773,6 +1009,7 @@ function initApp() {
     elapsedStart = 0;              // 새 질의 → 경과 카운터 리셋
     logEl.innerHTML = '';
     reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
+    jira.reset();                  // 새 질의 → 이전 Jira 누적/dedupe 세트·페이지 리셋(섹션 숨김)
     hideReportCopy();              // 새 질의 → 이전 보고서 복사 버튼/원문 숨김·초기화
     showSpinner();
     setBusy(true, '요청 전송 중...');
@@ -805,6 +1042,7 @@ function initApp() {
           connEventCount = 0;
           logEl.innerHTML = '';
           reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
+          jira.reset();            // replay 로 jira_results 재수신 → 누적/dedupe 세트 리셋해 중복 방지
           hideReportCopy();        // 패널 리셋과 함께 복사 버튼도 숨김 — report replay 로 자연 복원
           submitEl.disabled = true;
           startElapsed();          // (재)연결 성공 → 경과 카운터 재개(재연결 안내 문구 대체)
@@ -881,7 +1119,7 @@ if (typeof document !== 'undefined') {
 
 // Node 격리 테스트용 export (브라우저에는 영향 없음)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard };
+  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard, mergeJiraIssues, jiraPageCount, jiraClampPage, jiraPageSlice, JIRA_PAGE_SIZE };
 }
 </script>
 </body>
