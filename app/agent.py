@@ -13,28 +13,28 @@
 emit 페이로드 (daemon/frontend 와 공유된 고정 계약 — JSON dict 3종):
 - {"type": "log", "message": str, "source"?: "local"|"remote"}
     source(옵션 필드): 진행 활동의 출처를 2종으로 구분 —
-    local=로컬 에이전트(도구 실행·PII 마스킹·SLM 요약·데몬 라이프사이클 전부),
+    local=로컬 에이전트(도구 실행·PII 마스킹·로컬 LLM 정돈·데몬 라이프사이클 전부),
     remote=원격 Claude 의 판단/추론. "system"(구 값)은 폐기: 시스템 도구 실행도
     로컬 에이전트의 일부이므로 local 로 흡수한다. 기존 필드는 불변이며 source 없는
     log 도 유효하다(하위호환 — frontend 는 source 유무/값으로 뱃지만 분기).
 - {"type": "mask_diff", "raw": <앞 500자>, "masked": <앞 500자>}
-- {"type": "slm_compress", "before": int, "after": int}
-  (mask_diff/slm_compress 는 스키마 불변 — frontend 가 각각 masking/local 로 취급)
+- {"type": "local_llm_tidy", "before": int, "after": int}
+  (mask_diff/local_llm_tidy 는 스키마 불변 — frontend 가 각각 masking/local 로 취급)
 """
 
 import json
+import os
 from pathlib import Path
 
 from .tools import TOOLS, execute_tool
 from .pii import mask
-from .slm import summarize_if_long, current_model
+from .local_llm import summarize_if_long, tidy_limit
 
-# 로컬 SLM 요약 트리거 기준(len(raw) > limit 이면 요약 대상)을 slm.summarize_if_long 의
-# 기본 인자값에서 그대로 읽어 동기화한다. slm.py 에 별도 상수가 없고 수정 대상도 아니므로,
-# 매직넘버 중복 없이 기본값을 참조해 기준 드리프트를 막는다.
-_SLM_SUMMARIZE_LIMIT = summarize_if_long.__defaults__[0]
+# 로컬 LLM 정돈 트리거 기준(len(raw) > limit 이면 정돈 대상)은 local_llm.tidy_limit() 로
+# 호출 시점에 평가한다(env LOCAL_LLM_TIDY_LIMIT 반영). local_llm 과 단일 기준을 공유해
+# 매직넘버 중복 없이 기준 드리프트를 막는다.
 
-MODEL = "claude-opus-4-8"
+MODEL = "claude-opus-4-8"  # REMOTE_LLM_MODEL 미설정 시 기본 원격 모델
 MAX_ITERATIONS = 10
 DIFF_PREVIEW = 500  # mask_diff 이벤트에 싣는 앞부분 길이
 
@@ -61,8 +61,19 @@ _SYSTEM_PROMPT_TEMPLATE = """\
 도구 사용 지침:
 - read_file: 지원 로그를 직접 읽어 근거를 확보하라. {log_reference}
   keyword 인자로 ERROR, WARN 등 관심 줄만 추려 읽을 수 있다.
-- search_jira: 과거 유사 이슈와 해결 방법을 적극 검색하라 (예: 오류 메시지의 핵심 키워드).
-- 추측하지 말고, 도구로 확인한 사실만 근거로 인용하라. 필요한 만큼 도구를 반복 호출해도 된다.
+- search_jira: 과거 유사 이슈와 해결 방법을 검색하라. 아래 '검색 규율'을 반드시 지켜라.
+- 추측하지 말고, 도구로 확인한 사실만 근거로 인용하라. read_file(로그 조회)은 필요한 만큼 반복해도 된다.
+
+검색 규율 (search_jira — 실 Jira 연동이라 검색 1회가 실제 비용이다. 아껴 써라):
+- 검색어는 반드시 **문의의 핵심 식별어**(제품·기능·증상의 고유 명사구: 예 "USB 테더링",
+  "SSL 인증서", "오프라인 로그인 실패")로 하라. '정책'·'네트워크'·'오류'·'DLP'·'오프라인'
+  같은 **광범위 일반어를 단독으로** 검색하는 것은 금지다(무관한 이슈가 수십 건 쏟아진다).
+  일반어는 반드시 핵심 식별어와 결합해 검색 범위를 좁혀라.
+- 검색 예산: 한 문의당 search_jira 는 **최대 3회 안팎**만 호출하라. 이미 관련성 높은 유사
+  이슈를 찾았다면 추가 검색을 멈추고 곧바로 분석·보고 단계로 넘어가라.
+- 결과가 0건이면: 더 짧은 핵심어로 **딱 1회만** 재시도하라. 그래도 0건이면 검색을 그만두고
+  보고서 '유사 사례' 항목에 "유사 사례 없음"으로 사실대로 기록하라(같은 취지의 검색을
+  무한히 반복하지 마라).
 - 도구 결과의 [EMAIL_1], [IP_1] 같은 토큰은 개인정보 마스킹이다. 같은 토큰은 같은 대상을 뜻하므로
   그대로 사용해 서술하라. 원문 복원을 시도하지 마라.
 
@@ -134,7 +145,6 @@ def run_agent(user_query: str, emit, client=None) -> str:
             anthropic.Anthropic(), 없으면 로컬 Claude Code CLI 어댑터로 폴백.
     """
     if client is None:
-        import os
         if os.environ.get("ANTHROPIC_API_KEY"):
             import anthropic  # 지연 import/생성: 키 없는 환경에서 모듈 import 는 성공
             client = anthropic.Anthropic()
@@ -227,10 +237,19 @@ def _emit_final_log(emit, stop_reason, tool_calls) -> None:
           "source": "local"})
 
 
+def _remote_model() -> str:
+    """호출 시점에 원격 LLM 모델명을 평가(.env 로딩 순서 무관).
+
+    REMOTE_LLM_MODEL 미설정·빈 문자열이면 기본 MODEL 로 폴백한다. 자주 바꾸지 않는
+    값이라 하드코딩 기본을 유지하되, 필요 시 .env 로만 덮을 수 있게 한다.
+    """
+    return os.environ.get("REMOTE_LLM_MODEL") or MODEL
+
+
 def _create(client, messages):
     """PLAN.md 8절 준수: 샘플링 파라미터(temperature 등) 절대 금지."""
     return client.messages.create(
-        model=MODEL,
+        model=_remote_model(),
         max_tokens=16000,
         thinking={"type": "adaptive"},
         system=build_system_prompt(),
@@ -308,15 +327,15 @@ def _run_tools(response, emit) -> list:
               "message": _tool_result_summary(block.name, raw, is_error),
               "source": "local"})
 
-        # 로컬 SLM 이 실제로 요약을 시도하는 순간을 표시(요약 대상일 때만). summarize_if_long
-        # 직전에 남겨야 이후 slm_compress(스키마 불변, frontend 가 local 로 취급)와 짝이 된다.
-        if len(raw) > _SLM_SUMMARIZE_LIMIT:
+        # 로컬 LLM 이 실제로 정돈을 시도하는 순간을 표시(정돈 대상일 때만). summarize_if_long
+        # 직전에 남겨야 이후 local_llm_tidy(스키마 불변, frontend 가 local 로 취급)와 짝이 된다.
+        if len(raw) > tidy_limit():
             emit({"type": "log",
-                  "message": f"로컬 SLM({current_model()}) 요약 중... (원본 {len(raw)}자)",
+                  "message": f"로컬 LLM 정돈 중... (원본 {len(raw)}자)",
                   "source": "local"})
-        summarized = summarize_if_long(raw)  # 요약 → 마스킹 순서 (PLAN.md 4.1)
+        summarized = summarize_if_long(raw)  # 정돈 → 마스킹 순서 (PLAN.md 4.1)
         if len(summarized) != len(raw):
-            emit({"type": "slm_compress", "before": len(raw), "after": len(summarized)})
+            emit({"type": "local_llm_tidy", "before": len(raw), "after": len(summarized)})
 
         masked = mask(summarized)
         emit({"type": "mask_diff",

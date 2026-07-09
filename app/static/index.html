@@ -479,7 +479,7 @@
   <header class="masthead">
     <div class="eyebrow">ANSWERNI · CONSOLE</div>
     <h1>기술지원 문의 자동 분석</h1>
-    <p class="subtitle">자율 tool-use 루프 · PII 마스킹 · SLM 압축 · 최종 기술지원 보고서 &nbsp;|&nbsp; 로컬 데몬 + 원격 LLM 하이브리드</p>
+    <p class="subtitle">자율 tool-use 루프 · PII 마스킹 · 로컬 LLM 정돈 · 최종 기술지원 보고서 &nbsp;|&nbsp; 로컬 데몬 + 원격 LLM 하이브리드</p>
   </header>
 
   <!-- ① 문의 입력 -->
@@ -496,7 +496,7 @@
   <section class="section">
     <h2><span class="section-num">1.</span> 진행 로그</h2>
     <p class="log-legend">
-      <span class="badge badge-local">🖥️ 로컬 에이전트</span> 조회·마스킹·SLM 압축(Ollama)
+      <span class="badge badge-local">🖥️ 로컬 에이전트</span> 조회·마스킹·정돈 (로컬 LLM)
       <span class="badge badge-remote">☁️ 원격 LLM</span> Claude — 분석·판단
     </p>
     <div class="log-card">
@@ -871,8 +871,8 @@ function appendCompress(logEl, before, after, tsText) {
   ts.className = 'ts';
   ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
   var badge = document.createElement('span');
-  badge.className = 'badge badge-local';   // slm_compress 는 정의상 로컬 에이전트 활동
-  badge.textContent = '🖥️ 로컬 에이전트 · SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
+  badge.className = 'badge badge-local';   // local_llm_tidy 는 정의상 로컬 에이전트 활동
+  badge.textContent = '🖥️ 로컬 에이전트 · 로컬 LLM 정돈: ' + Number(before).toLocaleString() + '자 → ' +
                       Number(after).toLocaleString() + '자';
   line.appendChild(ts);
   line.appendChild(badge);
@@ -1035,7 +1035,8 @@ function handleEvent(data, refs, tsText) {
       if (data.raw === data.masked) { return false; }
       appendMaskDiff(refs.log, data.raw, data.masked, tsText);
       return false;
-    case 'slm_compress':
+    case 'local_llm_tidy':
+    case 'slm_compress':  // 하위호환: 전환기 서버/replay 잔재 대비 — 계약({before,after}) 동일
       appendCompress(refs.log, data.before, data.after, tsText);
       return false;
     case 'jira_results':
