@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#FCF9F6"/>
+  <ellipse cx="168" cy="180" rx="15" ry="30" fill="#EA5B1A"/>
+  <ellipse cx="232" cy="180" rx="15" ry="30" fill="#EA5B1A"/>
+  <path d="M120 232 q80 66 160 0" stroke="#EA5B1A" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M120 232 l-4 -26 l28 10 Z" fill="#EA5B1A"/>
+</svg>
+</template>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:#FFFFFF}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:#EA5B1A}
+  ::selection{background:#FFD9C2;color:#141210}
+  @keyframes spin{from{transform:rotateY(0deg)}to{transform:rotateY(360deg)}}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="--accent:#EA5B1A; --accent-deep:#CC4A10; --tint:#FFF1E8; --ink:#141210; --muted:#6B6560; --line:#EBE8E3; --soft:#F7F6F3; font-family:'Pretendard',system-ui,sans-serif; color:#141210; background:#FFFFFF; overflow-x:hidden; min-height:100vh;">
+
+  <!-- NAV -->
+  <header style="position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.82); backdrop-filter:blur(12px); border-bottom:1px solid var(--line);">
+    <nav style="max-width:1200px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between;">
+      <a href="AnswerNI Float.dc.html" style="display:flex; align-items:center; gap:11px; font-weight:800; font-size:19px; letter-spacing:-0.02em;">
+        <img src="logo-face.png" alt="AnswerNI" style="height:30px; width:auto; display:block;">
+        <span>Answer<span style="color:var(--accent);">NI</span></span>
+      </a>
+      <div style="display:flex; align-items:center; gap:10px; font-size:15px; color:var(--muted); font-weight:500;">
+        <a href="AnswerNI Float.dc.html" style="display:inline-flex; align-items:center; gap:6px; padding:9px 15px; border-radius:10px; border:1px solid var(--line); font-weight:600;" style-hover="border-color:var(--accent); color:var(--accent);"><span style="font-size:13px;">←</span> 홈</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section style="max-width:1000px; margin:0 auto; padding:64px 32px 8px; text-align:center;">
+    <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.12em; color:var(--accent-deep); font-weight:700; background:var(--tint); padding:7px 14px; border-radius:100px; margin-bottom:22px; animation:rise .5s ease both;">
+      <span style="width:6px; height:6px; border-radius:50%; background:var(--accent);"></span> EXAMPLE GALLERY
+    </div>
+    <h1 style="font-size:clamp(32px,5vw,52px); line-height:1.12; letter-spacing:-0.035em; font-weight:800; margin-bottom:18px; animation:rise .55s ease .05s both;">이런 보고서를 받습니다</h1>
+    <p style="font-size:17px; line-height:1.65; color:var(--muted); max-width:520px; margin:0 auto; animation:rise .6s ease .1s both;">실제로 처리된 예시 케이스입니다. 카드에 마우스를 올리면 멈추고, <br>클릭하면 두 LLM의 대화 과정과 최종 보고서를 볼 수 있어요.</p>
+  </section>
+
+  <!-- CAROUSEL -->
+  <section style="position:relative; padding:12px 0 40px;">
+    <!-- edge fades -->
+    <div style="position:absolute; left:0; top:0; bottom:0; width:220px; z-index:20; pointer-events:none; background:linear-gradient(90deg,#fff 8%,rgba(255,255,255,0));"></div>
+    <div style="position:absolute; right:0; top:0; bottom:0; width:220px; z-index:20; pointer-events:none; background:linear-gradient(270deg,#fff 8%,rgba(255,255,255,0));"></div>
+
+    <div ref="{{ stageRef }}" onMouseEnter="{{ onEnter }}" onMouseLeave="{{ onLeave }}" style="position:relative; height:470px;">
+      <div style="position:absolute; left:50%; top:50%; width:0; height:0;">
+        <div style="position:absolute; left:0; top:0; width:0; height:0;">
+
+          <!-- card 0 · 인증 -->
+          <div onClick="{{ o0 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(234,91,26,0.45); border-color:#EA5B1A;">
+              <div style="height:3px; background:#EA5B1A;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#F79862;"><span style="width:9px; height:9px; border-radius:3px; background:#EA5B1A;"></span>인증</span>
+                  <span style="background:rgba(34,197,94,0.16); color:#6EE7A0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">해결 완료</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">로그인 실패</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">SSL 인증서 만료로 인증 서버 로그인 거부</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#F87171;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#F87171; font-weight:700;">ERROR</span> SSL certificate has expired</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#EA5B1A,#F79862); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 A</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-123</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#F79862;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 1 · 결제 -->
+          <div onClick="{{ o1 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(99,102,241,0.42); border-color:#6366f1;">
+              <div style="height:3px; background:#6366f1;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#A5A9FF;"><span style="width:9px; height:9px; border-radius:3px; background:#6366f1;"></span>결제</span>
+                  <span style="background:rgba(34,197,94,0.16); color:#6EE7A0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">해결 완료</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">결제 승인 실패</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">PG사 응답 타임아웃으로 승인 요청 지연</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#F87171;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#F87171; font-weight:700;">ERROR</span> PG gateway response timeout</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#A5A9FF); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 D</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-204</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#A5A9FF;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 2 · 인프라 -->
+          <div onClick="{{ o2 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(20,184,166,0.4); border-color:#14b8a6;">
+              <div style="height:3px; background:#14b8a6;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#5EEAD4;"><span style="width:9px; height:9px; border-radius:3px; background:#14b8a6;"></span>인프라</span>
+                  <span style="background:rgba(34,197,94,0.16); color:#6EE7A0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">해결 완료</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">API 5xx 급증</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">DB 커넥션 풀 고갈로 오류율 상승</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#FBBF24;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#FBBF24; font-weight:700;">WARN</span> db connection pool exhausted</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#14b8a6,#5EEAD4); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 B</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-176</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#5EEAD4;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 3 · 데이터 -->
+          <div onClick="{{ o3 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(167,139,250,0.4); border-color:#a78bfa;">
+              <div style="height:3px; background:#a78bfa;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#C4B5FD;"><span style="width:9px; height:9px; border-radius:3px; background:#a78bfa;"></span>데이터</span>
+                  <span style="background:rgba(34,197,94,0.16); color:#6EE7A0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">해결 완료</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">동기화 지연</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">배치 잡 중복 실행으로 반영 지연</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#FBBF24;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#FBBF24; font-weight:700;">WARN</span> duplicate batch job detected</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#a78bfa,#C4B5FD); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 E</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-198</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#C4B5FD;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 4 · 스토리지 -->
+          <div onClick="{{ o4 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(59,130,246,0.4); border-color:#3b82f6;">
+              <div style="height:3px; background:#3b82f6;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#93C5FD;"><span style="width:9px; height:9px; border-radius:3px; background:#3b82f6;"></span>스토리지</span>
+                  <span style="background:rgba(34,197,94,0.16); color:#6EE7A0; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">해결 완료</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">업로드 실패</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">S3 버킷 권한 오류로 파일 저장 거부</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#F87171;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#F87171; font-weight:700;">ERROR</span> S3 AccessDenied: PutObject</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#93C5FD); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 C</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-155</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#93C5FD;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- card 5 · 알림 -->
+          <div onClick="{{ o5 }}" data-card style="position:absolute; left:0; top:0; width:266px; height:352px; will-change:transform, opacity, filter; cursor:pointer;">
+            <div style="width:100%; height:100%; background:#1C1815; border:1px solid rgba(255,255,255,0.08); border-radius:22px; backface-visibility:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.22), 0 30px 56px -24px rgba(0,0,0,0.55); overflow:hidden; display:flex; flex-direction:column;" style-hover="box-shadow:0 4px 12px rgba(0,0,0,0.28), 0 46px 78px -22px rgba(251,113,133,0.4); border-color:#fb7185;">
+              <div style="height:3px; background:#fb7185;"></div>
+              <div style="padding:22px 22px 20px; display:flex; flex-direction:column; height:100%;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#FDA4AF;"><span style="width:9px; height:9px; border-radius:3px; background:#fb7185;"></span>알림</span>
+                  <span style="background:rgba(245,158,11,0.16); color:#FCD34D; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;">조사 중</span>
+                </div>
+                <div style="font-size:22px; font-weight:800; letter-spacing:-0.025em; line-height:1.28; margin-top:18px; color:#FBF7F2;">푸시 미발송</div>
+                <div style="font-size:13px; color:#9A938C; margin-top:9px; line-height:1.55;">메시지 큐 적체로 알림 전송 지연</div>
+                <div style="margin-top:16px; background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.06); border-radius:9px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.5; color:#B9B1A8; display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span style="flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#FBBF24;"></span>
+                  <span style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><span style="color:#FBBF24; font-weight:700;">WARN</span> message queue backlog rising</span>
+                </div>
+                <div style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between;">
+                  <div style="display:inline-flex; align-items:center; gap:9px;">
+                    <span style="width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#fb7185,#FDA4AF); display:block;"></span>
+                    <div style="line-height:1.25;">
+                      <div style="font-size:12.5px; font-weight:700; color:#E9E3DC;">고객사 F</div>
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7C746C;">SUP-212</div>
+                    </div>
+                  </div>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:#FDA4AF;">자세히 <span style="font-size:13px;">→</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </section>
+
+  <!-- LIVE DEMO -->
+  <section ref="{{ liveRef }}" id="live" style="max-width:1200px; margin:0 auto; padding:8px 32px 40px;">
+    <div style="text-align:center; max-width:640px; margin:0 auto 30px;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.12em; color:var(--accent-deep); font-weight:700; background:var(--tint); padding:7px 14px; border-radius:100px; margin-bottom:20px;">
+        <span style="width:6px; height:6px; border-radius:50%; background:var(--accent);"></span> LIVE DEMO
+      </div>
+      <h2 style="font-size:clamp(28px,4vw,42px); font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:14px;">위 카드를 클릭해보세요</h2>
+      <p style="font-size:16px; line-height:1.65; color:var(--muted);">선택한 사례의 문의가 자동으로 입력되면서, 진행 로그·유사 사례·최종 보고서까지 <br>실제 동작 그대로 재생됩니다.</p>
+    </div>
+    <div style="border:1px solid var(--line); border-radius:22px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(20,18,16,0.04), 0 30px 60px -30px rgba(20,18,16,0.32);">
+      <div style="display:flex; align-items:center; gap:8px; padding:13px 18px; border-bottom:1px solid var(--line); background:#FBFAF8;">
+        <span style="width:11px; height:11px; border-radius:50%; background:#E7C7B7;"></span>
+        <span style="width:11px; height:11px; border-radius:50%; background:#EADFC4;"></span>
+        <span style="width:11px; height:11px; border-radius:50%; background:#D3E0CE;"></span>
+        <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);">AnswerNI Live Demo</span>
+      </div>
+      <iframe ref="{{ iframeRef }}" src="AnswerNI LiveDemo.html" title="AnswerNI 라이브 데모" style="width:100%; height:820px; border:0; display:block; background:var(--bg);"></iframe>
+    </div>
+  </section>
+
+  <!-- DETAIL MODAL -->
+  <sc-if value="{{ hasOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ close }}" style="position:fixed; inset:0; z-index:9999; background:rgba(20,18,16,0.5); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:28px; animation:fade .2s ease both;">
+      <div onClick="{{ stop }}" style="width:min(760px,100%); max-height:88vh; overflow-y:auto; background:#fff; border-radius:18px; box-shadow:0 40px 90px -20px rgba(20,18,16,0.5); animation:pop .28s cubic-bezier(.2,.8,.2,1) both;">
+        <!-- modal header -->
+        <div style="position:sticky; top:0; background:#fff; border-bottom:1px solid #EEF0F2; padding:22px 28px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; z-index:2;">
+          <div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--accent-deep); background:var(--tint); padding:4px 9px; border-radius:6px; letter-spacing:0.04em;">{{ openCase.category }}</span>
+            <div style="font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-top:12px;">{{ openCase.title }}</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#94a3b8; margin-top:6px;">{{ openCase.meta }}</div>
+          </div>
+          <div onClick="{{ close }}" style="flex-shrink:0; width:34px; height:34px; border-radius:9px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:var(--muted);" style-hover="background:var(--soft);">✕</div>
+        </div>
+
+        <div style="padding:24px 28px 30px; display:flex; flex-direction:column; gap:22px;">
+          <!-- inquiry -->
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.08em; color:var(--muted); font-weight:700; margin-bottom:10px;">접수 문의</div>
+            <div style="background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:14.5px; line-height:1.6;">{{ openCase.inquiry }}</div>
+          </div>
+
+          <!-- dialogue -->
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.08em; color:var(--muted); font-weight:700; margin-bottom:12px;">두 LLM의 대화</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <sc-for list="{{ openCase.dialogue }}" as="msg" hint-placeholder-count="4">
+                <sc-if value="{{ msg.isL }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex; justify-content:flex-start;">
+                    <div style="max-width:82%;">
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); font-weight:700; margin-bottom:5px;">내부 SLM · 로컬</div>
+                      <div style="background:var(--soft); border:1px solid var(--line); border-radius:13px 13px 13px 4px; padding:11px 14px; font-size:13.5px; line-height:1.55;">{{ msg.text }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ msg.isR }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; justify-content:flex-end;">
+                    <div style="max-width:82%;">
+                      <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent-deep); font-weight:700; text-align:right; margin-bottom:5px;">외부 LLM · 원격</div>
+                      <div style="background:var(--ink); color:#EDE7DE; border-radius:13px 13px 4px 13px; padding:11px 14px; font-size:13.5px; line-height:1.55;">{{ msg.text }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- report -->
+          <div style="border:1px solid #F3D8C6; background:linear-gradient(180deg,#FFF7F2,#fff); border-radius:14px; padding:18px 20px;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.08em; color:var(--accent-deep); font-weight:700; margin-bottom:14px;">최종 보고서</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; gap:12px;"><span style="flex-shrink:0; width:52px; font-size:12px; font-weight:700; color:var(--muted); padding-top:1px;">원인</span><span style="font-size:14px; line-height:1.55; font-weight:600;">{{ openCase.cause }}</span></div>
+              <div style="display:flex; gap:12px;"><span style="flex-shrink:0; width:52px; font-size:12px; font-weight:700; color:var(--muted); padding-top:1px;">조치</span><span style="font-size:14px; line-height:1.55;">{{ openCase.action }}</span></div>
+              <div style="display:flex; gap:12px;"><span style="flex-shrink:0; width:52px; font-size:12px; font-weight:700; color:var(--muted); padding-top:1px;">참조</span><span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:700; color:var(--accent-deep);">{{ openCase.ref }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1200, &quot;height&quot;: 760 },
+  &quot;accentColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#EA5B1A&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#EA5B1A&quot;, &quot;#E5561B&quot;, &quot;#F26A21&quot;, &quot;#D9531A&quot;], &quot;section&quot;: &quot;브랜드&quot; }
+}">
+class Component extends DCLogic {
+  state = { open: null, paused: false };
+
+  cases = [
+    {
+      category: '인증', title: '로그인 실패', meta: '고객사 A · SUP-123 · 2026-06-14',
+      inquiry: '고객사 A에서 어제부터 로그인이 안 됩니다. 급하게 확인 부탁드립니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'auth-server.log 확인 결과 SSL certificate has expired 오류 다수. 개인정보는 마스킹했습니다.' },
+        { isL: false, isR: true,  text: '인증서 만료가 원인으로 보입니다. Jira에서 "SSL 인증서 만료" 유사 사례를 찾아 주세요.' },
+        { isL: true,  isR: false, text: 'SUP-123 매칭 · 인증서 갱신 후 재기동으로 해결된 이력 전달합니다.' },
+        { isL: false, isR: true,  text: '동일 조치로 해결 가능합니다. 보고서를 정리하겠습니다.' },
+      ],
+      cause: 'SSL 인증서 만료 (07-08)', action: '인증서 갱신 후 인증 서비스 재기동', ref: 'SUP-123',
+    },
+    {
+      category: '결제', title: '결제 승인 실패', meta: '고객사 D · SUP-204 · 2026-06-28',
+      inquiry: '결제 시도 시 승인이 계속 실패하고 화면이 멈춥니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'payment.log에 PG 응답 대기 timeout 반복. 카드번호 등은 마스킹 처리했습니다.' },
+        { isL: false, isR: true,  text: 'PG사 응답 지연 가능성이 큽니다. 타임아웃 설정과 재시도 로직을 확인해 주세요.' },
+        { isL: true,  isR: false, text: '커넥션 타임아웃 3초로 짧게 설정됨. SUP-204에 동일 사례 있습니다.' },
+        { isL: false, isR: true,  text: '타임아웃 상향과 재시도 큐 적용으로 해결됩니다.' },
+      ],
+      cause: 'PG사 응답 타임아웃 · 짧은 타임아웃 설정', action: '타임아웃 상향(3s→10s) 및 재시도 큐 적용', ref: 'SUP-204',
+    },
+    {
+      category: '인프라', title: 'API 5xx 급증', meta: '고객사 B · SUP-176 · 2026-06-20',
+      inquiry: '오전부터 API 오류율이 급격히 올라가고 응답이 느립니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'app.log에 DB connection pool exhausted 경고 다수 확인됩니다.' },
+        { isL: false, isR: true,  text: '커넥션 풀 고갈로 보입니다. 최대 커넥션 수와 슬로우 쿼리를 확인해 주세요.' },
+        { isL: true,  isR: false, text: '풀 최대치 20, 슬로우 쿼리 1건 확인. SUP-176 유사 사례 매칭됩니다.' },
+        { isL: false, isR: true,  text: '풀 상향과 인덱스 추가로 해결 가능합니다.' },
+      ],
+      cause: 'DB 커넥션 풀 고갈 · 슬로우 쿼리', action: '커넥션 풀 상향 및 대상 쿼리 인덱스 추가', ref: 'SUP-176',
+    },
+    {
+      category: '데이터', title: '동기화 지연', meta: '고객사 E · SUP-198 · 2026-06-24',
+      inquiry: '데이터가 화면에 반영되기까지 수십 분씩 걸립니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'batch.log에 동일 잡이 중복 실행된 흔적이 있습니다.' },
+        { isL: false, isR: true,  text: '스케줄러 중복 트리거 가능성입니다. 크론 설정과 락을 확인해 주세요.' },
+        { isL: true,  isR: false, text: '분산 락 미적용으로 인스턴스 2대가 동시 실행. SUP-198 사례와 동일합니다.' },
+        { isL: false, isR: true,  text: '분산 락 적용으로 중복 실행을 막으면 해결됩니다.' },
+      ],
+      cause: '배치 잡 중복 실행 · 분산 락 미적용', action: '분산 락 적용으로 단일 실행 보장', ref: 'SUP-198',
+    },
+    {
+      category: '스토리지', title: '업로드 실패', meta: '고객사 C · SUP-155 · 2026-06-11',
+      inquiry: '파일 업로드가 계속 실패합니다. 저장이 안 됩니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'storage.log에 S3 AccessDenied 오류가 반복됩니다.' },
+        { isL: false, isR: true,  text: '버킷 권한 문제로 보입니다. IAM 정책과 버킷 정책을 확인해 주세요.' },
+        { isL: true,  isR: false, text: 'PutObject 권한 누락 확인. SUP-155에 동일 조치 이력 있습니다.' },
+        { isL: false, isR: true,  text: 'IAM 정책에 PutObject 권한을 추가하면 해결됩니다.' },
+      ],
+      cause: 'S3 버킷 권한 오류 · PutObject 누락', action: 'IAM 정책에 PutObject 권한 추가', ref: 'SUP-155',
+    },
+    {
+      category: '알림', title: '푸시 미발송', meta: '고객사 F · SUP-212 · 2026-07-02',
+      inquiry: '푸시 알림이 사용자에게 전송되지 않습니다.',
+      dialogue: [
+        { isL: true,  isR: false, text: 'queue.log에 메시지 적체(backlog) 급증이 확인됩니다.' },
+        { isL: false, isR: true,  text: '컨슈머 처리 지연으로 보입니다. 워커 수와 실패 재시도를 확인해 주세요.' },
+        { isL: true,  isR: false, text: '워커 1대만 동작 중, 실패 메시지 무한 재시도 확인. 유사 사례 조사 중입니다.' },
+        { isL: false, isR: true,  text: '워커 증설과 DLQ 분리를 제안합니다. 검증이 필요합니다.' },
+      ],
+      cause: '메시지 큐 적체 · 워커 부족/재시도 폭주', action: '워커 증설 및 DLQ 분리 (검증 진행 중)', ref: 'SUP-212',
+    },
+  ];
+
+  open(i) { this.setState({ open: this.cases[i] }); }
+
+  _t = 0;
+  _last = 0;
+  _paused = false;
+  R = 380;               // horizontal orbit radius
+  speed = (2 * Math.PI) / 48;  // one full loop ~48s
+
+  layout = () => {
+    if (!this._cards) return;
+    const n = this._cards.length;
+    for (let i = 0; i < n; i++) {
+      const a = this._t + (i * 2 * Math.PI) / n;
+      const depth = Math.cos(a);            // -1 back .. 1 front
+      const f = (depth + 1) / 2;            // 0 back .. 1 front
+      const focus = Math.pow(Math.max(0, depth), 6); // sharp peak only at the very front
+      const x = Math.sin(a) * this.R;
+      const y = -depth * 8 - focus * 14;             // front card also lifts slightly
+      const scale = 0.66 + 0.34 * f + 0.16 * focus;  // extra pop when centered
+      const el = this._cards[i];
+      el.style.transform = `translate(-50%,-50%) translateX(${x.toFixed(1)}px) translateY(${y.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+      el.style.zIndex = String(Math.round(f * 200));
+      el.style.opacity = (0.32 + 0.68 * f).toFixed(3);
+      el.style.filter = f > 0.92 ? 'none' : `blur(${((1 - f) * 3.5).toFixed(2)}px)`;
+      el.style.pointerEvents = f > 0.55 ? 'auto' : 'none';
+    }
+  };
+
+  tick = (ts) => {
+    if (!this._last) this._last = ts;
+    const dt = Math.min(0.05, (ts - this._last) / 1000);
+    this._last = ts;
+    const frozen = this._paused || this.state.open;
+    if (!frozen) this._t += dt * this.speed;
+    this.layout();
+    this._raf = requestAnimationFrame(this.tick);
+  };
+
+  componentDidMount() {
+    if (this._stage) this._cards = [...this._stage.querySelectorAll('[data-card]')];
+    this.layout();
+    this._raf = requestAnimationFrame(this.tick);
+  }
+
+  componentWillUnmount() {
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  // ---- Live-demo playback (data-driven from this.cases) ----
+  _timers = [];
+  _cancelDemo() {
+    this._timers.forEach((t) => clearTimeout(t));
+    this._timers = [];
+    if (this._typeTimer) { clearInterval(this._typeTimer); this._typeTimer = null; }
+  }
+  _at(delay, fn) { this._timers.push(setTimeout(fn, delay)); }
+
+  // Build a play script from a case. Swap the case fields to change all demo content.
+  buildScript(c) {
+    const cust = (c.meta || '').split('·')[0].trim() || '고객사';
+    const date = (c.meta.match(/\d{4}-\d{2}-\d{2}/) || ['2026-07-09'])[0];
+    const logs = [];
+    logs.push({ k: 'log', s: 'local', m: '문의 접수 · 관련 로그 조회 시작' });
+    logs.push({ k: 'mask', raw: '사용자 kim@aaa.com (010-1234-5678) 문의 접수', masked: '사용자 [EMAIL_1] ([PHONE_1]) 문의 접수' });
+    logs.push({ k: 'compress', before: 21400, after: 1830 });
+    (c.dialogue || []).forEach((d) => logs.push({ k: 'log', s: d.isL ? 'local' : 'remote', m: d.text }));
+    const jira = [
+      { key: c.ref, summary: `${c.title} — ${c.cause}`, resolution: c.action, customer: cust, created: date },
+    ];
+    const report = `# ${c.title} 분석 보고서\n\n## 원인\n${c.cause}\n\n## 조치\n${c.action}\n\n## 참조 사례\n- ${c.ref} (${cust}, ${date})\n`;
+    return { query: c.inquiry, logs, jira, report };
+  }
+
+  _cursor(doc, btn) {
+    let cur = doc.getElementById('__democursor');
+    if (!cur) {
+      cur = doc.createElement('div');
+      cur.id = '__democursor';
+      cur.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))"><path d="M4 2 L4 20 L9 15 L12.5 22 L15 21 L11.5 14 L18 14 Z" fill="#fff" stroke="#141210" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+      cur.style.cssText = 'position:fixed; left:0; top:0; z-index:99999; pointer-events:none; transition:left .85s cubic-bezier(.4,.1,.2,1), top .85s cubic-bezier(.4,.1,.2,1), transform .15s ease; opacity:0;';
+      doc.body.appendChild(cur);
+    }
+    return cur;
+  }
+
+  playDemo(i) {
+    const c = this.cases[i];
+    if (!c) return;
+    const ifr = this._iframe;
+    if (!ifr || !ifr.contentWindow) return;
+    this._paused = true;
+
+    const sc = this.buildScript(c);
+
+    // scroll parent so the demo window sits near the top of the viewport
+    const y = ifr.getBoundingClientRect().top + window.scrollY - 70;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+
+    // drive the demo via postMessage (works cross-origin / file://)
+    const post = () => {
+      try { ifr.contentWindow.postMessage({ type: 'answerni-demo', script: sc }, '*'); } catch (e) {}
+    };
+    post();
+    setTimeout(post, 400); // backup in case the iframe was still loading
+    setTimeout(() => { this._paused = false; }, 1200);
+  }
+
+  renderVals() {
+    const accent = this.props.accentColor || '#EA5B1A';
+    return {
+      rootRef: (el) => { this._root = el; if (el) el.style.setProperty('--accent', accent); },
+      stageRef: (el) => { this._stage = el; if (el) { this._cards = [...el.querySelectorAll('[data-card]')]; this.layout(); } },
+      liveRef: (el) => { this._live = el; },
+      iframeRef: (el) => { this._iframe = el; },
+      hasOpen: !!this.state.open,
+      openCase: this.state.open || {},
+      onEnter: () => { this._paused = true; },
+      onLeave: () => { this._paused = false; },
+      close: () => this.setState({ open: null }),
+      stop: (e) => { e.stopPropagation(); },
+      o0: () => this.playDemo(0), o1: () => this.playDemo(1), o2: () => this.playDemo(2),
+      o3: () => this.playDemo(3), o4: () => this.playDemo(4), o5: () => this.playDemo(5),
+    };
+  }
+
+  componentDidUpdate() {
+    if (this._root) this._root.style.setProperty('--accent', this.props.accentColor || '#EA5B1A');
+  }
+}
+</script>
+</body>
+</html>

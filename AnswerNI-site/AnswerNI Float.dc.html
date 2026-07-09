@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#EA5B1A"/>
+  <rect x="120" y="120" width="160" height="160" rx="34" fill="#FFFFFF"/>
+  <circle cx="172" cy="188" r="13" fill="#EA5B1A"/>
+  <circle cx="228" cy="188" r="13" fill="#EA5B1A"/>
+  <path d="M168 226 q32 30 64 0" stroke="#EA5B1A" stroke-width="13" fill="none" stroke-linecap="round"/>
+</svg>
+</template>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:#FFFFFF}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:#FFD9C2;color:#141210}
+  @keyframes fl-a{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-16px)}}
+  @keyframes fl-b{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+  @keyframes fl-c{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+  @keyframes fl-back{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-13px) rotate(-4deg)}}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes tiltA{0%,100%{transform:perspective(2200px) rotateY(-22deg) rotateX(5deg) translateY(0)}50%{transform:perspective(2200px) rotateY(-22deg) rotateX(5deg) translateY(-15px)}}
+  @keyframes tiltB{0%,100%{transform:perspective(2200px) rotateY(-22deg) rotateX(5deg) translateY(0)}50%{transform:perspective(2200px) rotateY(-22deg) rotateX(5deg) translateY(-24px)}}
+  @keyframes pcL{0%,100%{transform:perspective(2000px) rotateY(20deg) rotateX(4deg) translateY(0)}50%{transform:perspective(2000px) rotateY(20deg) rotateX(4deg) translateY(-14px)}}
+  @keyframes pcR{0%,100%{transform:perspective(2000px) rotateY(-20deg) rotateX(4deg) translateY(0)}50%{transform:perspective(2000px) rotateY(-20deg) rotateX(4deg) translateY(-18px)}}
+  @keyframes midf{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+</style>
+</helmet>
+<div ref="{{ rootRef }}" style="--accent:#EA5B1A; --accent-deep:#CC4A10; --tint:#FFF1E8; --ink:#141210; --muted:#6B6560; --line:#EBE8E3; --soft:#F7F6F3; font-family:'Pretendard',system-ui,sans-serif; color:#141210; background:#FFFFFF; overflow-x:hidden;">
+
+  <!-- NAV -->
+  <header style="position:sticky; top:0; z-index:60; background:rgba(255,255,255,0.82); backdrop-filter:blur(12px); border-bottom:1px solid var(--line);">
+    <nav style="max-width:1200px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between;">
+      <a href="#top" style="display:flex; align-items:center; gap:11px; font-weight:800; font-size:19px; letter-spacing:-0.02em;">
+        <img src="logo-face.png" alt="AnswerNI" style="height:30px; width:auto; display:block;">
+        <span>Answer<span style="color: var(--accent);">NI</span></span>
+      </a>
+      <div style="display:flex; align-items:center; gap:10px; font-size:15px; color:var(--muted); font-weight:500;">
+        <a href="AnswerNI Demo.dc.html" style="display:inline-flex; align-items:center; gap:7px; background:var(--ink); color:#fff; padding:10px 18px; border-radius:10px; font-weight:600;" style-hover="background:#000;">라이브 데모 <span style="font-size:13px;">→</span></a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section id="top" style="position:relative; max-width:1200px; margin:0 auto; padding:70px 32px 20px; text-align:center;">
+    <h1 style="font-size:clamp(38px,6vw,74px); line-height:1.08; letter-spacing:-0.035em; font-weight:800; max-width:900px; margin:0 auto 22px; animation:rise .6s ease .05s both;">
+      두 개의 LLM이 사람 없이<br><span style="color:var(--accent);">스스로 대화하며</span> 답을 찾습니다
+    </h1>
+    <p style="font-size:19px; line-height:1.65; color:var(--muted); max-width:560px; margin:0 auto 34px; animation:rise .6s ease .12s both;">
+      문의 한 건이 들어오면 로컬 LLM과 원격 LLM이 서로 주고받으며 <br>내용을 읽고, 사례를 찾고, 원인을 진단해 보고서로 돌려줍니다.
+    </p>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; animation:rise .6s ease .18s both;">
+      
+      
+    </div>
+
+    <!-- FLOATING STAGE -->
+    <div ref="{{ stageRef }}" style="position:relative; height:692px; margin-top:36px;">
+     <div ref="{{ sceneRef }}" style="position: absolute; left: 50%; top: 0px; width: 1160px; height: 692px; transform: translateX(-50%) scale(0.90431); transform-origin: center top;">
+      <!-- ground shadow -->
+      <div style="position:absolute; left:48%; bottom:34px; transform:translateX(-50%); width:840px; height:120px; background:radial-gradient(ellipse at center, rgba(20,18,16,0.20), rgba(20,18,16,0) 70%); filter:blur(4px); pointer-events:none; z-index:0;"></div>
+      <!-- soft glow -->
+      <div style="position:absolute; left:46%; top:46%; transform:translate(-50%,-50%); width:720px; height:420px; background:radial-gradient(ellipse at center, rgba(234,91,26,0.13), rgba(234,91,26,0) 70%); pointer-events:none; z-index:0;"></div>
+
+      <!-- LEFT PC = 내부 SLM -->
+      <div style="position:absolute; left:-30px; top:72px; width:440px; z-index:1; transform-origin:center; animation:pcL 8.5s ease-in-out infinite; background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:-46px 52px 104px -44px rgba(20,18,16,0.5); overflow:hidden; text-align:left;">
+        <div style="display:flex; align-items:center; gap:7px; padding:11px 15px; border-bottom:1px solid var(--line); background:#FBFAF8;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#E7C7B7;"></span><span style="width:10px;height:10px;border-radius:50%;background:#EADFC4;"></span><span style="width:10px;height:10px;border-radius:50%;background:#D3E0CE;"></span>
+          <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);">내부 LLM · 로컬</span>
+        </div>
+        <div style="padding:16px; display:flex; flex-direction:column; gap:10px; height:296px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--muted); font-weight:700;">요약 · 마스킹</div>
+          <div style="background:var(--soft); border:1px solid var(--line); border-radius:12px 12px 12px 4px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">로그 214줄 → 오류 12줄 추출</div>
+          <div style="background:var(--soft); border:1px solid var(--line); border-radius:12px 12px 12px 4px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">개인정보 3건 마스킹 완료<br><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#B5443C;">SSL certificate expired</span></div>
+          <div style="background:var(--soft); border:1px solid var(--line); border-radius:12px 12px 12px 4px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">SUP-123 매칭 · 요약 전달 <span style="color:#1F8A5B;">✓</span></div>
+          <div style="margin-top:auto; display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);"><span style="display:flex; gap:3px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.5;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.25;"></span></span> 대화 중</div>
+        </div>
+      </div>
+
+      <!-- RIGHT PC = 외부 LLM -->
+      <div style="position:absolute; right:-30px; top:72px; width:440px; z-index:1; transform-origin:center; animation:pcR 9s ease-in-out .2s infinite; background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:46px 52px 104px -44px rgba(20,18,16,0.5); overflow:hidden; text-align:left;">
+        <div style="display:flex; align-items:center; gap:7px; padding:11px 15px; border-bottom:1px solid var(--line); background:#FBFAF8;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#E7C7B7;"></span><span style="width:10px;height:10px;border-radius:50%;background:#EADFC4;"></span><span style="width:10px;height:10px;border-radius:50%;background:#D3E0CE;"></span>
+          <span style="margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);">외부 LLM · 원격</span>
+        </div>
+        <div style="padding:16px; display:flex; flex-direction:column; gap:10px; height:296px; align-items:flex-end; text-align:right;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--accent-deep); font-weight:700;">추론 · 지시</div>
+          <div style="background:var(--ink); color:#EDE7DE; border-radius:12px 12px 4px 12px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">인증 서버 계열 문제로 의심됩니다.</div>
+          <div style="background:var(--ink); color:#EDE7DE; border-radius:12px 12px 4px 12px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">auth-server.log를 요약해 주세요. <span style="color:var(--accent);">↗</span></div>
+          <div style="background:var(--ink); color:#EDE7DE; border-radius:12px 12px 4px 12px; padding:10px 13px; font-size:13px; line-height:1.5; max-width:90%;">Jira에서 유사 사례를 검색해 주세요. <span style="color:var(--accent);">↗</span></div>
+          <div style="margin-top:auto; display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);"><span style="display:flex; gap:3px;"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.5;"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:0.25;"></span></span> 대화 중</div>
+        </div>
+      </div>
+
+      <!-- TOP arc: 내부 SLM(왼쪽) → 외부 LLM(오른쪽) -->
+      <div style="position:absolute; left:200px; top:-44px; width:760px; height:92px; z-index:2; pointer-events:none; overflow:hidden;">
+        
+      <div style="width: 727px; height: 309px; border: 2.5px dashed var(--accent); border-radius: 50%; opacity: 0.85"></div></div><div style="position: absolute; left: 14px; top: 594px; width: 779px; height: 110px; z-index: 2; pointer-events: none; overflow: hidden">
+        
+      </div>
+      
+
+      <!-- BOTTOM arc: 외부 LLM(오른쪽) → 내부 SLM(왼쪽) -->
+      <div style="position:absolute; left:200px; top:456px; width:760px; height:92px; z-index:2; pointer-events:none; overflow:hidden"><div style="width: 727px; height: 309px; border: 2.5px dashed var(--accent); border-radius: 50%; opacity: 0.85; margin-top: -217px"></div>
+        
+      </div>
+      
+
+      <!-- CENTER = report (document sheet) -->
+      <div style="position:absolute; left:340px; top:36px; width:480px; z-index:3; animation:midf 7s ease-in-out infinite; background:#fff; border:1px solid #E3E6EA; border-radius:6px; box-shadow:0 54px 96px -30px rgba(20,18,16,0.46), 0 12px 32px -12px rgba(20,18,16,0.3); overflow:hidden; text-align:left;">
+        <div style="height:5px; background:linear-gradient(90deg,var(--accent),var(--accent-deep));"></div>
+        <!-- masthead -->
+        <div style="padding:22px 30px 18px; border-bottom:1px solid #EEF0F2; display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:11px;">
+              <img src="logo-face.png" alt="" style="height:18px; width:auto; display:block;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.12em; color:var(--accent-deep); font-weight:700;">ANSWERNI REPORT</span>
+            </div>
+            <div style="font-size:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; color:#0f172a;">기술지원 대응 보고서</div>
+            <div style="font-size:13px; color:#64748b; margin-top:5px;">로그인 실패 · 인증 오류</div>
+          </div>
+          <div style="text-align:right; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.7; color:#94a3b8; white-space:nowrap;">
+            <div>NO. <span style="color:#475569; font-weight:700;">CASE-001</span></div>
+            <div>발행 <span style="color:#475569; font-weight:700;">2026-07-09</span></div>
+            <div style="margin-top:5px;"><span style="background:#dcfce7; color:#166534; font-size:9px; font-weight:700; padding:2px 7px; border-radius:4px;">해결 완료</span></div>
+          </div>
+        </div>
+        <!-- body -->
+        <div style="padding:22px 30px 26px; display:flex; flex-direction:column; gap:20px; font-family:'Pretendard',sans-serif; color:#1a1a1a;">
+          <!-- Jira 유사 이슈 -->
+          <div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:11px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--accent-deep);">01</span><span style="font-size:14px; font-weight:800; color:#0f172a;">유사 대응 이력</span><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#94a3b8;">JIRA · 2건</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="border:1px solid #E7EAEE; border-radius:8px; padding:11px 13px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#3b82f6;">SUP-123</span><span style="background:#dcfce7; color:#166534; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px;">해결됨</span></div>
+                <div style="font-size:13px; font-weight:600; color:#0f172a; line-height:1.35;">SSL 인증서 만료로 로그인 실패</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding-top:9px; border-top:1px solid #F1F3F5; font-family:'JetBrains Mono',monospace; font-size:10px; color:#64748b;"><span style="font-weight:600; color:#475569;">고객사 A</span><span>2026-06-14</span></div>
+              </div>
+              <div style="border:1px solid #E7EAEE; border-radius:8px; padding:11px 13px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#3b82f6;">SUP-087</span><span style="background:#dcfce7; color:#166534; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px;">해결됨</span></div>
+                <div style="font-size:13px; font-weight:600; color:#0f172a; line-height:1.35;">인증 서버 재기동 후 세션 만료</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding-top:9px; border-top:1px solid #F1F3F5; font-family:'JetBrains Mono',monospace; font-size:10px; color:#64748b;"><span style="font-weight:600; color:#475569;">고객사 B</span><span>2026-05-02</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- 관련 코드 오류 -->
+          <div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--accent-deep);">02</span><span style="font-size:14px; font-weight:800; color:#0f172a;">관련 코드 오류</span><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#94a3b8;">auth-server.log</span></div>
+            <div style="background:#17120E; border-radius:8px; padding:13px 15px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.85; color:#CFC7BD;">
+              <div><span style="color:#F87171; font-weight:700;">ERROR</span> SSL certificate has expired</div>
+              <div><span style="color:#FBBF24; font-weight:700;">WARN</span>&nbsp; login rejected user=[EMAIL_1]</div>
+              <div><span style="color:#F87171; font-weight:700;">ERROR</span> tls handshake_failure (alert 40)</div>
+            </div>
+          </div>
+          <!-- 해결 방법 -->
+          <div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--accent-deep);">03</span><span style="font-size:14px; font-weight:800; color:#0f172a;">해결 방법</span><span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#94a3b8;">SUP-123 적용</span></div>
+            <div style="background:#f0fdf4; border-left:3px solid #10b981; border-radius:0 8px 8px 0; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#065f46;">만료된 SSL 인증서를 갱신하고 인증 서비스를 재기동. 동일 절차로 정상화 확인됨.</div>
+          </div>
+        </div>
+      </div>
+     </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section id="why" style="max-width:1160px; margin:0 auto; padding:88px 32px 80px;">
+    <div style="text-align:center; max-width:700px; margin:0 auto 52px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">왜 필요한가</div>
+      <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:18px;">같은 오류를, 매번 처음부터 찾고 있습니다</h2>
+      <p style="font-size:17px; line-height:1.7; color:var(--muted);">기술지원 문의는 계속 쌓이고, 오류 건은 빠르게 처리해야 합니다. <br>하지만 같은 오류가 여러 고객사에서 반복 접수되고, 누가·언제·어떻게 처리했는지는 흩어져 있습니다.</p>
+    </div>
+
+    <div style="background:var(--soft); border:1px solid var(--line); border-radius:20px; padding:32px; display:grid; grid-template-columns:1fr auto 1.1fr; gap:26px; align-items:center; margin-bottom:32px;">
+      <div style="display:flex; flex-direction:column; gap:9px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); font-weight:700; margin-bottom:2px; letter-spacing:0.06em;">같은 오류 · 반복 접수</div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 A</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#FEE2E2; color:#B91C1C; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">긴급</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#64748b;"><span style="width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-deep)); flex-shrink:0;"></span>개발자 <b style="color:#475569;">김OO</b> 처리 · 3시간 소요</div></div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 B</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#FEE2E2; color:#B91C1C; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">긴급</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#64748b;"><span style="width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#4f46e5); flex-shrink:0;"></span>개발자 <b style="color:#475569;">이OO</b> 처리 · 4시간 소요</div></div>
+        <div style="background:#fff; border:1px solid var(--line); border-radius:10px; padding:11px 13px;"><div style="display:flex; align-items:center; justify-content:space-between; gap:10px;"><div><div style="font-size:14px; font-weight:700;">고객사 C</div><div style="font-size:12px; color:var(--muted); margin-top:1px;">로그인 실패 · 인증 오류</div></div><span style="background:#F1F5F9; color:#64748b; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap;">대기</span></div><div style="display:flex; align-items:center; gap:6px; margin-top:9px; padding-top:8px; border-top:1px solid #F1F3F5; font-size:11.5px; color:#B45309;"><span style="width:16px; height:16px; border-radius:50%; border:1.5px dashed #D4A574; flex-shrink:0;"></span>미배정 · <b>또 처음부터 조사?</b></div></div>
+      </div>
+      <div style="font-size:26px; color:var(--accent); font-weight:700; text-align:center;">→</div>
+      <div style="background:#fff; border:1px dashed #E3B8A2; border-radius:16px; padding:26px 24px;">
+        <div style="font-size:19px; font-weight:800; letter-spacing:-0.02em; line-height:1.4; margin-bottom:10px;">“이 오류, 전에 누가 처리했더라?”</div>
+        <p style="font-size:14.5px; line-height:1.6; color:var(--muted); margin-bottom:16px;">처리 이력을 모르는 개발자는 원인부터 다시 조사합니다. <br>이미 회사가 풀었던 문제인데도요.</p>
+        <span style="display:inline-flex; align-items:center; gap:7px; background:#FEE2E2; color:#B91C1C; font-size:12px; font-weight:700; padding:7px 12px; border-radius:20px;">↺ 반복 조사 공수 발생</span>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">01</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">중복 접수</h3><p style="font-size:14.5px; line-height:1.65; color:var(--muted);">같은 오류가 A사·B사에서 따로 들어옵니다. <br>각각 별개 건으로 처리하면 대응이 중복됩니다.</p></div>
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">02</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">이력 단절</h3><p style="font-size:14.5px; line-height:1.65; color:var(--muted);">누가 언제 어떻게 처리했는지 공유되지 않습니다. 담당자가 바뀌면 지식도 함께 사라집니다.</p></div>
+      <div style="border:1px solid var(--line); border-radius:16px; padding:26px 24px; background:#fff;"><div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px;">03</div><h3 style="font-size:18px; font-weight:800; letter-spacing:-0.02em; margin-bottom:9px;">반복 조사</h3><p style="font-size: 14.5px; line-height: 1.65; color: var(--muted); width: 295px; height: 48px">그 오류를 모르는 개발자는 원인부터 다시 찾습니다. 특히 신입일수록 더 오래 걸립니다.</p></div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section id="how" style="background:var(--soft); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+    <div style="max-width:1160px; margin:0 auto; padding:88px 32px;">
+      <div style="text-align:center; max-width:700px; margin:0 auto 52px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">어떻게 동작하나</div>
+        <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15; margin-bottom:18px;">아는 답은 즉시, 모르는 답은 안전하게</h2>
+        <p style="font-size:17px; line-height:1.7; color:var(--muted);">접수된 오류를 먼저 Jira 이력에서 찾습니다. 사례가 있으면 대응 이력을 종합해 바로 보고서로. <br>없으면 로컬·외부 LLM이 안전하게 대화해 답을 만듭니다.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:stretch;">
+        <div style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:32px;">
+          <div style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-deep); background:var(--tint); padding:6px 11px; border-radius:20px; margin-bottom:18px;">경로 1 · Jira에 사례가 있으면</div>
+          <h3 style="font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-bottom:12px;">지금까지의 대응을 그대로</h3>
+          <p style="font-size:15px; line-height:1.7; color:var(--muted); margin-bottom:22px;">과거에 같은 유형을 어떻게 해결했는지, 흩어진 이력을 한 장으로 종합합니다. 오류를 처음 보는 개발자도, 신입도 회사의 대응 방식을 한눈에 파악합니다.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">접수</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">유사 사례 매칭</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600; white-space:nowrap;">대응 이력 종합</span> <span style="color:var(--accent); font-weight:700; font-size:16px;">→</span> <span style="background:var(--accent); color:#fff; border-radius:20px; padding:8px 14px; font-size:13px; font-weight:700;">보고서</span>
+          </div>
+        </div>
+
+        <div style="background:#fff; border:1px solid var(--line); border-radius:20px; padding:32px;">
+          <div style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-deep); background:var(--tint); padding:6px 11px; border-radius:20px; margin-bottom:18px;">경로 2 · 새로운 유형이면</div>
+          <h3 style="font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-bottom:12px;">두 LLM이 대화해 답을 만듭니다</h3>
+          <p style="font-size:15px; line-height:1.7; color:var(--muted); margin-bottom:20px;">Jira에 사례가 없으면, 소스코드를 볼 수 있는 로컬 LLM이 외부 LLM에게 <br>도움을 청합니다. 부족한 데이터는 다시 로컬에 요청하며 주고받습니다.</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:13px 15px; border:1px solid var(--line); border-radius:12px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--muted); background:var(--soft); padding:4px 8px; border-radius:6px; white-space:nowrap; margin-top:1px;">로컬</span><div style="font-size:13.5px; line-height:1.55;">소스코드 열람 · 문의 확인 · <b>프롬프트 구성</b> · 개인정보 마스킹</div></div>
+            <div style="text-align:center; color:var(--accent); font-size:15px; font-weight:700;">⇅ 부족하면 다시 요청</div>
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:13px 15px; border:1px solid var(--line); border-radius:12px; background:#141210;"><span style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:#fff; background:var(--accent); padding:4px 8px; border-radius:6px; white-space:nowrap; margin-top:1px;">외부</span><div style="font-size:13.5px; line-height:1.55; color:#EDE7DE;">마스킹된 프롬프트로 <b style="color:#fff;">추론</b> · 충분하면 해결책 회신</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; background:#141210; color:#EDE7DE; border-radius:20px; padding:30px 34px; display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--accent); font-weight:700; margin-bottom:10px;">SECURE BY DESIGN</div>
+          <div style="font-size:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.35; margin-bottom:8px;">소스코드와 개인정보는 로컬을 벗어나지 않습니다</div>
+          <p style="font-size:14.5px; line-height:1.6; color:#A79E95;">외부 LLM에는 마스킹·정제된 프롬프트만 전달됩니다. 코드 유출과 개인정보 노출 없이, 외부의 추론 능력만 빌립니다.</p>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.9; background:#231C16; border-radius:14px; padding:18px 20px; min-width:230px;">
+          <div><span style="color:#7FE0B0;">local</span> 소스코드 · 원문 로그</div>
+          <div style="color:#6B635C;">──────────────</div>
+          <div><span style="color:var(--accent);">sent</span> 마스킹된 프롬프트만</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALUE -->
+  <section id="value" style="max-width:1160px; margin:0 auto; padding:88px 32px;">
+    <div style="text-align:center; max-width:660px; margin:0 auto 52px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; color:var(--accent-deep); font-weight:600; margin-bottom:14px;">기대 효과</div>
+      <h2 style="font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-0.03em; line-height:1.15;">문의 하나가, 회사의 대응 자산이 됩니다</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:20px;">
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">01</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">신속 대응</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">접수 즉시 대응 이력 기반 보고서를 받습니다. <br>긴급 오류 건의 처리 시간을 크게 줄입니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">02</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">공수 절감</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">이미 풀어본 문제를 다시 조사하지 않습니다. <br>반복 조사와 중복 대응이 사라집니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">03</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">온보딩 가속</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">오류를 처음 보는 개발자도, 신입도 회사가 어떻게 대응해왔는지 <br>한눈에 익힙니다.</p></div></div>
+      <div style="border:1px solid var(--line); border-radius:18px; padding:30px 28px; background:#fff; display:flex; gap:18px; align-items:flex-start;"><span style="width:40px; height:40px; flex-shrink:0; border-radius:11px; background:var(--tint); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;">04</span><div><h3 style="font-size:19px; font-weight:800; letter-spacing:-0.02em; margin-bottom:8px;">보안 유지</h3><p style="font-size:15px; line-height:1.65; color:var(--muted);">소스코드와 개인정보는 로컬 밖으로 나가지 않습니다. <br>외부에는 마스킹된 프롬프트만.</p></div></div>
+    </div>
+  </section>
+
+  <!-- END / CTA -->
+  <section id="end" style="max-width:1200px; margin:0 auto; padding:96px 32px; text-align:center;">
+    <h2 style="font-size:clamp(30px,4.6vw,58px); font-weight:800; letter-spacing:-0.03em; line-height:1.1; margin-bottom:18px; max-width:800px; margin-left:auto; margin-right:auto;">문의 하나만 넘기세요.<br>대화는 둘이 알아서 합니다.</h2>
+    <p style="font-size:18px; color:var(--muted); margin-bottom:32px;">근거 포함 보고서 · 그대로 전달</p>
+    
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid var(--line);">
+    <div style="max-width:1200px; margin:0 auto; padding:32px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px; font-weight:800; font-size:17px;">
+        <img src="logo-face.png" alt="AnswerNI" style="height:26px; width:auto; display:block;">
+        <span>Answer<span style="color: var(--accent);">NI</span></span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#9A928A; letter-spacing:0.06em;">내부 LLM × 외부 LLM · © 2026</div>
+    </div>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1200, &quot;height&quot;: 900 },
+  &quot;accentColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#EA5B1A&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#EA5B1A&quot;, &quot;#F26A21&quot;, &quot;#E5561B&quot;, &quot;#EA580C&quot;], &quot;section&quot;: &quot;브랜드&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accentColor || '#EA5B1A';
+    return {
+      rootRef: (el) => {
+        this._root = el;
+        if (el) el.style.setProperty('--accent', accent);
+      },
+      stageRef: (el) => { this._stage = el; this._fit(); },
+      sceneRef: (el) => { this._scene = el; this._fit(); },
+    };
+  }
+  _fit = () => {
+    if (!this._stage || !this._scene) return;
+    const w = this._stage.clientWidth;
+    const s = Math.min(1, w / 1160);
+    this._scene.style.transform = `translateX(-50%) scale(${s})`;
+    this._stage.style.height = (692 * s) + 'px';
+  };
+  componentDidMount() {
+    this._fit();
+    window.addEventListener('resize', this._fit);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._fit);
+  }
+  componentDidUpdate() {
+    if (this._root) this._root.style.setProperty('--accent', this.props.accentColor || '#EA5B1A');
+    this._fit();
+  }
+}
+</script>
+</body>
+</html>

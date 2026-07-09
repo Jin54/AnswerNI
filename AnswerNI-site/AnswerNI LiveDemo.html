@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<title>AnswerNI — 기술지원 문의 자동 분석</title>
+<style>
+  :root{
+    --accent:#EA5B1A; --accent-deep:#CC4A10; --tint:#FFF1E8;
+    --ink:#17140F; --muted:#6B6560; --line:#ECEAE6; --soft:#F7F6F3; --bg:#FCF9F6;
+    --mono:'JetBrains Mono','SF Mono','Fira Code','Consolas',ui-monospace,Menlo,monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Pretendard','Apple SD Gothic Neo','Malgun Gothic',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color: var(--ink); background: var(--bg); line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 1160px; margin: 0 auto; padding: 48px 32px 96px;
+    background: transparent; min-height: 100vh;
+  }
+
+  /* 헤더 */
+  header { margin-bottom: 44px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0 0 10px; font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.8px; }
+  header .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* 섹션 공통 */
+  .section { margin: 0 0 44px; }
+  h2 {
+    font-size: 20px; font-weight: 800; color: var(--ink);
+    margin: 0 0 22px; padding-bottom: 13px;
+    border-bottom: 1px solid var(--line); letter-spacing: -0.3px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .section-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px; padding: 0 8px; border-radius: 8px;
+    background: var(--tint); color: var(--accent-deep);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+  }
+
+  /* 카드 공통 톤 */
+  .log-card, .report-card, #input-area {
+    box-shadow: 0 1px 2px rgba(20,18,16,0.03), 0 18px 40px -28px rgba(20,18,16,0.28);
+  }
+
+  /* ① 입력 카드 */
+  #input-area {
+    background: #fff; border: 1px solid var(--line); border-radius: 16px;
+    padding: 26px; margin-bottom: 44px;
+  }
+  .field-label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 9px; }
+  #query {
+    width: 100%; min-height: 100px; resize: vertical; padding: 13px 15px;
+    background: var(--soft); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 11px; font-size: 14px; line-height: 1.65; font-family: inherit;
+  }
+  #query:focus { outline: none; background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,91,26,0.14); }
+  .row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+  #submit {
+    padding: 12px 24px; min-height: 44px; background: var(--accent); color: #fff;
+    border: 0; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; letter-spacing: -0.2px;
+    box-shadow: 0 8px 20px -8px rgba(234,91,26,0.5); transition: background .15s;
+  }
+  #submit:hover:not(:disabled) { background: var(--accent-deep); }
+  #submit:disabled { opacity: .5; cursor: default; box-shadow: none; }
+  #status { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  /* ② 진행 로그 */
+  .log-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .log-body { padding: 20px 22px; overflow-y: auto; max-height: 460px; }
+  .log-item { margin-bottom: 15px; }
+  .log-item:last-child { margin-bottom: 0; }
+  .log-line { display: flex; gap: 11px; font-size: 14px; align-items: flex-start; }
+  .log-line .ts { color: #A79E95; flex: 0 0 auto; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; padding-top: 1px; }
+  .log-line .msg { color: #3f3a34; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+
+  /* 소스 뱃지 — 앞의 컬러 도트로 로컬/원격 구분 (이모지 대체) */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    line-height: 1.2; font-family: 'Pretendard', sans-serif; white-space: nowrap;
+  }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+  .badge-local  { background: var(--tint); color: var(--accent-deep); }
+  .badge-remote { background: #EEF0FE; color: #4338ca; }
+  .badge-system { background: var(--soft); color: var(--muted); }
+  .badge-source { flex: 0 0 auto; align-self: flex-start; }
+
+  .log-legend { margin: 0 0 20px; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .log-legend .badge { flex: 0 0 auto; }
+
+  .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  @media (max-width: 620px) { .diff { grid-template-columns: 1fr; } }
+  .diff-col {
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px;
+    background: var(--soft); font-family: var(--mono); font-size: 12.5px; color: #2b2621;
+    white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow-x: auto;
+  }
+  .diff-col .diff-label { font-family: 'Pretendard', sans-serif; font-size: 11px; color: var(--muted); margin-bottom: 7px; font-weight: 700; letter-spacing: 0.3px; }
+  .pii-raw { background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 0 3px; font-weight: 600; }
+  .pii-masked { background: #dcfce7; color: #166534; border-radius: 4px; padding: 0 3px; font-weight: 600; }
+  .log-error { color: #991b1b; background: #fef2f2; border-left: 3px solid #dc2626; border-radius: 0 10px 10px 0; padding: 13px 16px; font-size: 14px; }
+  .empty { color: #A79E95; font-size: 14px; }
+
+  /* 스피너 */
+  .log-spinner { display: flex; align-items: center; gap: 10px; padding: 13px 22px; border-top: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 13px; }
+  .log-spinner[hidden] { display: none; }
+  .log-spinner .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; animation: dot-pulse 1.1s ease-in-out infinite; }
+  @keyframes dot-pulse { 0%,100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+  @media (prefers-reduced-motion: reduce) { .log-spinner .dot { animation: none; } }
+
+  /* ③ 유사 Jira 사례 */
+  #jira-section[hidden] { display: none; }
+  .jira-carousel { display: flex; align-items: stretch; gap: 12px; }
+  .jira-grid { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .jira-card {
+    background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 11px; min-width: 0;
+    box-shadow: 0 1px 2px rgba(20,18,16,0.03), 0 14px 30px -24px rgba(20,18,16,0.3);
+  }
+  .jira-card-key { align-self: flex-start; padding: 3px 10px; border-radius: 6px; background: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .jira-card-summary { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.4; overflow-wrap: anywhere; letter-spacing: -0.2px; }
+  .jira-card-body { color: #55504a; font-size: 13.5px; line-height: 1.6; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .jira-card-meta { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; }
+  .jira-card-customer { padding: 2px 9px; border-radius: 6px; background: var(--soft); color: #55504a; font-weight: 700; overflow-wrap: anywhere; }
+  .jira-card-date { color: #A79E95; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .jira-nav { flex: 0 0 auto; width: 42px; padding: 0; background: #fff; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; font-family: inherit; }
+  .jira-nav:hover:not(:disabled) { background: var(--soft); border-color: var(--accent); color: var(--accent-deep); }
+  .jira-nav:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(234,91,26,0.14); }
+  .jira-nav:disabled { opacity: .4; cursor: default; }
+  .jira-nav[hidden] { display: none; }
+  .jira-pageinfo { margin-top: 14px; text-align: center; color: var(--muted); font-size: 13px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .jira-pageinfo[hidden] { display: none; }
+
+  /* ④ 최종 보고서 */
+  #report-section h2 { border-bottom-color: var(--accent); }
+  .copy-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; font-size: 13px; font-weight: 700; font-family: inherit; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; line-height: 1.2; }
+  .copy-btn:hover { background: var(--soft); border-color: var(--accent); color: var(--accent-deep); }
+  .copy-btn[hidden] { display: none; }
+  .copy-btn.copied { background: #f0fdf4; border-color: #16a34a; color: #166534; }
+  .copy-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  .report-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 34px 38px; min-height: 60vh; }
+  #report h1, #report h2, #report h3, #report p, #report li, #report code { overflow-wrap: anywhere; }
+  #report h1, #report h2, #report h3 { line-height: 1.35; }
+  #report h1 { font-size: 24px; font-weight: 800; color: var(--ink); margin: 0 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); letter-spacing: -0.4px; }
+  #report h2 { font-size: 19px; font-weight: 800; color: var(--ink); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); display: block; }
+  #report h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin: 24px 0 10px; }
+  #report p { margin: 11px 0; color: #2b2621; }
+  #report ul, #report ol { margin: 11px 0; padding-left: 24px; }
+  #report li { margin: 6px 0; }
+  #report code { background: var(--soft); border-radius: 5px; padding: 2px 6px; font-size: 13px; color: var(--accent-deep); font-family: var(--mono); }
+  #report pre { background: #17120E; color: #CFC7BD; border-radius: 12px; padding: 20px 24px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.7; margin: 16px 0; }
+  #report pre code { background: none; border: 0; padding: 0; color: inherit; }
+  #report strong { color: var(--ink); font-weight: 800; }
+
+  @media (max-width: 860px) {
+    .container { padding: 32px 18px 64px; }
+    .report-card { padding: 26px 22px; }
+    .jira-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) { .jira-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><img src="logo-face.png" alt="" style="height:30px; width:auto; vertical-align:-6px; margin-right:9px;">AnswerNI — 하이브리드 자율 분석 · 기술지원 보고서 자동화</h1>
+  </header>
+
+  <!-- ① 문의 입력 -->
+  <section id="input-area">
+    <label class="field-label" for="query">문의 내용</label>
+    <textarea id="query" placeholder="예: 고객사 A 로그인 실패 — 어제 오전부터 특정 계정(kim@aaa.com)이 로그인되지 않는다는 문의가 들어왔습니다. 원인 분석과 조치 방법을 알려주세요."></textarea>
+    <div class="row">
+      <button id="submit">분석 시작</button>
+      <span id="status" role="status"></span>
+    </div>
+  </section>
+
+  <!-- ② 진행 로그 -->
+  <section class="section">
+    <h2><span class="section-num">1.</span> 진행 로그</h2>
+    <p class="log-legend">
+      <span class="badge badge-local">로컬 에이전트</span> 조회·마스킹·SLM 압축(Ollama)
+      <span class="badge badge-remote">원격 LLM</span> Claude — 분석·판단
+    </p>
+    <div class="log-card">
+      <div class="log-body" id="log" aria-live="polite">
+        <div class="empty">문의를 제출하면 에이전트의 진행 상황이 여기에 표시됩니다.</div>
+      </div>
+      <div class="log-spinner" id="log-spinner" hidden>
+        <span class="dot"></span><span>분석 진행 중...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ 유사 Jira 사례 — 카드 캐러셀(사례 0건이면 숨김) -->
+  <section class="section" id="jira-section" hidden>
+    <h2><span class="section-num">2.</span> 유사 Jira 사례</h2>
+    <div class="jira-carousel">
+      <button id="jira-prev" class="jira-nav" type="button" hidden
+              aria-label="이전 사례 보기" title="이전">‹</button>
+      <div class="jira-grid" id="jira-grid" aria-live="polite"></div>
+      <button id="jira-next" class="jira-nav" type="button" hidden
+              aria-label="다음 사례 보기" title="다음">›</button>
+    </div>
+    <div class="jira-pageinfo" id="jira-pageinfo" role="status" hidden></div>
+  </section>
+
+  <!-- ④ 최종 보고서 — 하단 전체폭 대형 섹션 -->
+  <section class="section" id="report-section">
+    <h2><span class="section-num">3.</span> 최종 보고서
+      <button id="report-copy-btn" class="copy-btn" type="button" hidden
+              aria-label="보고서 마크다운 복사" title="마크다운 원문 복사">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span class="copy-btn-label">복사</span>
+      </button>
+    </h2>
+    <div class="report-card">
+      <div id="report">
+        <div class="empty">분석이 끝나면 최종 보고서가 여기에 렌더링됩니다.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ==========================================================================
+// 순수 로직 (DOM 비의존) — Node 격리 테스트 가능
+// ==========================================================================
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 원본 텍스트(이스케이프된 상태)에서 PII 패턴을 빨강 하이라이트로 감싼다.
+// 서버 pii.py 의 정규식과 동일하게 유지.
+// 서버 pii.py 계약과 동기화. 단일 패스 우선순위 교체(alternation)로 각 문자를
+// 한 번만 소비 → 백엔드 마스킹과 동일한 비중첩 의미. 순서 고정: EMAIL→RRN→PHONE→IP.
+// (RRN 이 PHONE 보다 먼저여야 '010101-3123456' 같은 생년 '01' RRN 전체가
+//  RRN 으로 잡히고 PHONE 부분 매칭으로 깨지지 않음.)
+// 서버 pii.py PATTERNS 와 동기화. RRN/PHONE 는 숫자 lookaround 경계로 긴 숫자열
+// 부분매칭 잔여 노출을 차단하고, IP 는 후보만 매칭 후 옥텟 0~255 검증은 콜백에서
+// 코드로 수행(옥텟 alternation 정규식의 quadratic 백트래킹 회피). lookbehind 는
+// 모던 Chrome/Node 지원.
+// u 플래그: 서버 pii.py 의 Python re \w 는 유니코드(한글 등)까지 매칭하므로,
+// JS ASCII \w 대신 EMAIL local-part/domain 을 [\p{L}\p{N}_...] 로 맞춰 하이라이트
+// 누락(예: "한글유저@example.com" 서버는 마스킹, raw 패널은 미표시)을 제거한다.
+// RRN/PHONE/IP 는 숫자(\d)만이라 u 플래그로 의미 불변. 상한 quantifier 유지(ReDoS 계약).
+var PII_PATTERN = new RegExp([
+  /[\p{L}\p{N}_.+-]{1,64}@[\p{L}\p{N}_-]{1,255}(?:\.[\p{L}\p{N}_-]+)+/.source, // EMAIL — 유니코드 word + 상한 quantifier(RFC 5321 local-part ≤64)
+  /(?<!\d)\d{6}-?[1-4]\d{6}(?!\d)/.source,       // RRN (PHONE 보다 먼저 — 생년 '01' 오소비 방지)
+  /(?<!\d)01[016789]-?\d{3,4}-?\d{4}(?!\d)/.source, // PHONE
+  /(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)/.source  // IP 후보 — 옥텟 검증은 콜백에서
+].join('|'), 'gu');
+
+function highlightPII(escaped) {
+  return escaped.replace(PII_PATTERN, function (match) {
+    // IP 후보(4옥텟·점, '@' 없음)면 옥텟 0~255 검증 실패 시 하이라이트 안 함(서버 _mask_ip 와 동일).
+    if (match.indexOf('@') === -1 && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(match)) {
+      var octets = match.split('.');
+      var valid = octets.every(function (o) { return o.length > 0 && Number(o) <= 255; });
+      if (!valid) { return match; }
+    }
+    return '<span class="pii-raw">' + match + '</span>';
+  });
+}
+
+// 마스킹된 텍스트(이스케이프된 상태)에서 [TOKEN_n] 토큰을 초록 하이라이트로 감싼다.
+function highlightTokens(escaped) {
+  return escaped.replace(/\[[A-Z]+_\d+\]/g, function (match) {
+    return '<span class="pii-masked">' + match + '</span>';
+  });
+}
+
+// log 이벤트의 옵션 필드 source("local"|"remote"|"system")를 소스 뱃지로 매핑.
+// 로컬 에이전트(조회·마스킹·SLM 압축·시스템 도구) vs 원격 LLM(분석·판단)을 시각 구분한다.
+// "system"(도구 실행·백엔드 안내)은 로컬 에이전트의 활동 → local 과 동일 처리(서버 전환 전/후
+// 하위호환). source 미지정(구 서버/하위호환)이면 null → 뱃지 없이 기존처럼 렌더.
+function sourceBadgeInfo(source) {
+  switch (source) {
+    case 'local':  return { className: 'badge-local',  text: '로컬 에이전트' };
+    case 'remote': return { className: 'badge-remote', text: '원격 LLM' };
+    case 'system': return { className: 'badge-local',  text: '로컬 에이전트' }; // 시스템 도구도 로컬 에이전트 활동
+    default:       return null; // 하위호환 — source 없으면 무뱃지
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// 유사 Jira 사례 — 누적/중복제거 + 페이지네이션 순수 로직 (DOM 비의존)
+// jira_results 이벤트는 search_jira 1회당 1번 도착하므로 프론트가 누적하고 key 로
+// 중복 제거한다. onopen(replay) 시 상태를 리셋해 재수신 중복을 막는다(초기화는 UI 계층).
+// ──────────────────────────────────────────────────────────────────────────
+
+var JIRA_PAGE_SIZE = 3;
+
+// existing(누적본)에 incoming 이슈들을 key 기준 중복 제거하며 추가. 최초 등장 순서 보존.
+// key 없는/빈 이슈는 건너뛴다. existing 은 변형하지 않고 새 배열을 반환한다.
+function mergeJiraIssues(existing, incoming) {
+  var result = Array.isArray(existing) ? existing.slice() : [];
+  var seen = {};
+  for (var i = 0; i < result.length; i++) {
+    if (result[i] && result[i].key != null) { seen[result[i].key] = true; }
+  }
+  var list = Array.isArray(incoming) ? incoming : [];
+  for (var j = 0; j < list.length; j++) {
+    var issue = list[j];
+    if (!issue || issue.key == null || issue.key === '') { continue; }
+    if (seen[issue.key]) { continue; }
+    seen[issue.key] = true;
+    result.push(issue);
+  }
+  return result;
+}
+
+// 전체 개수 → 페이지 수 (0건이면 0).
+function jiraPageCount(total, pageSize) {
+  var size = pageSize || JIRA_PAGE_SIZE;
+  if (total <= 0) { return 0; }
+  return Math.ceil(total / size);
+}
+
+// page 를 [0, pageCount-1] 로 클램프 (0건이면 0).
+function jiraClampPage(page, total, pageSize) {
+  var count = jiraPageCount(total, pageSize);
+  if (count === 0) { return 0; }
+  if (page < 0) { return 0; }
+  if (page > count - 1) { return count - 1; }
+  return page;
+}
+
+// 해당 페이지에 표시할 이슈 슬라이스(최대 pageSize 장).
+function jiraPageSlice(issues, page, pageSize) {
+  var size = pageSize || JIRA_PAGE_SIZE;
+  var list = Array.isArray(issues) ? issues : [];
+  var start = page * size;
+  return list.slice(start, start + size);
+}
+
+// 요청/네트워크 오류를 고정 한국어 문구로 매핑 (영어 예외 문구 노출 방지).
+function networkErrorMessage(err) {
+  // fetch 연결 실패는 TypeError("Failed to fetch") 로 던져진다.
+  if (err && err.name === 'TypeError') {
+    return '서버에 연결할 수 없습니다. 서버 실행 여부를 확인해주세요.';
+  }
+  var msg = err && err.message ? String(err.message) : '';
+  // 이미 한국어로 매핑된 서버 응답 오류(예: "서버 응답 500")는 그대로 전달.
+  if (/^서버 응답/.test(msg)) { return msg; }
+  return '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
+}
+
+// 최소 마크다운 → HTML 변환기 (헤딩 h1~h3, ul/ol, 굵게, 인라인/펜스드 코드, 문단).
+// 모든 텍스트는 삽입 전 이스케이프하여 XSS 방지.
+function renderInline(text) {
+  var s = escapeHtml(text);
+  // 인라인 코드 먼저 처리 (내부에 굵게가 적용되지 않도록)
+  s = s.replace(/`([^`]+)`/g, function (_, c) { return '<code>' + c + '</code>'; });
+  // 굵게
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return s;
+}
+
+function renderMarkdown(md) {
+  var lines = String(md).replace(/\r\n/g, '\n').split('\n');
+  var html = [];
+  var i = 0;
+  var listType = null; // 'ul' | 'ol' | null
+
+  function closeList() {
+    if (listType) { html.push('</' + listType + '>'); listType = null; }
+  }
+
+  while (i < lines.length) {
+    var line = lines[i];
+
+    // 펜스드 코드 블록
+    var fence = line.match(/^\s*```(.*)$/);
+    if (fence) {
+      closeList();
+      var buf = [];
+      i++;
+      while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) {
+        buf.push(escapeHtml(lines[i]));
+        i++;
+      }
+      i++; // 닫는 펜스 소비
+      html.push('<pre><code>' + buf.join('\n') + '</code></pre>');
+      continue;
+    }
+
+    // 헤딩
+    var heading = line.match(/^(#{1,3})\s+(.*)$/);
+    if (heading) {
+      closeList();
+      var level = heading[1].length;
+      html.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
+      i++;
+      continue;
+    }
+
+    // 순서 없는 리스트
+    var ul = line.match(/^\s*[-*]\s+(.*)$/);
+    if (ul) {
+      if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
+      html.push('<li>' + renderInline(ul[1]) + '</li>');
+      i++;
+      continue;
+    }
+
+    // 순서 있는 리스트
+    var ol = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (ol) {
+      if (listType !== 'ol') { closeList(); html.push('<ol>'); listType = 'ol'; }
+      html.push('<li>' + renderInline(ol[1]) + '</li>');
+      i++;
+      continue;
+    }
+
+    // 빈 줄
+    if (/^\s*$/.test(line)) {
+      closeList();
+      i++;
+      continue;
+    }
+
+    // 문단 (연속된 비어있지 않은 줄을 묶음)
+    closeList();
+    var para = [line];
+    i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) &&
+           !/^\s*```/.test(lines[i]) && !/^#{1,3}\s/.test(lines[i]) &&
+           !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i])) {
+      para.push(lines[i]);
+      i++;
+    }
+    html.push('<p>' + para.map(renderInline).join('<br>') + '</p>');
+  }
+  closeList();
+  return html.join('\n');
+}
+
+// ==========================================================================
+// 이벤트 처리 (DOM 렌더) — 6종 이벤트 디스패치
+// ==========================================================================
+
+function nowTs() {
+  var d = new Date();
+  function p(n) { return String(n).padStart(2, '0'); }
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+function clearEmpty(el) {
+  var e = el.querySelector('.empty');
+  if (e) { e.remove(); }
+}
+
+// source 뱃지 element 생성(없거나 미지원 값이면 null). className 은 신뢰된 고정 문자열만.
+function makeSourceBadge(source) {
+  var info = sourceBadgeInfo(source);
+  if (!info) { return null; }
+  var badge = document.createElement('span');
+  badge.className = 'badge badge-source ' + info.className;
+  badge.textContent = info.text;       // textContent → XSS 안전
+  return badge;
+}
+
+function appendLog(logEl, message, tsText, source) {
+  clearEmpty(logEl);
+  var item = document.createElement('div');
+  item.className = 'log-item';
+  var line = document.createElement('div');
+  line.className = 'log-line';
+  var ts = document.createElement('span');
+  ts.className = 'ts';
+  ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
+  line.appendChild(ts);
+  var badge = makeSourceBadge(source); // source 없으면 null → 무뱃지(하위호환)
+  if (badge) { line.appendChild(badge); }
+  var msg = document.createElement('span');
+  msg.className = 'msg';
+  msg.textContent = message;           // textContent → XSS 안전
+  line.appendChild(msg);
+  item.appendChild(line);
+  logEl.appendChild(item);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function appendMaskDiff(logEl, raw, masked, tsText) {
+  clearEmpty(logEl);
+  var item = document.createElement('div');
+  item.className = 'log-item';
+
+  var line = document.createElement('div');
+  line.className = 'log-line';
+  var ts = document.createElement('span');
+  ts.className = 'ts';
+  ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
+  line.appendChild(ts);
+  // PII 마스킹은 로컬 에이전트 처리 → 로컬 뱃지로 "전송 전 로컬 마스킹" 셀링포인트 강조.
+  var badge = document.createElement('span');
+  badge.className = 'badge badge-local badge-source';
+  badge.textContent = '로컬 에이전트 · 마스킹';
+  line.appendChild(badge);
+  var msg = document.createElement('span');
+  msg.className = 'msg';
+  msg.textContent = 'PII 마스킹 적용';
+  line.appendChild(msg);
+  item.appendChild(line);
+
+  var diff = document.createElement('div');
+  diff.className = 'diff';
+
+  var left = document.createElement('div');
+  left.className = 'diff-col';
+  var leftLabel = document.createElement('div');
+  leftLabel.className = 'diff-label';
+  leftLabel.textContent = '원본';
+  left.appendChild(leftLabel);
+  var leftContent = document.createElement('div');
+  leftContent.innerHTML = highlightPII(escapeHtml(raw));   // 이스케이프 후 하이라이트만 주입
+  left.appendChild(leftContent);
+
+  var right = document.createElement('div');
+  right.className = 'diff-col';
+  var rightLabel = document.createElement('div');
+  rightLabel.className = 'diff-label';
+  rightLabel.textContent = '치환';
+  right.appendChild(rightLabel);
+  var rightContent = document.createElement('div');
+  rightContent.innerHTML = highlightTokens(escapeHtml(masked));
+  right.appendChild(rightContent);
+
+  diff.appendChild(left);
+  diff.appendChild(right);
+  item.appendChild(diff);
+  logEl.appendChild(item);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function appendCompress(logEl, before, after, tsText) {
+  clearEmpty(logEl);
+  var item = document.createElement('div');
+  item.className = 'log-item';
+  var line = document.createElement('div');
+  line.className = 'log-line';
+  var ts = document.createElement('span');
+  ts.className = 'ts';
+  ts.textContent = tsText || nowTs();  // 최초 관측 시각 재사용(replay 재도장 방지)
+  var badge = document.createElement('span');
+  badge.className = 'badge badge-local';   // slm_compress 는 정의상 로컬 에이전트 활동
+  badge.textContent = '로컬 에이전트 · SLM 압축: ' + Number(before).toLocaleString() + '자 → ' +
+                      Number(after).toLocaleString() + '자';
+  line.appendChild(ts);
+  line.appendChild(badge);
+  item.appendChild(line);
+  logEl.appendChild(item);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function appendError(logEl, message) {
+  clearEmpty(logEl);
+  var box = document.createElement('div');
+  box.className = 'log-item log-error';
+  box.textContent = '오류: ' + message;
+  logEl.appendChild(box);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function renderReport(reportEl, markdown) {
+  reportEl.innerHTML = renderMarkdown(markdown);  // renderMarkdown 내부에서 전량 이스케이프
+  // 보고서 도착 시 하단 대형 섹션으로 부드럽게 스크롤(브라우저 전용 — Node 격리 테스트에는 미정의).
+  if (typeof reportEl.scrollIntoView === 'function') {
+    reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// 텍스트를 클립보드에 복사. navigator.clipboard 우선, 실패/미지원 시 textarea+execCommand 폴백.
+// 항상 Promise 반환(성공 resolve, 실패 reject)해 호출부가 피드백을 일관되게 처리.
+function fallbackCopy(text) {
+  return new Promise(function (resolve, reject) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { resolve(); } else { reject(new Error('execCommand copy 실패')); }
+    } catch (e) { reject(e); }
+  });
+}
+
+function copyToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(function () {
+      return fallbackCopy(text); // 권한 거부/보안 컨텍스트 아님 등 → 폴백
+    });
+  }
+  return fallbackCopy(text);
+}
+
+// 유사 Jira 사례 카드 1장을 생성. 모든 필드는 textContent → XSS 안전.
+// 본문은 resolution 우선, 없으면 description(CSS -webkit-line-clamp 로 3~4줄 클램프).
+// customer/created 는 옵션 필드 — 없거나 빈 문자열이면 해당 표기를 생략(하위호환).
+function renderJiraCard(issue) {
+  var card = document.createElement('div');
+  card.className = 'jira-card';
+
+  var key = document.createElement('span');
+  key.className = 'jira-card-key';
+  key.textContent = issue && issue.key != null ? issue.key : '';
+  card.appendChild(key);
+
+  var summary = document.createElement('div');
+  summary.className = 'jira-card-summary';
+  summary.textContent = issue && issue.summary != null ? issue.summary : '';
+  card.appendChild(summary);
+
+  var body = document.createElement('div');
+  body.className = 'jira-card-body';
+  var text = (issue && issue.resolution) ? issue.resolution
+           : (issue && issue.description) ? issue.description : '';
+  body.textContent = text;
+  card.appendChild(body);
+
+  // 고객사·날짜 메타 — 둘 다 없으면 메타 행 자체를 생략(레이아웃 톤 유지).
+  var customer = (issue && issue.customer != null) ? String(issue.customer) : '';
+  var created = (issue && issue.created != null) ? String(issue.created) : '';
+  if (customer || created) {
+    var meta = document.createElement('div');
+    meta.className = 'jira-card-meta';
+    if (customer) {
+      var cust = document.createElement('span');
+      cust.className = 'jira-card-customer';
+      cust.textContent = customer;    // textContent → XSS 안전
+      meta.appendChild(cust);
+    }
+    if (created) {
+      var date = document.createElement('span');
+      date.className = 'jira-card-date';
+      date.textContent = created;     // textContent → XSS 안전
+      meta.appendChild(date);
+    }
+    card.appendChild(meta);
+  }
+
+  return card;
+}
+
+// 유사 Jira 사례 섹션 컨트롤러 — 누적 이슈/현재 페이지 상태를 보유하고 렌더.
+// 순수 로직(mergeJiraIssues/jiraPageCount/jiraClampPage/jiraPageSlice)에 위임하고,
+// 여기서는 DOM 갱신만 담당한다. refs.jira 로 handleEvent 에 주입된다.
+function createJiraController(els) {
+  var issues = [];
+  var page = 0;
+
+  function render() {
+    var total = issues.length;
+    if (total === 0) {
+      if (els.section) { els.section.hidden = true; }
+      els.grid.innerHTML = '';
+      if (els.prev) { els.prev.hidden = true; }
+      if (els.next) { els.next.hidden = true; }
+      if (els.pageInfo) { els.pageInfo.hidden = true; }
+      return;
+    }
+    if (els.section) { els.section.hidden = false; }
+    page = jiraClampPage(page, total);
+    var pageCount = jiraPageCount(total);
+
+    els.grid.innerHTML = '';
+    var slice = jiraPageSlice(issues, page);
+    for (var i = 0; i < slice.length; i++) {
+      els.grid.appendChild(renderJiraCard(slice[i]));
+    }
+
+    // 3장 이하면 캐러셀 컨트롤 없이 그리드만 노출.
+    var hasNav = pageCount > 1;
+    if (els.prev) { els.prev.hidden = !hasNav; els.prev.disabled = !hasNav || page <= 0; }
+    if (els.next) { els.next.hidden = !hasNav; els.next.disabled = !hasNav || page >= pageCount - 1; }
+    if (els.pageInfo) {
+      els.pageInfo.hidden = !hasNav;
+      els.pageInfo.textContent = (page + 1) + ' / ' + pageCount;
+    }
+  }
+
+  return {
+    // jira_results 이벤트 수신 — 누적 + key 중복 제거 후 리렌더.
+    addIssues: function (incoming) { issues = mergeJiraIssues(issues, incoming); render(); },
+    // start()/onopen(replay) 리셋 — 누적/dedupe 세트와 페이지를 초기 상태로.
+    reset: function () { issues = []; page = 0; render(); },
+    prev: function () { page = jiraClampPage(page - 1, issues.length); render(); },
+    next: function () { page = jiraClampPage(page + 1, issues.length); render(); }
+  };
+}
+
+// 이벤트 1건을 받아 알맞은 영역에 렌더. refs = {log, report, jira}.
+// tsText: 해당 이벤트의 최초 관측 타임스탬프(replay 재도장 방지, 선택 — 없으면 nowTs()).
+// 반환값: 스트림 종료 여부 (done/error 시 true).
+function handleEvent(data, refs, tsText) {
+  switch (data.type) {
+    case 'log':
+      appendLog(refs.log, data.message, tsText, data.source);
+      return false;
+    case 'mask_diff':
+      // 치환이 전혀 없으면(raw === masked, PII 미발견) 렌더 생략 — 로그를 깔끔하게.
+      // 인덱스/타임스탬프는 onmessage 에서 이벤트 수신 시점에 이미 기록되므로 정합 유지.
+      if (data.raw === data.masked) { return false; }
+      appendMaskDiff(refs.log, data.raw, data.masked, tsText);
+      return false;
+    case 'slm_compress':
+      appendCompress(refs.log, data.before, data.after, tsText);
+      return false;
+    case 'jira_results':
+      // search_jira 1회당 1번 도착 — 프론트가 누적 + key 중복 제거(컨트롤러 위임).
+      if (refs.jira && typeof refs.jira.addIssues === 'function') {
+        refs.jira.addIssues(data.issues);
+      }
+      return false;
+    case 'report':
+      renderReport(refs.report, data.markdown);
+      return false;
+    case 'error':
+      appendError(refs.log, data.message);
+      refs.report.innerHTML =
+        '<div class="empty">보고서를 생성하지 못했습니다 — 진행 로그를 확인해주세요.</div>';
+      return true;
+    case 'done':
+      return true;
+    default:
+      return false;
+  }
+}
+
+// ==========================================================================
+// 서버 연동 (fetch + EventSource)
+// ==========================================================================
+
+function initApp() {
+  var queryEl = document.getElementById('query');
+  var submitEl = document.getElementById('submit');
+  var statusEl = document.getElementById('status');
+  var logEl = document.getElementById('log');
+  var reportEl = document.getElementById('report');
+  var spinnerEl = document.getElementById('log-spinner');
+  var copyBtnEl = document.getElementById('report-copy-btn');
+  var copyLabelEl = copyBtnEl ? copyBtnEl.querySelector('.copy-btn-label') : null;
+
+  // 유사 Jira 사례 컨트롤러(누적/dedupe/페이지 상태 보유) — refs.jira 로 handleEvent 에 주입.
+  var jira = createJiraController({
+    section: document.getElementById('jira-section'),
+    grid: document.getElementById('jira-grid'),
+    prev: document.getElementById('jira-prev'),
+    next: document.getElementById('jira-next'),
+    pageInfo: document.getElementById('jira-pageinfo')
+  });
+  if (jira && document.getElementById('jira-prev')) {
+    document.getElementById('jira-prev').addEventListener('click', jira.prev);
+    document.getElementById('jira-next').addEventListener('click', jira.next);
+  }
+
+  var refs = { log: logEl, report: reportEl, jira: jira };
+  var source = null;
+
+  // 보고서 복사 상태 — 렌더 전 마크다운 원문을 보관(복사 대상). replay 시 report 이벤트가
+  // 다시 오면 자연 복원되므로, 리셋(start/onopen) 때는 숨김만 하면 된다.
+  var reportMarkdown = null;
+  var copyResetTimer = null;
+
+  function hideReportCopy() {
+    reportMarkdown = null;
+    if (copyResetTimer) { clearTimeout(copyResetTimer); copyResetTimer = null; }
+    if (copyBtnEl) { copyBtnEl.hidden = true; copyBtnEl.classList.remove('copied'); }
+    if (copyLabelEl) { copyLabelEl.textContent = '복사'; }
+  }
+  function showReportCopy(markdown) {
+    reportMarkdown = markdown;
+    if (copyBtnEl) { copyBtnEl.hidden = false; }
+  }
+  function flashCopied() {
+    if (copyBtnEl) { copyBtnEl.classList.add('copied'); }
+    if (copyLabelEl) { copyLabelEl.textContent = '복사됨 ✓'; }
+    if (copyResetTimer) { clearTimeout(copyResetTimer); }
+    copyResetTimer = setTimeout(function () {
+      if (copyBtnEl) { copyBtnEl.classList.remove('copied'); }
+      if (copyLabelEl) { copyLabelEl.textContent = '복사'; }
+      copyResetTimer = null;
+    }, 2000);
+  }
+  if (copyBtnEl) {
+    copyBtnEl.addEventListener('click', function () {
+      if (reportMarkdown == null) { return; }
+      copyToClipboard(reportMarkdown).then(flashCopied).catch(function () { /* 복사 실패 — 조용히 무시 */ });
+    });
+  }
+  // 연속 onerror 상한(브라우저 자동 재연결 무한 반복 방지). onopen(재연결 성공) 시 리셋.
+  var MAX_RETRIES = 5;
+
+  // LLM 응답 대기 구간 시각 신호(QC P2): #status 경과 초 카운터 + 진행 로그 하단 pulsing dot.
+  var elapsedTimer = null;   // 1초 간격 카운터 인터벌
+  var elapsedStart = 0;      // 질의 시작 시각(경과 기준) — 새 질의에서만 리셋
+
+  function setBusy(busy, text) {
+    submitEl.disabled = busy;
+    statusEl.textContent = text || '';
+  }
+
+  function showSpinner() { if (spinnerEl) { spinnerEl.hidden = false; } }
+  function hideSpinner() { if (spinnerEl) { spinnerEl.hidden = true; } }
+
+  function elapsedText() {
+    var secs = Math.floor((Date.now() - elapsedStart) / 1000);
+    return '분석 중... ' + secs + '초 경과';
+  }
+  function startElapsed() {           // 분석 중 — 경과 카운터 구동 + 스피너 노출(재연결 성공 시 재개)
+    if (!elapsedStart) { elapsedStart = Date.now(); }
+    showSpinner();
+    statusEl.textContent = elapsedText();
+    if (elapsedTimer) { return; }
+    elapsedTimer = setInterval(function () { statusEl.textContent = elapsedText(); }, 1000);
+  }
+  function pauseElapsed() {           // 재연결 안내 문구 노출을 위해 카운터만 멈춤(스피너/시작시각 유지)
+    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+  }
+  function stopElapsed() {            // 종료(완료/오류/실패) — 카운터 정지 + 스피너 제거
+    pauseElapsed();
+    hideSpinner();
+  }
+
+  function stopStream() {
+    if (source) { source.close(); source = null; }
+  }
+
+  function start() {
+    var query = queryEl.value.trim();
+    if (!query) { statusEl.textContent = '문의 내용을 입력하세요.'; return; }
+
+    stopStream();
+    stopElapsed();                 // 이전 질의의 카운터/스피너 정리
+    elapsedStart = 0;              // 새 질의 → 경과 카운터 리셋
+    logEl.innerHTML = '';
+    reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
+    jira.reset();                  // 새 질의 → 이전 Jira 누적/dedupe 세트·페이지 리셋(섹션 숨김)
+    hideReportCopy();              // 새 질의 → 이전 보고서 복사 버튼/원문 숨김·초기화
+    showSpinner();
+    setBusy(true, '요청 전송 중...');
+
+    fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query })
+    })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('서버 응답 ' + res.status); }
+        return res.json();
+      })
+      .then(function (data) {
+        var taskId = data.task_id;
+        var streamDone = false;   // done/error(종료 이벤트) 수신 여부
+        var errorCount = 0;       // 연속 onerror 횟수(진짜 진행 관측 시에만 리셋)
+        var maxSeen = 0;          // 전 연결 통틀어 관측한 최대 이벤트 수(진짜 진행 판정 기준)
+        var connEventCount = 0;   // 현재 연결에서 수신한 이벤트 수(onopen 시 리셋)
+        var eventTimestamps = []; // 이벤트 인덱스 → 최초 관측 ts(replay 재도장 방지, 질의 수명 유지)
+        submitEl.disabled = true; // 분석 진행 중 — 제출 잠금(경과 카운터가 status 를 구동)
+        startElapsed();
+        source = new EventSource('/events/' + encodeURIComponent(taskId));
+        source.onopen = function () {
+          // 서버는 재구독 시 history 를 idx=0 부터 전량 replay 하므로, 연결이 열릴 때마다
+          // 패널을 초기 상태로 리셋해 중복 렌더를 막는다(최초 open 에도 무해 — start() 가
+          // 이미 같은 초기 상태로 세팅함). connEventCount 는 연결별 수신 수이므로 여기서 리셋하되,
+          // errorCount 리셋은 onmessage 의 '진짜 진행'(maxSeen 초과) 판정에 맡긴다 — replay 만으로는
+          // 리셋되지 않아야 반복 절단이 상한에 도달한다. eventTimestamps 는 질의 수명 동안 보존.
+          connEventCount = 0;
+          logEl.innerHTML = '';
+          reportEl.innerHTML = '<div class="empty">분석 진행 중...</div>';
+          jira.reset();            // replay 로 jira_results 재수신 → 누적/dedupe 세트 리셋해 중복 방지
+          hideReportCopy();        // 패널 리셋과 함께 복사 버튼도 숨김 — report replay 로 자연 복원
+          submitEl.disabled = true;
+          startElapsed();          // (재)연결 성공 → 경과 카운터 재개(재연결 안내 문구 대체)
+        };
+        source.onmessage = function (ev) {
+          var parsed;
+          try { parsed = JSON.parse(ev.data); }
+          catch (e) { return; }
+          // 이 연결에서 몇 번째 이벤트인지(replay 는 idx=0 부터 결정적) — 진행 판정·ts 키로 사용.
+          connEventCount++;
+          if (connEventCount > maxSeen) {
+            // 전 연결 통틀어 본 적 없는 새 이벤트 = 진짜 진행 → 연속 오류 카운터 리셋.
+            // replay 로 이미 본 개수만큼만 오면 리셋되지 않아 반복 절단이 상한에 도달한다.
+            maxSeen = connEventCount;
+            errorCount = 0;
+          }
+          // 이벤트별 최초 관측 시각을 보존해 replay 시 새 시각으로 재도장되지 않게 한다.
+          var eventIdx = connEventCount - 1;
+          var tsText = eventTimestamps[eventIdx];
+          if (tsText === undefined) { tsText = nowTs(); eventTimestamps[eventIdx] = tsText; }
+          var finished = handleEvent(parsed, refs, tsText);
+          if (parsed.type === 'report') {
+            showReportCopy(parsed.markdown);  // 렌더 전 원문 보관 + 복사 버튼 노출
+          }
+          if (finished) {
+            streamDone = true;   // done/error 는 종료 이벤트 → 이후 onerror 재연결 금지
+            if (parsed.type === 'error') { hideReportCopy(); }
+            stopStream();
+            stopElapsed();       // 종료 → 경과 카운터 정지 + 스피너 제거
+            setBusy(false, parsed.type === 'error' ? '오류로 종료됨' : '완료');
+          }
+        };
+        source.onerror = function () {
+          if (streamDone) {
+            // 정상 종료(done 후 서버가 연결을 닫음) → 재연결 없이 완료 상태 유지.
+            stopStream();
+            return;
+          }
+          errorCount++;
+          if (errorCount > MAX_RETRIES) {
+            // 반복 절단 → 자동 재연결 포기하고 실패 안내(F5 error 처리 재사용).
+            stopStream();
+            stopElapsed();
+            appendError(logEl, '서버 연결이 반복적으로 끊겨 분석을 완료하지 못했습니다.');
+            reportEl.innerHTML =
+              '<div class="empty">보고서를 생성하지 못했습니다 — 진행 로그를 확인해주세요.</div>';
+            hideReportCopy();
+            setBusy(false, '연결 실패');
+            return;
+          }
+          // done 미수신 → close 하지 않고 브라우저 자동 재연결에 맡긴다(replay 로 복구).
+          // 카운터만 멈춰 재시도 문구를 노출하고, 스피너는 유지(다음 onopen 이 카운터 재개).
+          pauseElapsed();
+          setBusy(true, '연결 재시도 중... (' + errorCount + '/' + MAX_RETRIES + ')');
+        };
+      })
+      .catch(function (err) {
+        stopElapsed();
+        appendError(logEl, networkErrorMessage(err));
+        setBusy(false, '요청 실패');
+      });
+  }
+
+  submitEl.addEventListener('click', start);
+  queryEl.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { start(); }
+  });
+}
+
+// 브라우저에서만 DOM 초기화 (Node 격리 테스트에서는 document 미정의)
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', initApp);
+}
+
+// ==========================================================================
+// 예시 카드 클릭 → 스크립트 재생 (부모 페이지에서 postMessage 로 지시)
+// cross-origin/file:// 에서도 동작하도록 iframe 내부에서 직접 재생한다.
+// message: { type:'answerni-demo', script:{ query, logs[], jira[], report } }
+// ==========================================================================
+if (typeof window !== 'undefined') {
+  (function () {
+    var timers = [], typeTimer = null;
+    function cancel() { timers.forEach(clearTimeout); timers = []; if (typeTimer) { clearInterval(typeTimer); typeTimer = null; } }
+    function at(d, f) { timers.push(setTimeout(f, d)); }
+    function cursorEl() {
+      var cur = document.getElementById('__democursor');
+      if (!cur) {
+        cur = document.createElement('div');
+        cur.id = '__democursor';
+        cur.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))"><path d="M4 2 L4 20 L9 15 L12.5 22 L15 21 L11.5 14 L18 14 Z" fill="#fff" stroke="#141210" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+        cur.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;pointer-events:none;transition:left .85s cubic-bezier(.4,.1,.2,1),top .85s cubic-bezier(.4,.1,.2,1),transform .15s ease;opacity:0;';
+        document.body.appendChild(cur);
+      }
+      return cur;
+    }
+    function play(sc) {
+      if (!sc) return;
+      var q = document.getElementById('query'),
+          btn = document.getElementById('submit'),
+          logEl = document.getElementById('log'),
+          reportEl = document.getElementById('report'),
+          statusEl = document.getElementById('status'),
+          spinner = document.getElementById('log-spinner'),
+          jSec = document.getElementById('jira-section'),
+          jGrid = document.getElementById('jira-grid');
+      if (!q || !btn || !logEl || !reportEl) return;
+      cancel();
+
+      q.value = '';
+      logEl.innerHTML = '<div class="empty">문의를 제출하면 에이전트의 진행 상황이 여기에 표시됩니다.</div>';
+      reportEl.innerHTML = '<div class="empty">분석이 끝나면 최종 보고서가 여기에 렌더링됩니다.</div>';
+      if (jSec) jSec.hidden = true;
+      if (jGrid) jGrid.innerHTML = '';
+      if (statusEl) statusEl.textContent = '';
+      if (spinner) spinner.hidden = true;
+      btn.disabled = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      var startType = 650;
+      at(startType, function () {
+        q.focus();
+        var n = 0, text = sc.query || '';
+        typeTimer = setInterval(function () {
+          n++;
+          q.value = text.slice(0, n);
+          q.scrollTop = q.scrollHeight;
+          if (n >= text.length) { clearInterval(typeTimer); typeTimer = null; }
+        }, 26);
+      });
+      var t = startType + (sc.query || '').length * 26 + 350;
+
+      at(t, function () {
+        var cur = cursorEl(), qb = q.getBoundingClientRect();
+        cur.style.left = (qb.left + 40) + 'px';
+        cur.style.top = (qb.top + 30) + 'px';
+        cur.style.opacity = '1';
+        requestAnimationFrame(function () {
+          var b = btn.getBoundingClientRect();
+          cur.style.left = (b.left + b.width / 2) + 'px';
+          cur.style.top = (b.top + b.height / 2) + 'px';
+        });
+      });
+      t += 1050;
+      at(t, function () {
+        var cur = document.getElementById('__democursor');
+        if (cur) { cur.style.transform = 'scale(.8)'; setTimeout(function () { cur.style.transform = 'scale(1)'; }, 150); }
+        btn.style.transform = 'scale(.96)';
+        setTimeout(function () { btn.style.transform = ''; }, 160);
+        btn.disabled = true;
+        if (statusEl) statusEl.textContent = '분석 중...';
+        if (spinner) spinner.hidden = false;
+        logEl.innerHTML = '';
+        try { var ls = logEl.closest('section'); if (ls) window.scrollTo({ top: ls.offsetTop - 20, behavior: 'smooth' }); } catch (e) {}
+      });
+      t += 550;
+      at(t, function () { var cur = document.getElementById('__democursor'); if (cur) cur.style.opacity = '0'; });
+
+      (sc.logs || []).forEach(function (ev) {
+        at(t, function () {
+          if (ev.k === 'log') appendLog(logEl, ev.m, nowTs(), ev.s);
+          else if (ev.k === 'mask') appendMaskDiff(logEl, ev.raw, ev.masked, nowTs());
+          else if (ev.k === 'compress') appendCompress(logEl, ev.before, ev.after, nowTs());
+        });
+        t += ev.k === 'mask' ? 1100 : 850;
+      });
+
+      if (sc.jira && sc.jira.length && jSec && jGrid) {
+        at(t, function () {
+          jSec.hidden = false;
+          jGrid.innerHTML = '';
+          sc.jira.forEach(function (iss) { jGrid.appendChild(renderJiraCard(iss)); });
+        });
+        t += 900;
+      }
+
+      at(t, function () {
+        reportEl.innerHTML = renderMarkdown(sc.report || '');
+        if (spinner) spinner.hidden = true;
+        if (statusEl) statusEl.textContent = '완료';
+        btn.disabled = false;
+      });
+      t += 500;
+      at(t, function () {
+        try {
+          var target = (jSec && !jSec.hidden) ? jSec : reportEl.closest('section');
+          if (target) window.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
+        } catch (e) {}
+      });
+    }
+    window.addEventListener('message', function (ev) {
+      var d = ev.data;
+      if (!d || d.type !== 'answerni-demo') return;
+      play(d.script);
+    });
+  })();
+}
+
+// Node 격리 테스트용 export (브라우저에는 영향 없음)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { escapeHtml, renderMarkdown, highlightPII, highlightTokens, handleEvent, networkErrorMessage, sourceBadgeInfo, copyToClipboard, mergeJiraIssues, jiraPageCount, jiraClampPage, jiraPageSlice, renderJiraCard, JIRA_PAGE_SIZE };
+}
+</script>
+</body>
+</html>
