@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-156 — 로그인·인증 전반 광역 이상 · 유사 사례 8건 종합 대응 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🔐 인증 · Authentication</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-156 — 로그인·인증 전반의 광역 이상<br>유사 사례 8건 종합 대응</h1>
+    <p class="subtitle"><b>고객사 M</b> &nbsp;|&nbsp; 접수 2026-07-02 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 auth / db / license &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석 (다중 로그)</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭 · 8건)</a></li>
+      <li><a href="#sec7">종합 대응 — 영역별 점검 체크리스트</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 M에서 <strong>로그인·세션·계정·본인확인 전반에 걸쳐 여러 증상이 겹쳐 산발적으로 발생</strong>한다는 문의가 접수되었다. 단일 결함이 아니라 인증 스택 전반의 정황이 뒤섞인 광역 이슈로, 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <strong>auth-server / db / license 3종 로그</strong>와 사내 Jira 이력을 <strong>광역 검색</strong>으로 조회·대조해 도출한 종합 대응 가이드다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "요즘 로그인·인증 쪽에서 여러 증상이 겹쳐 발생해요. 과거 유사 사례들을 폭넓게 찾아서 정리해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 증상이 <strong>인증서 만료(로그인 거부)·세션 TTL·재설정 메일·본인확인·라이선스 만료(정책 미적용)·DB 락(결재 저장 실패)</strong> 등 여러 영역에 걸쳐 있어, 광역 검색으로 <strong>유사 사례 8건</strong>을 회수하고 영역별 조치 이력을 종합해 <strong>점검 체크리스트</strong>로 정리했다. 단일 근본원인이 아니므로 영역별 병렬 점검이 핵심.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">인증</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 M</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-07-02</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 범위</div><div class="value">인증 스택 전반</div></div>
+    <div class="stat-card"><div class="label">유사 사례</div><div class="value">8건 회수</div></div>
+    <div class="stat-card"><div class="label">조사 로그</div><div class="value">3종 (auth·db·license)</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>로그인 거부(인증서 만료)·결재 저장 지연(DB 락)·정책 미적용(라이선스 만료)이 동시간대에 관측 — 인증·업무 핵심 경로가 광범위하게 흔들림.</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-required">중요</span> 실패·거부 로그에 이메일·IP·휴대폰·결재자 이메일이 <strong>평문(PII)으로 적재</strong>. 로컬 에이전트가 마스킹했으나 운영 로깅 자체의 마스킹 정책 점검 필요.</td></tr>
+      <tr><td>긴급도</td><td>High — 증상이 여러 영역에 산발하여 단일 조치로 해소되지 않으며, 원인 영역을 빠르게 분리·병렬 대응해야 함.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>영역</th><th>증상</th><th>근거 로그</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">인증서</span> 로그인 거부</td><td><code>SSL certificate verify failed / certificate has expired</code> 로 로그인 <code>rejected</code>.</td><td>auth-server.log</td></tr>
+      <tr><td><span class="badge badge-warn">세션</span> 조기 만료</td><td>로그인 직후 세션이 짧게 만료된다는 정황 (TTL 설정 확인 필요).</td><td>auth-server.log</td></tr>
+      <tr><td><span class="badge badge-warn">계정/락</span> 결재 저장 실패</td><td><code>approve save failed ... reason=lock_wait_timeout</code>, <code>lock wait timeout exceeded</code>.</td><td>db.log</td></tr>
+      <tr><td><span class="badge badge-warn">라이선스</span> 정책 미적용</td><td><code>license expired -&gt; entering safe mode</code>, <code>policy not applied: license invalid</code>.</td><td>license.log</td></tr>
+      <tr><td><span class="badge badge-new">기타</span> 본인확인·메일·푸시</td><td>본인확인·재설정 메일·푸시 등 인접 인증 기능의 산발 정황 — 유사 이력으로 확장 조사.</td><td>Jira 이력</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석 (다중 로그)</h2>
+  <p>광역 증상 특성상 단일 로그로 좁히지 않고 <strong>auth-server · db · license 3종 로그</strong>를 순차 조사했다. 아래는 로컬 에이전트가 <strong>PII를 토큰으로 치환한 뒤</strong> 회수한 라인이다(원문 PII는 원격 LLM에 전달되지 않음 — 부록 B 참조).</p>
+
+  <h4>4-1. auth-server.log — 인증서 만료로 로그인 거부</h4>
+  <div class="logbox"><span class="ts">2026-07-08 09:12:44</span> <span class="lv-error">ERROR</span> <span class="msg">[auth] <span class="hl">SSL certificate verify failed: certificate has expired</span></span>
+<span class="ts">2026-07-08 09:12:45</span> <span class="lv-warn">WARN</span>  <span class="msg">[auth] <span class="hl">login rejected</span> user=[EMAIL_1] ip=[IP_1] phone=[PHONE_1]</span>
+<span class="ts">2026-07-08 09:12:46</span> <span class="lv-error">ERROR</span> <span class="msg">[auth] SSL certificate expired for host <span class="hl">auth.corp.example.com not renewed since 2026-06-30</span></span>
+<span class="ts">2026-07-08 09:13:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[auth] <span class="hl">login rejected</span> user=[EMAIL_1] ip=[IP_1] reason=cert_error retry=3</span>
+<span class="ts">2026-07-08 09:15:20</span> <span class="lv-error">ERROR</span> <span class="msg">[tls] handshake failed: <span class="hl">certificate has expired</span> (SSL_ERROR_EXPIRED_CERT)</span></div>
+
+  <h4>4-2. db.log — 행 잠금 대기로 결재 저장 실패</h4>
+  <div class="logbox"><span class="ts">2026-07-08 16:40:31</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">slow query 30021ms</span> UPDATE policy SET ... (T1 holds row lock)</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[db] tx T2 <span class="hl">lock wait timeout exceeded</span>; try restarting transaction</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] <span class="hl">approve save failed</span> doc=3120 approver=[EMAIL_2] reason=lock_wait_timeout</span>
+<span class="ts">2026-07-08 16:41:10</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">6 transactions waiting on row lock</span> (table=approve)</span>
+<span class="ts">2026-07-08 16:45:01</span> <span class="lv-info">INFO</span>  <span class="msg">[db] lock contention cleared</span></div>
+
+  <h4>4-3. license.log — 라이선스 만료로 정책 미적용</h4>
+  <div class="logbox"><span class="ts">2026-07-09 00:05:00</span> <span class="lv-error">ERROR</span> <span class="msg">[lic] <span class="hl">license expired -&gt; entering safe mode</span> (block/scan disabled)</span>
+<span class="ts">2026-07-09 09:10:22</span> <span class="lv-warn">WARN</span>  <span class="msg">[agent] <span class="hl">policy not applied: license invalid</span> agent_id=PC-4410 user=[EMAIL_3]</span>
+<span class="ts">2026-07-09 09:40:15</span> <span class="lv-warn">WARN</span>  <span class="msg">[agent] scan skipped: license invalid</span></div>
+
+  <div class="note"><strong>주의:</strong> 세 로그 모두 실패/거부 라인에 <strong>이메일·IP·휴대폰·결재자 이메일이 평문</strong>으로 남아 있었다. AnswerNI 로컬 에이전트가 원격 LLM 전달 전 <code>[EMAIL_n]·[IP_n]·[PHONE_n]</code> 토큰으로 치환했다(부록 B). 운영 로깅 자체도 마스킹으로 전환해야 한다.</div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>본 건은 <strong>단일 근본원인이 아니라 인증 스택 전반의 서로 다른 영역이 동시에 열화</strong>된 광역 이슈다. 로그 3종에서 확인된 <strong>인증서 만료 · DB 락 · 라이선스 만료</strong>가 각각 독립적으로 로그인/결재/정책 경로를 흔들고 있으며, 여기에 세션 TTL·본인확인·재설정 메일·푸시 등 인접 증상이 겹쳐 "여러 증상이 동시에" 체감된다.</p>
+
+  <div class="flow-box">[고객 체감]  "로그인·인증 전반이 이상하다"
+     |
+     +── auth-server.log ──▶  인증서 만료(2026-06-30 이후 미갱신) → 로그인 rejected
+     |
+     +── db.log ───────────▶  장기 트랜잭션 행 잠금 → 결재 저장 lock_wait_timeout
+     |
+     +── license.log ──────▶  라이선스 만료 → safe mode, 정책 미적용
+     |
+     v
+[종합]  단일 원인 아님 → 영역별 병렬 점검 + 과거 유사 이력 8건 대조</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>영역</th><th>직접 원인</th><th>대조 이력</th></tr></thead>
+    <tbody>
+      <tr><td>인증서</td><td>서버 인증서 만료(<code>not renewed since 2026-06-30</code>) → TLS handshake 실패·로그인 거부.</td><td>SUP-123</td></tr>
+      <tr><td>세션</td><td>세션 TTL 설정값 확인 필요(과거 180초 오설정 전례).</td><td>SUP-101</td></tr>
+      <tr><td>계정/락</td><td>장기 트랜잭션의 행 잠금 점유 → 결재 저장 <code>lock_wait_timeout</code>.</td><td>SUP-148</td></tr>
+      <tr><td>라이선스</td><td>라이선스 만료 → safe mode 전환, 정책 미적용.</td><td>SUP-146</td></tr>
+      <tr><td>본인확인/메일/푸시</td><td>제공사 토큰·SPF·APNs 키 등 인접 인증 요소의 만료/누락 가능성.</td><td>SUP-150·108·131</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>보안 관점:</strong> 세 로그 모두 실패 경로에서 <strong>PII(이메일·IP·휴대폰·결재자 이메일)를 평문으로 적재</strong>한다. 로그 열람 권한자·수집 파이프라인으로 개인정보가 확산될 수 있어, 기능 복구와 별개로 <strong>로깅 마스킹 표준화</strong>를 필수 조치로 처리해야 한다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭 · 8건)</h2>
+  <p>에이전트가 자연어 문장 대신 <strong>광역 키워드('로그인' → '인증' → '계정 인증')로 범위를 넓혀 재검색</strong>하여 최종적으로 <strong>동일·인접 증상의 과거 이슈 8건</strong>을 회수했다(현재 문의 SUP-156 포함). 아래 8건을 영역별로 묶어 종합 대응의 근거로 삼는다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>영역</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-156</strong></td><td>로그인·인증 전반의 산발적 이상 — 광역 유사 사례 종합 대응</td><td>고객사 M · 2026-07-02</td><td><span class="badge badge-review">현재 문의</span></td></tr>
+      <tr><td><strong>SUP-123</strong></td><td>SSL 인증서 만료로 인한 로그인 실패</td><td>고객사 A · 2026-03-18</td><td><span class="badge badge-required">인증서</span></td></tr>
+      <tr><td><strong>SUP-101</strong></td><td>로그인 후 세션이 3분 만에 만료됨</td><td>고객사 B · 2025-11-05</td><td><span class="badge badge-warn">세션</span></td></tr>
+      <tr><td><strong>SUP-108</strong></td><td>비밀번호 재설정 이메일이 도착하지 않음</td><td>고객사 C · 2026-01-22</td><td><span class="badge badge-warn">메일</span></td></tr>
+      <tr><td><strong>SUP-150</strong></td><td>본인확인(실명인증) 연동 실패 및 오류 로그에 개인정보 평문 적재</td><td>고객사 G · 2026-03-05</td><td><span class="badge badge-required">본인확인</span></td></tr>
+      <tr><td><strong>SUP-146</strong></td><td>라이선스 만료로 검사·차단 기능이 비활성화됨</td><td>고객사 A · 2026-01-30</td><td><span class="badge badge-warn">라이선스</span></td></tr>
+      <tr><td><strong>SUP-131</strong></td><td>모바일 앱 푸시 알림 미수신</td><td>고객사 C · 2026-02-08</td><td><span class="badge badge-new">푸시</span></td></tr>
+      <tr><td><strong>SUP-148</strong></td><td>DB 락 대기/타임아웃으로 결재·정책 저장이 지연됨</td><td>고객사 B · 2026-02-25</td><td><span class="badge badge-required">DB락</span></td></tr>
+    </tbody>
+  </table>
+
+  <h4>카테고리별 조치 이력 요지</h4>
+  <table>
+    <thead><tr><th>카테고리</th><th>이슈</th><th>과거 조치(resolution) 요지</th></tr></thead>
+    <tbody>
+      <tr><td>인증서</td><td>SUP-123</td><td>만료 서버 인증서 재발급·교체 후 auth-server 재시작, 만료 30일 전 알림 자동화.</td></tr>
+      <tr><td>세션</td><td>SUP-101</td><td>세션 TTL 180초 → 3600초 복원, 배포 스크립트 환경변수 오타 수정.</td></tr>
+      <tr><td>메일</td><td>SUP-108</td><td>발신 도메인 SPF 레코드 누락 → DNS에 SPF/DKIM 추가 후 정상 수신.</td></tr>
+      <tr><td>본인확인</td><td>SUP-150</td><td>제공사 apiKey 재발급·교체로 verify 복구 + 오류 로그 PII 마스킹(<code>mask_pii_in_log=true</code>).</td></tr>
+      <tr><td>라이선스</td><td>SUP-146</td><td>라이선스 갱신·재적용 후 정책 재동기화, 만료 30일 전 자동 알림 권고.</td></tr>
+      <tr><td>푸시</td><td>SUP-131</td><td>APNs 인증 키(.p8) 만료 → 신규 키 발급 후 알림 정상 발송.</td></tr>
+      <tr><td>DB락</td><td>SUP-148</td><td>장기 실행 쿼리 튜닝·트랜잭션 분할, 락/커넥션 풀 타임아웃 조정, 슬로우 쿼리 모니터링 추가.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec7"><span class="section-num">7.</span>종합 대응 — 영역별 점검 체크리스트</h2>
+  <p>단일 조치로 해소되지 않는 광역 이슈이므로, 회수한 8건의 과거 조치를 영역별로 이식한 <strong>병렬 점검 체크리스트</strong>를 제시한다.</p>
+
+  <h3>7-1. 인증서 (SUP-123)</h3>
+  <ul class="checklist">
+    <li class="done">auth-server.log의 <code>certificate has expired</code> / <code>not renewed since 2026-06-30</code> 확인</li>
+    <li>서버 인증서(<code>auth.corp.example.com</code>) 재발급·교체 후 auth-server 재시작</li>
+    <li>인증서 만료 30일 전 알림 자동화(cron + monitoring) 등록</li>
+  </ul>
+  <h3>7-2. 세션 TTL (SUP-101)</h3>
+  <ul class="checklist">
+    <li>세션 TTL 설정값 점검(오설정 시 3600초로 복원) · 배포 환경변수 오타 확인</li>
+  </ul>
+  <h3>7-3. 재설정 메일 (SUP-108)</h3>
+  <ul class="checklist">
+    <li>발신 도메인 SPF/DKIM 레코드 존재 확인 · 스팸 분류 여부 점검</li>
+  </ul>
+  <h3>7-4. 본인확인 (SUP-150)</h3>
+  <ul class="checklist">
+    <li>제공사 apiKey/토큰 유효성 확인, 만료 시 재발급 · 오류 로그 PII 마스킹(<code>mask_pii_in_log=true</code>)</li>
+  </ul>
+  <h3>7-5. 라이선스 (SUP-146)</h3>
+  <ul class="checklist">
+    <li class="done">license.log의 <code>license expired -&gt; safe mode</code> / <code>policy not applied</code> 확인</li>
+    <li>라이선스 갱신·재적용 후 정책 재동기화(<code>policy re-sync ok</code>) 확인</li>
+  </ul>
+  <h3>7-6. 푸시 (SUP-131)</h3>
+  <ul class="checklist">
+    <li>APNs 인증 키(.p8) 만료 여부 확인, 만료 시 신규 키 발급</li>
+  </ul>
+  <h3>7-7. DB 락 (SUP-148)</h3>
+  <ul class="checklist">
+    <li class="done">db.log의 <code>lock wait timeout exceeded</code> / <code>approve save failed</code> 확인</li>
+    <li>장기 실행 쿼리 튜닝·트랜잭션 분할, 락/커넥션 풀 타임아웃 조정, 슬로우 쿼리 모니터링 추가</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>만료 관리 통합:</strong> 인증서·라이선스·제공사 토큰·APNs 키 등 <strong>만료성 자산의 만료 30일 전 알림</strong>을 하나의 대시보드로 통합 관리한다(SUP-123·146·150·131 공통 교훈).</li>
+    <li><strong>락 모니터링:</strong> <code>lock wait timeout</code> / <code>transactions waiting on row lock</code> 패턴을 알림 규칙으로 등록(SUP-148).</li>
+    <li><strong>PII 로깅 표준화:</strong> auth·db·license 등 전 로그의 <code>mask_pii_in_log</code> 정책을 점검·표준화해 평문 PII 적재를 제거한다(SUP-150).</li>
+    <li><strong>광역 증상 트리아지:</strong> "여러 증상이 겹친다"는 문의는 단일 원인으로 좁히지 말고 <strong>영역별 로그 병렬 조회 + 광역 Jira 검색</strong>으로 분리 진단한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-123·101·108·150·146·131·148과 linked issue로 기록해 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>로그인/인증 (인증서)</td><td><span class="badge badge-required">직접</span></td><td>인증서 재발급으로 복구</td></tr>
+      <tr><td>결재 저장 (DB 락)</td><td><span class="badge badge-required">직접</span></td><td>락 대기 해소·쿼리 튜닝 필요</td></tr>
+      <tr><td>정책 적용 (라이선스)</td><td><span class="badge badge-required">직접</span></td><td>라이선스 갱신·재동기화</td></tr>
+      <tr><td>세션·본인확인·메일·푸시</td><td><span class="badge badge-warn">잠재</span></td><td>유사 이력 기준 병렬 점검</td></tr>
+      <tr><td>개인정보 보호(PII)</td><td><span class="badge badge-required">중요</span></td><td>3종 로그 평문 적재 — 마스킹 표준화 필요</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>7회</strong>(로그 read 4 + Jira search 3), 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">21:04:22 · 도구</div><div class="tl-body">로그 조회 <code>auth-server.log</code> (키워드 ERROR) → 인증서 만료(certificate has expired·not renewed) 확인</div></div>
+    <div class="tl-item err"><div class="tl-time">21:04:31 · 도구</div><div class="tl-body">로그 조회 <code>auth-server.log</code> (키워드 rejected) → 로그인 거부 2줄 회수 (PII 마스킹 적용)</div></div>
+    <div class="tl-item err"><div class="tl-time">21:04:45 · 도구</div><div class="tl-body">로그 조회 <code>db.log</code> (키워드 lock) → 결재 저장 <code>lock_wait_timeout</code> 확인 (approver PII 마스킹)</div></div>
+    <div class="tl-item err"><div class="tl-time">21:04:58 · 도구</div><div class="tl-body">로그 조회 <code>license.log</code> (키워드 license invalid) → 정책 미적용 확인 (user PII 마스킹)</div></div>
+    <div class="tl-item"><div class="tl-time">21:05:12 · 도구</div><div class="tl-body">Jira 검색 <code>'로그인'</code> → 매치 5건 (광역)</div></div>
+    <div class="tl-item"><div class="tl-time">21:05:28 · 도구</div><div class="tl-body">Jira 검색 <code>'인증'</code> → 매치 6건 (광역 확대)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:05:45 · 도구</div><div class="tl-body">Jira 검색 <code>'계정 인증'</code> → <strong>매치 8건</strong> (SUP-123·101·108·150·146·131·148·156)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:06:20 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 7회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 광역 문의를 단일 원인으로 좁히지 않고 <strong>3종 로그를 병렬 조사</strong>한 뒤, Jira 검색어를 <code>'로그인'→'인증'→'계정 인증'</code>으로 <strong>점진 확대</strong>해 인접 영역까지 8건을 회수했다 — 좁힘이 아니라 '넓힘'으로 종합 대응을 완성한 사례.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 3종 로그의 개인정보를 토큰으로 치환했다(EMAIL·IP·PHONE). 같은 값은 같은 토큰으로 매핑된다. <strong>원문 PII는 원격 LLM에 전달되지 않는다.</strong></p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처 로그 (원문)</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>로그인 계정 이메일</td><td>auth-server.log · login rejected (<code>kim@aaa.com</code>)</td></tr>
+      <tr><td><code>[IP_1]</code></td><td>클라이언트 IP</td><td>auth-server.log · login rejected (<code>203.0.113.42</code>)</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>휴대폰</td><td>auth-server.log · login rejected (<code>010-1234-5678</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>결재자 이메일</td><td>db.log · approve save failed (<code>han@corp.example.com</code>)</td></tr>
+      <tr><td><code>[EMAIL_3]</code></td><td>에이전트 사용자 이메일</td><td>license.log · policy not applied (<code>jung@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-156 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

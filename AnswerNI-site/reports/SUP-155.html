@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-155 — 복합 장애(지연·저장실패·통신 이상) · 다중 로그 순회 분석 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🧩 인프라 · Infrastructure</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-155 — 복합 장애<br>지연 · 저장 실패 · 통신 이상 (다중 로그 순회)</h1>
+    <p class="subtitle"><b>고객사 L</b> &nbsp;|&nbsp; 접수 2026-06-25 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 mgmt / db · sys · net · perf · auth &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석 (다중 로그 순회)</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 L에서 <strong>관리서버가 전반적으로 느리고, 결재 저장이 실패하며, 일부 PC는 관리서버와 통신조차 되지 않는다</strong>는 문의가 접수되었다. 단일 증상이 아니라 여러 계층에서 동시에 문제가 관측되는 <strong>복합 장애(compound failure)</strong>로, 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <strong>다섯 개의 로그를 순회 조사</strong>하고 사내 Jira 이력과 대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "관리서버가 전반적으로 느리고 결재 저장도 실패하고 일부 PC는 통신도 안 된대요. 종합적으로 원인 짚어줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 네 갈래의 독립 원인이 겹친 복합 장애다 — ① <strong>행 잠금 경합</strong>(장기 트랜잭션이 락 점유 → <code>lock wait timeout</code>)으로 결재·정책 저장 지연/실패, ② <strong>디스크 포화</strong>(<code>/var/log</code> 100% · <code>No space left</code> → <code>503</code>)로 로그 적재·API 실패, ③ <strong>에이전트 메모리 증가</strong>(RSS 1180→1890MB)로 일부 PC 성능 저하, ④ <strong>통신 이상</strong>(관리서버 8443 <code>connection timed out</code> · 인증서 만료로 <code>login rejected</code> 반복). 각각 <strong>SUP-148(락)·SUP-145(디스크)·SUP-149(메모리)</strong> 조치를 <strong>우선순위대로 복합 준용</strong>하여 해결한다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">인프라</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 L</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-06-25</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">장애 유형</div><div class="value">복합 (4갈래)</div></div>
+    <div class="stat-card"><div class="label">조사 로그</div><div class="value">5종 순회</div></div>
+    <div class="stat-card"><div class="label">도구 호출</div><div class="value">9회 (read 5 · search 4)</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>관리서버 전반 저하 — 결재/정책 저장 지연·실패(락 대기), 감사 로그 적재 실패로 일부 API <code>503</code>, 지사 PC 통신 불가로 정책 미수신.</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-required">중요</span> 인증서 만료로 인증 서버 <code>login rejected</code> 반복 — 로그인 거부 및 인증 신뢰 체인 붕괴. 오류 로그에 결재자 이메일·로그인 이메일/전화/IP(PII)가 평문 노출.</td></tr>
+      <tr><td>긴급도</td><td>High — 여러 핵심 경로(결재·정책·통신·인증)가 동시에 열화. 원인이 복수이므로 <strong>우선순위 기반 병렬 조치</strong>가 필요.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th><th>근거 로그</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">①</span> 지연·저장 실패</td><td><code>lock wait timeout exceeded</code> · <code>slow query 30021ms holds row lock</code> · 결재 저장 실패(<code>reason=lock_wait_timeout</code>).</td><td><code>db.log</code></td></tr>
+      <tr><td><span class="badge badge-required">②</span> 저장/서비스 실패</td><td><code>disk usage /var/log at 100%</code> · <code>No space left on device</code> · <code>503 Service Unavailable</code>.</td><td><code>system.log</code></td></tr>
+      <tr><td><span class="badge badge-warn">③</span> 성능 저하</td><td>프로세스 RSS 지속 증가(<code>1180MB → 1890MB</code>, growing/handles=8421) — 일부 PC 느려짐.</td><td><code>agent-perf.log</code></td></tr>
+      <tr><td><span class="badge badge-required">④</span> 통신 이상</td><td>관리서버 <code>8443 connection timed out</code>(반복) · 인증서 만료로 <code>login rejected</code> / <code>certificate has expired</code>.</td><td><code>network.log</code> · <code>auth-server.log</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석 (다중 로그 순회)</h2>
+  <p>에이전트는 문의의 세 축(느림·저장 실패·통신 불가)에 각각 대응하는 로그를 <strong>순차적으로 5개</strong> 조회했다. 아래는 로컬 에이전트가 <strong>PII를 토큰으로 치환한 뒤</strong> 회수한 핵심 라인이다(원문 PII는 원격 LLM에 전달되지 않음 — 부록 B 참조).</p>
+
+  <h4>① <code>db.log</code> — 행 잠금 경합 (키워드 ERROR · 2줄)</h4>
+  <div class="logbox"><span class="ts">2026-07-08 16:40:31</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">slow query 30021ms</span> UPDATE policy SET ... (T1 holds row lock)</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[db] tx T2 <span class="hl">lock wait timeout exceeded</span>; try restarting transaction</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] approve save failed doc=3120 approver=<span class="hl">[EMAIL_1]</span> reason=<span class="hl">lock_wait_timeout</span></span>
+<span class="ts">2026-07-08 16:41:10</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">6 transactions waiting on row lock</span> (table=approve)</span></div>
+
+  <h4>② <code>system.log</code> — 디스크 포화 (키워드 ERROR · 3줄)</h4>
+  <div class="logbox"><span class="ts">2026-07-08 03:42:33</span> <span class="lv-warn">WARN</span>  <span class="msg">[sys] <span class="hl">disk usage /var/log at 100%</span></span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg">[sys] write failed: <span class="hl">No space left on device</span> (/var/log/app.log)</span>
+<span class="ts">2026-07-08 03:41:10</span> <span class="lv-error">ERROR</span> <span class="msg">[app] failed to append audit log: No space left on device</span>
+<span class="ts">2026-07-08 03:45:00</span> <span class="lv-error">ERROR</span> <span class="msg">[api] <span class="hl">503 Service Unavailable</span> (audit write failed)</span></div>
+
+  <h4>③ <code>network.log</code> — 관리서버 통신 차단 (키워드 ERROR · 2줄)</h4>
+  <div class="logbox"><span class="ts">2026-07-09 10:00:23</span> <span class="lv-error">ERROR</span> <span class="msg">[net] connect to mgmt 198.51.100.8:8443 failed: <span class="hl">connection timed out</span></span>
+<span class="ts">2026-07-09 10:00:53</span> <span class="lv-error">ERROR</span> <span class="msg">[net] connect to mgmt 198.51.100.8:8443 failed: <span class="hl">connection timed out</span></span>
+<span class="ts">2026-07-09 10:05:00</span> <span class="lv-info">INFO</span>  <span class="msg">[net] traceroute mgmt: <span class="hl">blocked after gateway</span> 192.168.20.1</span></div>
+
+  <h4>④ <code>agent-perf.log</code> — 메모리 증가 (키워드 WARN · 2줄)</h4>
+  <div class="logbox"><span class="ts">2026-07-08 15:00:00</span> <span class="lv-warn">WARN</span>  <span class="msg">[perf] <span class="hl">rss=1180MB</span> cpu=18% <span class="hl">(growing)</span></span>
+<span class="ts">2026-07-08 18:00:00</span> <span class="lv-warn">WARN</span>  <span class="msg">[perf] <span class="hl">rss=1890MB</span> cpu=27% handles=8421</span>
+<span class="ts">2026-07-08 20:30:00</span> <span class="lv-error">ERROR</span> <span class="msg">[perf] <span class="hl">high memory: rss=2360MB</span>, scan module holding buffers</span></div>
+  <div class="note"><strong>참고:</strong> WARN 키워드로 조회해 증가 추세(1180→1890MB) 라인을 회수했다. 동일 로그의 후속 <code>ERROR high memory: rss=2360MB</code>는 누수의 정점으로, SUP-149(메모리 누수)와 정확히 일치하는 패턴이다.</div>
+
+  <h4>⑤ <code>auth-server.log</code> — 인증서 만료 · 로그인 거부 반복 (키워드 ERROR · 7줄)</h4>
+  <div class="logbox"><span class="ts">2026-07-08 09:12:44</span> <span class="lv-error">ERROR</span> <span class="msg">[auth] <span class="hl">SSL certificate verify failed: certificate has expired</span></span>
+<span class="ts">2026-07-08 09:12:46</span> <span class="lv-error">ERROR</span> <span class="msg">[auth] SSL certificate expired for host auth.corp.example.com <span class="hl">not renewed since 2026-06-30</span></span>
+<span class="ts">2026-07-08 09:13:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[auth] <span class="hl">login rejected</span> user=[EMAIL_2] ip=[IP_1] reason=cert_error retry=3</span>
+<span class="ts">2026-07-08 09:15:20</span> <span class="lv-error">ERROR</span> <span class="msg">[tls] handshake failed: <span class="hl">certificate has expired</span> (SSL_ERROR_EXPIRED_CERT)</span>
+<span class="ts">2026-07-08 13:05:41</span> <span class="lv-error">ERROR</span> <span class="msg">[auth] login failure user=<span class="hl">[EMAIL_2]</span> phone=<span class="hl">[PHONE_1]</span> reason=ssl_certificate_expired</span></div>
+  <div class="note"><strong>주의:</strong> <code>db.log</code>·<code>auth-server.log</code>에는 결재자·로그인 사용자의 이메일·전화·IP가 <strong>평문</strong>으로 남아 있었다. 로컬 에이전트가 원격 LLM 전달 전 이를 단일 세션에서 순차 치환해 <strong>같은 토큰=같은 사람</strong>이 되도록 매핑했다 — db 결재자는 <code>[EMAIL_1]</code>, 인증 사용자는 <code>[EMAIL_2]·[PHONE_1]·[IP_1]</code>(부록 B).</div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>#</th><th>로그</th><th>키워드</th><th>회수</th><th>핵심 신호</th><th>원인 갈래</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>db.log</code></td><td>ERROR</td><td>2줄 / 207자</td><td><code>lock wait timeout</code> · 결재 저장 실패</td><td>① 락 경합</td></tr>
+      <tr><td>2</td><td><code>system.log</code></td><td>ERROR</td><td>3줄 / 249자</td><td><code>No space left</code> · <code>503</code></td><td>② 디스크</td></tr>
+      <tr><td>3</td><td><code>network.log</code></td><td>ERROR</td><td>2줄 / 189자</td><td><code>8443 connection timed out</code></td><td>④ 통신</td></tr>
+      <tr><td>4</td><td><code>agent-perf.log</code></td><td>WARN</td><td>2줄 / 126자</td><td>RSS 1180→1890MB growing</td><td>③ 메모리</td></tr>
+      <tr><td>5</td><td><code>auth-server.log</code></td><td>ERROR</td><td>7줄 / 714자</td><td><code>certificate has expired</code> · <code>login rejected</code></td><td>④ 통신/인증</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>단일 근본 원인으로 수렴하지 않는다. 로그 순회 결과 <strong>서로 독립적인 네 갈래의 원인이 같은 기간에 겹쳐</strong> 관리서버 전반의 저하로 체감된 것이다. 각 갈래는 과거 단일 사례로 이미 규명·조치된 이력이 있어, 본 건은 그 조치들을 <strong>복합 준용</strong>한다.</p>
+
+  <div class="flow-box">[고객 체감: "전반적으로 느리고 · 저장 실패 · 통신 안 됨"]
+     |
+     +── ① db.log      → 장기 트랜잭션 행 잠금 → lock wait timeout   → 결재/정책 저장 지연·실패   (≈ SUP-148)
+     |
+     +── ② system.log  → /var/log 100% · No space → 감사 로그 실패 → 503 Service Unavailable    (≈ SUP-145)
+     |
+     +── ③ agent-perf  → scan 모듈 버퍼 미해제 → RSS 지속 증가       → 일부 PC 성능 저하          (≈ SUP-149)
+     |
+     +── ④ network+auth→ 방화벽 8443 차단 · 인증서 만료             → 통신 불가 · login rejected  (신규 확인)
+     |
+     v
+[복합 장애 — 우선순위 기반 병렬 조치 필요]</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>갈래</th><th>직접 원인</th><th>근본 원인</th></tr></thead>
+    <tbody>
+      <tr><td>① 지연·저장</td><td>후속 트랜잭션이 락 대기 후 타임아웃(<code>lock wait timeout</code>).</td><td>장기 실행 트랜잭션(<code>30021ms</code>)이 행 잠금을 장시간 점유.</td></tr>
+      <tr><td>② 저장/서비스</td><td>로그 파티션 <code>No space</code>로 감사 기록 실패 → <code>503</code>.</td><td>로그 로테이션 미설정으로 <code>/var/log</code> 누적 100% 포화.</td></tr>
+      <tr><td>③ 성능</td><td>프로세스 RSS 지속 증가로 PC 자원 압박.</td><td>scan 모듈이 핸들/버퍼를 해제하지 않아 메모리 누수 누적.</td></tr>
+      <tr><td>④ 통신·인증</td><td>관리서버 <code>8443</code> 타임아웃 · 인증서 만료로 로그인 거부.</td><td>방화벽 아웃바운드 차단 + 서버 인증서 미갱신(<code>since 2026-06-30</code>).</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>복합 장애 주의:</strong> 네 갈래는 독립 원인이지만 <strong>상호 증폭</strong>한다 — 디스크 포화(②)로 느려진 I/O가 트랜잭션 점유(①)를 길게 하고, 메모리 누수(③)가 노드 응답을 늦추며, 통신 차단(④)이 재시도를 유발한다. 하나만 조치하면 전체 체감이 개선되지 않으므로 <strong>우선순위대로 병렬 조치</strong>해야 한다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 로그에서 추출한 정확한 문구로 사내 Jira를 4회 조회해 <strong>갈래별 조치 이력 3건</strong>을 회수했다. 통신 갈래(<code>connection timed out</code>)는 자연어 검색으로 매치되지 않아(0건) 별도 확인 대상으로 분류했다.</p>
+  <table>
+    <thead><tr><th>검색어</th><th>매치</th><th>요약</th><th>준용 갈래</th></tr></thead>
+    <tbody>
+      <tr><td><code>lock wait timeout</code></td><td><strong>SUP-148</strong></td><td>DB 락 대기/타임아웃으로 결재·정책 저장 지연</td><td><span class="badge badge-required">① 락</span></td></tr>
+      <tr><td><code>disk usage</code></td><td><strong>SUP-145</strong></td><td>디스크 사용률 100%로 로그 적재 실패 및 서비스 지연</td><td><span class="badge badge-required">② 디스크</span></td></tr>
+      <tr><td><code>memory</code></td><td><strong>SUP-149</strong></td><td>에이전트 메모리 누수로 PC 성능 저하</td><td><span class="badge badge-warn">③ 메모리</span></td></tr>
+      <tr><td><code>connection timed out</code></td><td><span class="badge badge-review">0건</span></td><td>자연어 매치 없음 — 방화벽/인증서 계열 별도 확인 권고</td><td><span class="badge badge-new">④ 통신</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-148 조치 이력 — ① 락 경합</h4>
+    <p>장기 실행 쿼리를 튜닝하고 락/커넥션 풀 타임아웃을 조정, 슬로우 쿼리 모니터링을 추가. 장기 트랜잭션 분할 처리로 잠금 점유 시간을 단축. 조치 후 <code>lock contention cleared</code> 확인. <span class="badge badge-edit">고객사 B · 2026-02-25</span></p>
+  </div>
+  <div class="card">
+    <h4>SUP-145 조치 이력 — ② 디스크 포화</h4>
+    <p>오래된 로그를 정리(약 18GB 확보)하고 <code>logrotate</code>를 일 단위·보관 14일로 설정, 디스크 사용률 85% 초과 시 알림 임계치를 등록해 재발 방지. 조치 후 사용률 41%로 정상화. <span class="badge badge-edit">고객사 F · 2025-08-19</span></p>
+  </div>
+  <div class="card">
+    <h4>SUP-149 조치 이력 — ③ 메모리 누수</h4>
+    <p>누수 모듈 패치를 적용하고, 임시로 에이전트 서비스 재기동 스케줄을 운영. 메모리 사용량 임계치 모니터링을 추가해 조기 감지. 재기동 후 RSS 190MB로 회복 확인. <span class="badge badge-edit">고객사 F · 2026-06-18</span></p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 우선순위 기반 복합 조치</h3>
+  <p>체감 영향이 가장 큰 순으로 병렬 조치한다. ①②는 즉시(핵심 경로 복구), ③은 임시 완화 후 패치, ④는 인프라 협의가 필요하다.</p>
+  <table>
+    <thead><tr><th>우선</th><th>갈래</th><th>즉시 조치</th><th>근본 조치</th><th>준용</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>① 락</td><td>장기 트랜잭션 종료 · 락/풀 타임아웃 조정</td><td>장기 쿼리 튜닝 · 트랜잭션 분할 · 슬로우 쿼리 모니터링</td><td>SUP-148</td></tr>
+      <tr><td>P1</td><td>② 디스크</td><td>오래된 로그 정리로 공간 확보</td><td><code>logrotate</code>(일 단위·14일) · 85% 임계 알림</td><td>SUP-145</td></tr>
+      <tr><td>P2</td><td>③ 메모리</td><td>에이전트 서비스 재기동(임시)</td><td>누수 모듈 패치 · RSS 임계 모니터링</td><td>SUP-149</td></tr>
+      <tr><td>P2</td><td>④ 통신</td><td>방화벽 <code>8443</code> 예외 등록 · 인증서 재발급</td><td>포트 사전 공유 프로세스 · 만료 30일 전 알림</td><td>신규(참조 SUP-147/123)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7-2. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">다중 로그 순회로 4갈래 복합 원인 규명(db·system·network·agent-perf·auth-server)</li>
+    <li>① 장기 트랜잭션 종료 + 락/풀 타임아웃 조정 후 <code>lock contention cleared</code> 확인</li>
+    <li>② 로그 정리 + <code>logrotate</code> 설정 후 <code>/var/log</code> 사용률 정상화 확인</li>
+    <li>③ 에이전트 재기동으로 RSS 회복 + 누수 모듈 패치 배포</li>
+    <li>④ 방화벽 <code>8443</code> 예외 + 인증서 재발급 후 <code>connect ... ok</code> / 로그인 정상 확인</li>
+    <li><code>db.log</code>·<code>auth-server.log</code> PII 평문 적재 마스킹 전환</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>교차 상관 알림:</strong> 락 대기·디스크 사용률·프로세스 RSS·8443 연결·인증서 만료를 단일 대시보드로 묶어 <strong>복합 장애를 조기에 상관 탐지</strong>한다.</li>
+    <li><strong>임계치 사전 알림:</strong> 디스크 85%, RSS 임계, 인증서 만료 30일 전 등 <strong>포화 전 알림</strong>을 표준화한다.</li>
+    <li><strong>슬로우 쿼리 모니터링:</strong> 장기 트랜잭션·락 대기 큐를 상시 관측해 저장 지연을 조기 감지.</li>
+    <li><strong>포트/인증서 운영:</strong> 배포 전 필요한 포트(8443) 목록 사전 공유 + 인증서 자동 갱신을 구성.</li>
+    <li><strong>PII 로깅 표준화:</strong> <code>db.log</code>·<code>auth-server.log</code>의 이메일·전화·IP 평문 적재를 마스킹으로 전환한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-148·SUP-145·SUP-149와 linked issue로 기록해 복합 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>결재·정책 저장</td><td><span class="badge badge-required">직접</span></td><td>락 대기로 지연·실패 (① SUP-148 준용)</td></tr>
+      <tr><td>감사 로그 · API</td><td><span class="badge badge-required">직접</span></td><td>디스크 포화로 <code>503</code> (② SUP-145 준용)</td></tr>
+      <tr><td>에이전트 탑재 PC</td><td><span class="badge badge-warn">부분</span></td><td>메모리 증가로 성능 저하 (③ SUP-149 준용)</td></tr>
+      <tr><td>지사 PC 통신 · 인증</td><td><span class="badge badge-required">직접</span></td><td>8443 차단 · 인증서 만료 (④ 신규 조치)</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>저장 자체가 차단/실패되어 오염 데이터 없음</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 복합 장애 특성상 <strong>로그 조회 5회 + Jira 검색 4회 = 누적 도구 호출 9회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">21:47:18 · 도구 1</div><div class="tl-body">로그 조회 <code>db.log</code> (키워드 ERROR) → 2줄 회수 (<code>lock wait timeout</code> · 결재 저장 실패, PII 마스킹 적용)</div></div>
+    <div class="tl-item err"><div class="tl-time">21:47:33 · 도구 2</div><div class="tl-body">로그 조회 <code>system.log</code> (키워드 ERROR) → 3줄 회수 (<code>No space left</code> · <code>503</code>)</div></div>
+    <div class="tl-item err"><div class="tl-time">21:47:48 · 도구 3</div><div class="tl-body">로그 조회 <code>network.log</code> (키워드 ERROR) → 2줄 회수 (<code>8443 connection timed out</code>)</div></div>
+    <div class="tl-item warn"><div class="tl-time">21:48:02 · 도구 4</div><div class="tl-body">로그 조회 <code>agent-perf.log</code> (키워드 WARN) → 2줄 회수 (RSS 1180→1890MB growing)</div></div>
+    <div class="tl-item err"><div class="tl-time">21:48:19 · 도구 5</div><div class="tl-body">로그 조회 <code>auth-server.log</code> (키워드 ERROR) → 7줄 회수 (<code>certificate has expired</code> · <code>login rejected</code>, PII 마스킹 적용)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:48:35 · 도구 6</div><div class="tl-body">Jira 검색 <code>'lock wait timeout'</code> → 매치 1건 (<strong>SUP-148</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:48:49 · 도구 7</div><div class="tl-body">Jira 검색 <code>'disk usage'</code> → 매치 1건 (<strong>SUP-145</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:49:02 · 도구 8</div><div class="tl-body">Jira 검색 <code>'memory'</code> → 매치 1건 (<strong>SUP-149</strong>)</div></div>
+    <div class="tl-item"><div class="tl-time">21:49:16 · 도구 9</div><div class="tl-body">Jira 검색 <code>'connection timed out'</code> → 매치 0건 (통신 갈래 별도 확인 분류)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:49:41 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, <strong>누적 도구 호출 9회</strong>)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 단일 로그로 끝내지 않고 <strong>문의의 각 축을 로그로 분해</strong>해 5개 로그를 순회한 뒤, <strong>로그에서 추출한 정확한 문구</strong>(<code>lock wait timeout</code>·<code>disk usage</code>·<code>memory</code>)로 Jira를 갈래별로 검색해 조치 이력을 회수했다 — 복합 장애를 원인별로 분리·매핑하는 전형적 순회 패턴. 통신 갈래는 0건이라 자동 준용 대신 별도 확인으로 분기했다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 두 로그는 <strong>단일 세션에서 순차 마스킹</strong>되어 케이스 전역에서 토큰이 유일하며, <strong>같은 토큰은 항상 같은 사람</strong>을 가리킨다(서로 다른 사람은 다른 번호). <strong>원문 PII는 원격 LLM에 전달되지 않는다.</strong></p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처 로그</th><th>원문(합성)</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>결재자 이메일</td><td><code>db.log</code> (doc=3120)</td><td><code>han@corp.example.com</code></td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>로그인 사용자 이메일</td><td><code>auth-server.log</code></td><td><code>kim@aaa.com</code></td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>휴대폰</td><td><code>auth-server.log</code></td><td><code>010-1234-5678</code></td></tr>
+      <tr><td><code>[IP_1]</code></td><td>클라이언트 IP</td><td><code>auth-server.log</code></td><td><code>203.0.113.42</code></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>참고:</strong> db 결재자(<code>han@…</code>)와 인증 사용자(<code>kim@…</code>)는 서로 다른 사람이므로 <code>[EMAIL_1]</code>·<code>[EMAIL_2]</code>로 구분 매핑된다. 운영 로깅 자체도 마스킹으로 전환할 것을 권고한다.</div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-155 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

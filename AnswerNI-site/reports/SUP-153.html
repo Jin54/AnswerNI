@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-153 — 방화벽 8443 아웃바운드 차단 · 에이전트-관리서버 통신 실패 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🌐 네트워크 · Network</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-153 — 방화벽 8443 아웃바운드 차단으로<br>에이전트-관리서버 통신 실패</h1>
+    <p class="subtitle"><b>고객사 J</b> &nbsp;|&nbsp; 접수 2026-03-27 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 net / network-conn &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 J의 <strong>신규 지사(부산) PC들이 관리서버에 연결되지 않는다</strong>는 문의가 접수되었다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <code>network.log</code>와 사내 Jira 이력을 조회·대조해 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "신규 지사 PC들이 관리서버에 연결이 안 된대요. network 로그 보고 분석해줘"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 관리서버 포트(<code>8443</code>)로의 <strong>아웃바운드 통신이 고객사 방화벽에서 차단</strong>되어 에이전트 연결이 타임아웃(<code>connection timed out</code>)되는 것이 원인. 방화벽에 <strong>관리서버 IP:8443 아웃바운드 예외</strong>를 등록해 복구하며, 배포 전 필요 포트 목록을 사전 공유해 재발을 방지한다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">네트워크</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 J</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-03-27</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">에이전트-관리서버 연결</div></div>
+    <div class="stat-card"><div class="label">데이터 유실</div><div class="value">없음 (오프라인 캐시)</div></div>
+    <div class="stat-card"><div class="label">범위</div><div class="value">신규 지사 구간</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>신규 지사 PC들이 관리서버와 통신하지 못해 <strong>정책 수신·상태 보고 불가</strong>. 에이전트는 <code>offline policy cache</code>로 폴백해 최소 동작만 유지.</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-warn">주의</span> 관리서버 연결이 끊긴 동안 최신 정책이 배포되지 않아 <strong>정책 최신성이 저하</strong>될 수 있음(오프라인 캐시로 임시 동작).</td></tr>
+      <tr><td>긴급도</td><td>High — 신규 지사 전체 PC의 관리 연결이 차단된 상태이며, 방화벽 예외 등록 전까지 자체 회복 불가.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 연결 타임아웃</td><td>에이전트가 관리서버 <code>198.51.100.8:8443</code> 연결 시 <code>connection timed out</code>으로 반복 실패.</td></tr>
+      <tr><td><span class="badge badge-warn">폴백</span> 오프라인 캐시</td><td>연결 실패 후 <code>falling back to offline policy cache</code>로 전환 — 정책 갱신 없이 캐시로만 동작.</td></tr>
+      <tr><td><span class="badge badge-edit">결정적</span> 경로 차단 지점</td><td><code>traceroute mgmt: blocked after gateway 192.168.20.1</code> — 게이트웨이 이후 구간(방화벽)에서 경로가 끊김.</td></tr>
+      <tr><td><span class="badge badge-new">범위</span> 대상 구간</td><td>신규 지사(<code>site=branch-busan</code>) PC에 국한. 기존 구간은 정상 연결.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>근거 로그: <code>logs/network.log</code>. 에이전트 부팅 직후부터 관리서버 <code>8443</code> 연결이 타임아웃되고, 게이트웨이 이후에서 경로가 차단됨을 traceroute가 확인한다. 방화벽 예외 등록 이후 <code>ok</code>로 정상화된다.</p>
+
+  <div class="logbox"><span class="ts">2026-07-09 10:00:03</span> <span class="lv-info">INFO</span>  <span class="msg">[net] agent boot agent_id=PC-5502 site=branch-busan ip=192.168.20.44</span>
+<span class="ts">2026-07-09 10:00:23</span> <span class="lv-error">ERROR</span> <span class="msg">[net] <span class="hl">connect to mgmt 198.51.100.8:8443 failed: connection timed out</span></span>
+<span class="ts">2026-07-09 10:00:53</span> <span class="lv-error">ERROR</span> <span class="msg">[net] <span class="hl">connect to mgmt 198.51.100.8:8443 failed: connection timed out</span></span>
+<span class="ts">2026-07-09 10:01:00</span> <span class="lv-warn">WARN</span>  <span class="msg">[net] <span class="hl">falling back to offline policy cache</span></span>
+<span class="ts">2026-07-09 10:05:00</span> <span class="lv-info">INFO</span>  <span class="msg">[net] traceroute mgmt: <span class="hl">blocked after gateway 192.168.20.1</span></span>
+<span class="ts">2026-07-09 11:30:00</span> <span class="lv-info">INFO</span>  <span class="msg">[ops] <span class="hl">firewall exception added</span> for 198.51.100.8:8443 by netadmin=seo@corp.example.com</span>
+<span class="ts">2026-07-09 11:32:10</span> <span class="lv-info">INFO</span>  <span class="msg">[net] connect to mgmt 198.51.100.8:8443 <span class="lv-info">ok</span></span></div>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>시각</th><th>이벤트</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>10:00:03</td><td>agent boot (branch-busan)</td><td>신규 지사 PC 부팅 · 관리 연결 시도 시작</td></tr>
+      <tr><td>10:00:23 / 10:00:53</td><td><code>8443 failed: connection timed out</code></td><td><span class="badge badge-required">연결 차단</span> 아웃바운드 8443 미도달</td></tr>
+      <tr><td>10:01:00</td><td><code>offline policy cache</code></td><td><span class="badge badge-warn">폴백</span> 정책 갱신 중단</td></tr>
+      <tr><td>10:05:00</td><td><code>blocked after gateway</code></td><td>게이트웨이 이후(방화벽)에서 경로 차단 확정</td></tr>
+      <tr><td>11:30:00 → 11:32:10</td><td>firewall exception → <code>ok</code></td><td><span class="badge badge-done">복구</span> 예외 등록 후 연결 정상화</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의:</strong> 로컬 게이트웨이(<code>192.168.20.1</code>)까지는 도달하나 그 이후에서 경로가 끊긴다. 이는 PC·에이전트 문제가 아니라 <strong>경계 방화벽의 아웃바운드 정책</strong>이 원인임을 가리킨다.</div>
+
+  <h3>4-1. 지사 영향 확인 — 로그인 실패 정황 (<code>auth-server.log</code>)</h3>
+  <p>관리 연결 차단 기간의 지사 측 영향을 파악하기 위해 에이전트가 <code>auth-server.log</code>를 교차 조회했다. 로그인 거부 라인에 <strong>이메일·IP·전화번호가 평문으로</strong> 남아 있어, 로컬 에이전트가 원격 LLM 전달 전 토큰으로 치환했다(원문 PII 미전달 — 부록 B 참조).</p>
+  <div class="logbox"><span class="ts">2026-07-08 09:12:45</span> <span class="lv-warn">WARN</span>  <span class="msg">[auth] <span class="hl">login rejected</span> user=[EMAIL_1] ip=[IP_1] phone=[PHONE_1]</span>
+<span class="ts">2026-07-08 09:13:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[auth] <span class="hl">login rejected</span> user=[EMAIL_1] ip=[IP_1] reason=cert_error retry=3</span></div>
+
+  <h3>4-2. 오프라인 정책 미적용 (<code>license.log</code>)</h3>
+  <p>관리 연결이 끊긴 동안 에이전트는 오프라인으로 동작하며 정책을 적용하지 못했다. 해당 경고 라인에도 사용자 이메일이 평문으로 포함되어 있어 마스킹 처리되었다.</p>
+  <div class="logbox"><span class="ts">2026-07-09 09:10:22</span> <span class="lv-warn">WARN</span>  <span class="msg">[agent] <span class="hl">policy not applied: license invalid</span> agent_id=PC-4410 user=[EMAIL_2]</span></div>
+  <div class="note"><strong>마스킹 안내:</strong> 위 두 로그(<code>auth-server.log</code>·<code>license.log</code>)에는 이메일·IP·전화번호 등 개인정보(PII)가 평문으로 존재했다. AnswerNI 로컬 에이전트가 원격 LLM 전달 전 이를 <code>[EMAIL_n]·[IP_n]·[PHONE_n]</code> 토큰으로 치환했다(부록 B). 주근거인 <code>network.log</code> 자체에는 PII가 없다.</div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>연결 실패가 <strong>특정 포트(8443)·특정 목적지(관리서버)</strong>에서만 발생하고, traceroute가 <strong>게이트웨이 이후 구간에서 차단</strong>을 보고한다. 로컬 네트워크(게이트웨이까지)는 정상이므로, 원인은 에이전트/PC가 아니라 <strong>고객사 방화벽 정책 변경으로 관리서버 8443 아웃바운드가 차단</strong>된 것이다.</p>
+
+  <div class="flow-box">[에이전트 PC-5502 · branch-busan]
+     |
+     v
+[로컬 게이트웨이 192.168.20.1]   ✅ 도달
+     |
+     v
+[경계 방화벽 — 아웃바운드 정책]   ❌ 8443 차단  (blocked after gateway)
+     |
+     v
+[관리서버 198.51.100.8:8443]   →  connection timed out → offline policy cache 폴백</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>관리서버 <code>8443</code> 아웃바운드 연결이 타임아웃되어 에이전트가 관리서버에 접속하지 못함.</td></tr>
+      <tr><td>근본 원인</td><td>고객사 <strong>방화벽 정책 변경</strong>으로 관리서버 IP:8443 아웃바운드가 차단됨(신규 지사 구간에 예외 미등록).</td></tr>
+      <tr><td>기여 요인</td><td>신규 지사 배포 전 <strong>필요 포트 목록(8443 등) 사전 공유 부재</strong> · 방화벽 화이트리스트 미반영.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>운영 관점:</strong> 관리 연결이 끊긴 동안 에이전트는 오프라인 캐시로만 동작해 <strong>최신 정책·차단 규칙이 배포되지 않는다</strong>. 방화벽 예외 등록으로 관리 채널을 조속히 복구해야 정책 최신성이 유지된다.</div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 로그에서 추출한 핵심어 <code>'8443'</code>으로 사내 Jira를 조회해 <strong>동일 증상의 과거 이슈 SUP-147</strong>을 회수했다(자연어 문장 검색은 0건 → 포트 번호 핵심어로 재검색해 매칭). 현재 문의는 본 이슈(SUP-153)로 등록되었다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-153</strong></td><td>방화벽 8443 아웃바운드 차단으로 에이전트-관리서버 통신 실패</td><td>고객사 J · 2026-03-27</td><td><span class="badge badge-review">현재 건</span></td></tr>
+      <tr><td><strong>SUP-147</strong></td><td>방화벽 포트 차단으로 에이전트-관리서버 통신 실패</td><td>고객사 E · 2025-09-11</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-147 조치 이력(resolution)</h4>
+    <p>방화벽에 관리서버 IP:8443 아웃바운드 예외를 등록하고, telnet/curl로 연결 확인 절차를 안내. 예외 등록 후 <code>connect to mgmt ...:8443 ok</code> 확인. 배포 전 필요한 포트 목록을 사전 공유하도록 프로세스 보완.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 방화벽 아웃바운드 예외 등록 (권장)</h3>
+  <p>고객사 경계 방화벽에 <strong>관리서버 IP(<code>198.51.100.8</code>):8443 아웃바운드 예외</strong>를 등록한다. 신규 지사 구간(<code>branch-busan</code>)에서 관리서버로의 TCP 8443이 허용되도록 화이트리스트에 반영한다.</p>
+
+  <h3>7-2. 연결 검증 — telnet/curl 확인</h3>
+  <p>예외 적용 후 지사 PC에서 관리서버 포트 도달 여부를 직접 확인한다. <code>connect ... ok</code> 로그와 함께 정책 재동기화를 확인한다.</p>
+  <pre><span class="comment"># 관리서버 8443 포트 도달 확인 (Windows)</span>
+Test-NetConnection 198.51.100.8 -Port 8443
+
+<span class="comment"># 또는 telnet / curl 로 확인</span>
+telnet 198.51.100.8 8443
+curl -v --connect-timeout 5 https://198.51.100.8:8443/</pre>
+
+  <h3>7-3. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (8443 아웃바운드 차단 → connection timed out → offline cache 폴백)</li>
+    <li>방화벽에 관리서버 IP:8443 아웃바운드 예외 등록</li>
+    <li>지사 PC에서 <code>Test-NetConnection</code>/telnet/curl로 8443 도달 확인</li>
+    <li><code>network.log</code>에서 <code>connect to mgmt ...:8443 ok</code> 및 정책 재동기화 확인</li>
+    <li>신규 지사 배포 표준에 <strong>필요 포트 목록(8443 등) 사전 공유</strong> 절차 반영</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>배포 전 포트 사전 공유:</strong> 신규 지사·네트워크 구간 배포 시 관리서버 통신에 필요한 포트 목록(8443 등)을 고객사 네트워크 담당자에게 사전 공유해 방화벽 화이트리스트에 반영한다.</li>
+    <li><strong>연결 상태 모니터링:</strong> <code>connection timed out</code> / <code>falling back to offline policy cache</code> / <code>blocked after gateway</code> 패턴을 알림 규칙으로 등록해 관리 연결 단절을 조기 감지한다.</li>
+    <li><strong>온보딩 체크리스트:</strong> 신규 구간 온보딩 시 관리서버 포트 도달 확인(telnet/curl)을 배포 완료 조건으로 표준화한다.</li>
+    <li><strong>오프라인 캐시 가시화:</strong> 오프라인 폴백 상태가 지속되는 에이전트를 대시보드에 표시해 장기 미연결 PC를 추적한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건(SUP-153)을 SUP-147과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>에이전트-관리서버 연결</td><td><span class="badge badge-required">직접</span></td><td>방화벽 8443 예외 등록으로 복구</td></tr>
+      <tr><td>정책 배포·상태 보고</td><td><span class="badge badge-required">직접</span></td><td>연결 단절 기간 동안 오프라인 캐시로만 동작</td></tr>
+      <tr><td>기존 구간 PC</td><td><span class="badge badge-done">영향 없음</span></td><td>신규 지사 구간에 국한</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>오프라인 캐시 폴백 — 데이터 유실 없음</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>6회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">21:07:12 · 도구</div><div class="tl-body">로그 조회 <code>network.log</code> (키워드 ERROR) → 연결 타임아웃 라인 회수 (8443 timed out 확인)</div></div>
+    <div class="tl-item"><div class="tl-time">21:07:13 · 도구</div><div class="tl-body">로그 조회 <code>network.log</code> (키워드 <code>8443</code>) → 차단·폴백·traceroute·복구 라인 회수</div></div>
+    <div class="tl-item warn"><div class="tl-time">21:07:29 · 도구</div><div class="tl-body">로그 조회 <code>auth-server.log</code> (키워드 rejected) → 로그인 거부 라인 회수 (PII 마스킹 적용 · [EMAIL_1]·[IP_1]·[PHONE_1])</div></div>
+    <div class="tl-item warn"><div class="tl-time">21:07:35 · 도구</div><div class="tl-body">로그 조회 <code>license.log</code> (키워드 policy not applied) → 오프라인 정책 미적용 라인 회수 (PII 마스킹 적용 · [EMAIL_2])</div></div>
+    <div class="tl-item"><div class="tl-time">21:07:52 · 도구</div><div class="tl-body">Jira 검색 <code>'관리서버 연결 실패'</code> → 매치 0건</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:08:16 · 도구</div><div class="tl-body">Jira 검색 <code>'8443'</code> → 매치 1건 (<strong>SUP-147</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:08:44 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 6회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 첫 Jira 검색(자연어)은 0건이었으나, <strong>로그에서 추출한 정확한 포트 번호(<code>8443</code>)</strong>로 재검색하여 정답 이슈를 회수했다 — 로그 근거 → 키워드 정제 → 이력 매칭의 전형적 성공 패턴. 또한 지사 영향 확인을 위해 조회한 <code>auth-server.log</code>·<code>license.log</code>의 PII는 로컬 에이전트가 즉시 치환해 원격 LLM에 원문이 전달되지 않았다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>주근거인 <code>network.log</code>에는 PII가 없으나, 지사 영향 확인을 위해 교차 조회한 <code>auth-server.log</code>·<code>license.log</code>에 개인정보가 <strong>평문으로</strong> 포함되어 있었다. 로컬 에이전트가 원격 LLM 전달 전 이를 토큰으로 치환했으며(같은 값은 같은 토큰으로 매핑), <strong>원문 PII는 원격 LLM에 전달되지 않는다.</strong></p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처 (로그 · 원문값)</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>이메일</td><td>auth-server.log · login rejected (<code>kim@aaa.com</code>)</td></tr>
+      <tr><td><code>[IP_1]</code></td><td>클라이언트 IP</td><td>auth-server.log · login rejected (<code>203.0.113.42</code>)</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>휴대폰</td><td>auth-server.log · login rejected (<code>010-1234-5678</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>이메일</td><td>license.log · policy not applied (<code>jung@corp.example.com</code>)</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>참고:</strong> 주근거 로그 <code>network.log</code> 자체에는 마스킹 대상 PII가 없다(에이전트 식별자·사설 IP·포트·경로 정보만 포함). <code>ops</code> 라인의 <code>netadmin</code> 계정은 운영 담당자 식별용 정보로 개인정보 마스킹 대상에 해당하지 않는다.</div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-153 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

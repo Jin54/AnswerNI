@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-152 — DB 락 타임아웃 결재 저장 실패 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🗄️ 데이터베이스 · Database</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-152 — DB 행 잠금 대기 타임아웃으로<br>결재 저장 지연 · 실패</h1>
+    <p class="subtitle"><b>고객사 I</b> &nbsp;|&nbsp; 접수 2026-05-08 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 db / admin-approve · HikariPool &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석 (다중 로그 교차)</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 I에서 <strong>결재 저장이 자꾸 실패하고 응답이 느리다</strong>는 문의가 접수되었다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <code>db.log</code>·<code>webhook.log</code>·<code>admin-approve.log</code> 3종 로그와 사내 Jira 이력을 <strong>교차 조사</strong>하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "결재 저장이 자꾸 실패하고 느려요. db 로그에 lock 관련이 보이는데 봐줄래요?"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 장기 실행 트랜잭션(<code>T1</code>, <code>policy_save</code>)이 <code>approve</code> 테이블 <strong>행 잠금을 300초간 점유</strong>하여, 후속 결재 저장 트랜잭션(<code>T2</code>)이 락 대기 끝에 <code>lock wait timeout exceeded</code>로 실패하는 것이 근본 원인. 잠금 장기 점유로 커넥션 반환이 지연되어 <strong>HikariPool 커넥션 풀 고갈</strong>(<code>pool exhausted</code>)로도 확산되었다. <strong>장기 쿼리 튜닝 · 트랜잭션 분할 · 락/커넥션 타임아웃 조정 · 슬로우쿼리 모니터링</strong>으로 해결한다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">데이터베이스</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 I</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-05-08</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">결재 저장</div></div>
+    <div class="stat-card"><div class="label">데이터 유실</div><div class="value">없음 (저장 차단)</div></div>
+    <div class="stat-card"><div class="label">확산 범위</div><div class="value">DB → 커넥션 풀</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>결재 저장 지연·실패 — 락 대기 구간에 <code>6 transactions waiting on row lock</code>, 결재 저장 실패(<code>doc=3120</code>) 관측. 커넥션 풀 고갈로 대기 요청 14건이 30초 타임아웃.</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-warn">주의</span> 결재/커넥션 로그에 결재자 <strong>이메일·접속 IP(PII)</strong>가 평문 적재 — 로컬 에이전트가 마스킹 처리(부록 B).</td></tr>
+      <tr><td>긴급도</td><td>High — 결재 저장은 업무 핵심 경로이며, 락 경합이 커넥션 풀 계층까지 전파되어 서비스 전반 응답 저하(<code>avg response time 8.7s</code>)로 확산.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 결재 저장 실패</td><td>결재 저장이 <code>reason=lock_wait_timeout</code>으로 실패(<code>approve save failed doc=3120</code>).</td></tr>
+      <tr><td><span class="badge badge-required">결정적</span> 락 대기 타임아웃</td><td><code>tx T2 lock wait timeout exceeded; try restarting transaction</code> — 락을 얻지 못해 후속 트랜잭션이 타임아웃.</td></tr>
+      <tr><td><span class="badge badge-warn">원인 신호</span> 슬로우 쿼리</td><td><code>slow query 30021ms UPDATE policy SET ... (T1 holds row lock)</code> — 장기 트랜잭션이 행 잠금 장시간 점유.</td></tr>
+      <tr><td><span class="badge badge-warn">확산</span> 커넥션 풀 고갈</td><td><code>HikariPool-1 active=20 idle=0 waiting=14 (pool exhausted)</code> — 커넥션 반환 지연으로 풀 고갈.</td></tr>
+      <tr><td><span class="badge badge-new">범위</span> 처리 경로</td><td>DB 트랜잭션 계층 → 결재 저장(admin-approve) → 커넥션 풀(HikariPool)로 확산.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석 (다중 로그 교차)</h2>
+  <p>에이전트가 <strong>3종 로그를 교차 조사</strong>했다. 결재자 이메일·접속 IP 등 PII는 로컬 에이전트가 원격 LLM 전달 전 <code>[EMAIL_n]·[IP_n]</code> 토큰으로 치환했다(부록 B).</p>
+
+  <h3>4-1. db.log — 주근거: 행 잠금 점유와 타임아웃</h3>
+  <div class="logbox"><span class="ts">2026-07-08 16:40:01</span> <span class="lv-info">INFO</span>  <span class="msg">[db] tx begin id=T1 op=policy_save</span>
+<span class="ts">2026-07-08 16:40:31</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">slow query 30021ms</span> UPDATE policy SET ... (<span class="hl">T1 holds row lock</span>)</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[db] tx T2 <span class="hl">lock wait timeout exceeded</span>; try restarting transaction</span>
+<span class="ts">2026-07-08 16:40:35</span> <span class="lv-error">ERROR</span> <span class="msg">[adm] <span class="hl">approve save failed</span> doc=3120 approver=[EMAIL_1] reason=<span class="hl">lock_wait_timeout</span></span>
+<span class="ts">2026-07-08 16:41:10</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] <span class="hl">6 transactions waiting on row lock</span> (table=approve)</span>
+<span class="ts">2026-07-08 16:45:00</span> <span class="lv-info">INFO</span>  <span class="msg">[db] tx T1 committed after 300s</span>
+<span class="ts">2026-07-08 16:45:01</span> <span class="lv-info">INFO</span>  <span class="msg">[db] <span class="hl">lock contention cleared</span></span></div>
+  <ul>
+    <li><code>T1</code>(policy_save)이 <strong>30021ms 슬로우 쿼리</strong>로 행 잠금을 장시간 점유.</li>
+    <li>그 사이 <code>T2</code>(결재 저장)가 락을 얻지 못하고 <code>lock wait timeout exceeded</code>로 실패(<code>doc=3120</code>).</li>
+    <li>동시에 <strong>6개 트랜잭션</strong>이 <code>approve</code> 테이블 행 잠금을 대기 → 저장 지연 체감.</li>
+    <li><code>T1</code>이 <strong>300초 후 커밋</strong>되자 <code>lock contention cleared</code>로 경합 해소.</li>
+  </ul>
+
+  <h3>4-2. webhook.log — 연계: 커넥션 풀 고갈로 확산</h3>
+  <p>락 경합이 DB 계층에만 머물지 않고 <strong>커넥션 풀(HikariPool)</strong>로 전파되었는지 확인하기 위해 커넥션 풀 로그를 추가 조사했다.</p>
+  <div class="logbox"><span class="ts">2026-07-09 09:31:02</span> <span class="lv-error">ERROR</span> <span class="msg">[db] <span class="hl">HikariPool-1 - Connection is not available, request timed out after 30000ms</span></span>
+<span class="ts">2026-07-09 09:31:02</span> <span class="lv-warn">WARN</span>  <span class="msg">[db] HikariPool-1 - <span class="hl">active=20 idle=0 waiting=14</span> (<span class="hl">pool exhausted</span>)</span></div>
+  <ul>
+    <li>행 잠금을 문 트랜잭션이 커넥션을 오래 붙들면서 커넥션이 반환되지 않아 <code>active=20 idle=0</code>으로 풀 고갈.</li>
+    <li>대기 14건이 <code>request timed out after 30000ms</code>로 실패 — 락 경합이 <strong>커넥션 풀 계층으로 전파된 2차 증상</strong>.</li>
+  </ul>
+
+  <h3>4-3. admin-approve.log — 결재 저장 경로와 PII</h3>
+  <p>결재 저장 경로가 락 대기 구간과 겹쳐 지연됐는지, 그리고 해당 경로에 PII가 남는지 확인했다.</p>
+  <div class="logbox"><span class="ts">2026-07-09 14:18:02</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] approve console opened approver=[EMAIL_2] ip=[IP_1]</span></div>
+  <div class="note"><strong>주의:</strong> 원본 로그에는 결재자 이메일(<code>approver</code>)과 접속 IP가 <strong>평문</strong>으로 남아 있었다. AnswerNI 로컬 에이전트가 원격 LLM 전달 전 <code>[EMAIL_1]·[EMAIL_2]·[IP_1]</code>로 치환했다(부록 B). 운영 로깅 자체도 마스킹으로 전환해야 한다.</p></div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>모든 신호가 <strong>장기 실행 트랜잭션의 행 잠금 장기 점유</strong>라는 하나의 뿌리로 수렴한다. 슬로우 쿼리(30021ms)로 <code>T1</code>이 락을 오래 잡고, 그 락을 기다리던 <code>T2</code>가 타임아웃되며, 반환되지 않은 커넥션이 풀을 고갈시킨다.</p>
+
+  <div class="flow-box">[T1: policy_save]  slow query 30021ms  →  approve 행 잠금 300초 점유  ❌
+     |
+     v
+[T2: 결재 저장]  락 대기  →  lock wait timeout exceeded  →  approve save failed (doc=3120)
+     |
+     v
+[대기 누적]  6 transactions waiting on row lock (table=approve)
+     |
+     v
+[커넥션 반환 지연]  HikariPool active=20 idle=0 waiting=14  →  pool exhausted  →  request timed out 30000ms</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>후속 결재 저장(<code>T2</code>)이 행 잠금을 얻지 못하고 <code>lock wait timeout</code>으로 실패.</td></tr>
+      <tr><td>근본 원인</td><td>장기 실행 트랜잭션(<code>T1</code>, policy_save)이 행 잠금을 <strong>300초간 점유</strong> — 슬로우 쿼리(30021ms)와 넓은 트랜잭션 경계.</td></tr>
+      <tr><td>확산 경로</td><td>잠금 점유로 커넥션 반환 지연 → <strong>HikariPool 커넥션 풀 고갈</strong>(active=20 idle=0 waiting=14) → 대기 요청 30s 타임아웃.</td></tr>
+      <tr><td>기여 요인</td><td>락/커넥션 타임아웃 설정 부재·과다, 트랜잭션 분할 미적용, 슬로우쿼리 모니터링 부재.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>확산 관점:</strong> 단일 슬로우 쿼리의 락 점유가 <strong>결재 저장 실패 → 락 대기 누적 → 커넥션 풀 고갈 → 서비스 전반 응답 저하</strong>로 연쇄 전파된다. 증상(타임아웃)만 완화하지 말고 <strong>락 점유 시간 자체를 줄이는 근본 조치</strong>가 필요하다.</p></div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트가 로그의 핵심 문구 <code>'lock wait timeout'</code>으로 사내 Jira를 조회해 <strong>동일 원인의 과거 이슈 SUP-148</strong>을 회수했다(자연어 문장 검색 <code>'결재 저장 실패'</code>는 0건 → 키워드 정제 재검색으로 매칭).</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-152</strong></td><td>DB 행 잠금 대기 타임아웃으로 결재 저장 지연·실패 (본 건)</td><td>고객사 I · 2026-05-08</td><td><span class="badge badge-review">현재 건</span></td></tr>
+      <tr><td><strong>SUP-148</strong></td><td>DB 락 대기/타임아웃으로 결재·정책 저장이 지연됨</td><td>고객사 B · 2026-02-25</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-148 조치 이력(resolution)</h4>
+    <p>장기 실행 쿼리를 튜닝하고 락/커넥션 풀 타임아웃을 조정, 슬로우 쿼리 모니터링을 추가. 장기 트랜잭션 분할 처리로 잠금 점유 시간을 단축. 조치 후 <code>lock contention cleared</code> 확인.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 락 점유 시간 단축</h3>
+  <p>가장 중요한 조치는 <code>policy_save</code>의 <strong>장기 쿼리 튜닝</strong>과 <strong>트랜잭션 분할</strong>이다. 슬로우 쿼리(30021ms)를 인덱스·조건 재검토로 단축하고, 넓은 트랜잭션 경계를 잘게 나눠 행 잠금 점유 시간을 최소화한다. 커넥션 반환도 빨라져 풀 고갈까지 함께 완화된다.</p>
+
+  <h3>7-2. 병행 — 락/커넥션 타임아웃 조정 &amp; 모니터링</h3>
+  <p>락 대기와 커넥션 풀 타임아웃을 합리적 값으로 설정해 무한 대기·연쇄 지연을 방지하고, 슬로우 쿼리·락 대기·풀 고갈 패턴을 알림 규칙으로 등록한다.</p>
+  <pre><span class="comment"># ❌ 현재 — 하나의 넓은 트랜잭션이 UPDATE를 30초간 붙들며 행 잠금 장기 점유</span>
+BEGIN;  UPDATE policy SET ... ;  <span class="comment">-- 30021ms, T1 holds row lock</span>
+        <span class="comment">-- ... 다수 후속 작업 ...</span>
+COMMIT; <span class="comment">-- 300s 후 커밋 → 그 사이 T2 lock wait timeout</span>
+
+<span class="comment"># ✅ 개선 — 쿼리 튜닝 + 트랜잭션 분할 + 타임아웃 가드</span>
+<span class="key">SET</span> lock_timeout = <span class="number">'3s'</span>;            <span class="comment">-- 무한 락 대기 차단</span>
+<span class="key">SET</span> idle_in_transaction_session_timeout = <span class="number">'10s'</span>;
+BEGIN;  UPDATE policy SET ... <span class="key">WHERE</span> id = ?;  <span class="comment">-- 인덱스 조건으로 스캔·점유 최소화</span>
+COMMIT; <span class="comment">-- 짧게 끊어 행 잠금 즉시 반환</span></pre>
+
+  <h3>7-3. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (장기 트랜잭션 행 잠금 점유 → lock wait timeout → 커넥션 풀 고갈)</li>
+    <li><code>policy_save</code> 장기 쿼리 튜닝(인덱스/조건) 후 실행 시간 단축 확인</li>
+    <li>장기 트랜잭션 분할 적용으로 행 잠금 점유 시간 최소화</li>
+    <li>락 대기 / 커넥션 풀 타임아웃 값 조정</li>
+    <li>슬로우쿼리·락 대기·<code>pool exhausted</code> 모니터링 알림 등록</li>
+    <li>배포 후 <code>db.log</code>에서 <code>lock wait timeout</code> / <code>pool exhausted</code> 미재발 확인</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>모니터링 규칙:</strong> <code>slow query NNNNNms</code> · <code>lock wait timeout exceeded</code> · <code>N transactions waiting on row lock</code> · <code>HikariPool ... pool exhausted</code> 패턴을 알림으로 등록해 조기 감지한다.</li>
+    <li><strong>트랜잭션 경계 점검:</strong> 장기 트랜잭션 경계 코드를 리뷰하고, 배치성 UPDATE는 트랜잭션 분할을 적용한다.</li>
+    <li><strong>타임아웃 표준화:</strong> <code>lock_timeout</code>·커넥션 풀 타임아웃을 표준값으로 설정해 무한 대기와 연쇄 지연을 차단한다.</li>
+    <li><strong>PII 로깅 정리:</strong> 결재/커넥션 로그의 결재자 이메일·접속 IP 등 PII는 마스킹 로깅으로 전환한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-148과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>결재 저장(approve) 경로</td><td><span class="badge badge-required">직접</span></td><td>락 대기 타임아웃으로 저장 실패·지연</td></tr>
+      <tr><td>DB 트랜잭션 처리량</td><td><span class="badge badge-required">직접</span></td><td>행 잠금 경합으로 대기 누적(6건)</td></tr>
+      <tr><td>커넥션 풀(HikariPool)</td><td><span class="badge badge-warn">확산</span></td><td>커넥션 반환 지연 → 풀 고갈 → 30s 타임아웃</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>저장 자체가 차단되어 오염 데이터 없음</td></tr>
+      <tr><td>개인정보 보호(PII)</td><td><span class="badge badge-warn">주의</span></td><td>결재자 이메일·IP 평문 로깅 — 마스킹 필요</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>6회</strong>(로그 조회 4 · Jira 검색 2), 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">14:07:22 · 도구</div><div class="tl-body">로그 조회 <code>db.log</code> (키워드 ERROR) → 2줄 회수 (lock wait timeout · 결재 저장 실패 확인, PII 마스킹)</div></div>
+    <div class="tl-item warn"><div class="tl-time">14:07:35 · 도구</div><div class="tl-body">로그 조회 <code>db.log</code> (키워드 lock) → 5줄 회수 (T1 슬로우 쿼리 · 6건 락 대기 · contention cleared)</div></div>
+    <div class="tl-item warn"><div class="tl-time">14:07:48 · 도구</div><div class="tl-body">로그 조회 <code>webhook.log</code> (키워드 HikariPool) → 2줄 회수 (커넥션 풀 고갈 · pool exhausted)</div></div>
+    <div class="tl-item"><div class="tl-time">14:08:01 · 도구</div><div class="tl-body">로그 조회 <code>admin-approve.log</code> (키워드 approver) → 3줄 회수 (결재 저장 경로 · 결재자 이메일/IP 마스킹)</div></div>
+    <div class="tl-item"><div class="tl-time">14:08:02 · 도구</div><div class="tl-body">Jira 검색 <code>'결재 저장 실패'</code> → 매치 0건</div></div>
+    <div class="tl-item ok"><div class="tl-time">14:08:38 · 도구</div><div class="tl-body">Jira 검색 <code>'lock wait timeout'</code> → 매치 1건 (<strong>SUP-148</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">14:09:05 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 6회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 단일 로그에 그치지 않고 <strong>db → webhook(커넥션 풀) → admin-approve(결재 경로) 3종 로그를 교차</strong>해 락 경합의 확산 경로를 규명했다. 자연어 Jira 검색(0건)은 <strong>로그에서 추출한 정확한 문구(<code>lock wait timeout</code>)</strong>로 재검색해 정답 이슈를 회수 — 로그 근거 → 키워드 정제 → 이력 매칭의 전형적 성공 패턴.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 로그 내 개인정보를 토큰으로 치환했다. 같은 값은 같은 토큰으로 매핑된다. <strong>원문 PII는 원격 LLM에 전달되지 않는다.</strong></p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>출처</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>결재자 이메일</td><td><code>db.log</code> approve save failed 라인 (<code>han@corp.example.com</code>)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>결재자 이메일</td><td><code>admin-approve.log</code> approve console opened 라인 (<code>choi@corp.example.com</code>)</td></tr>
+      <tr><td><code>[IP_1]</code></td><td>접속 IP</td><td><code>admin-approve.log</code> approve console opened 라인 (<code>192.168.10.12</code>)</td></tr>
+    </tbody>
+  </table>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-152 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>

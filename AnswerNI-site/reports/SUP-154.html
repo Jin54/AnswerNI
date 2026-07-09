@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUP-154 — 라이선스 만료 안전모드 전환 · 검사·차단·정책 비활성화 · 기술지원 분석 보고서</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1a1a1a; background: #f5f6f8; line-height: 1.7; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 0 80px; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
+  .inner { padding: 0 32px; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e293b 0%, #334155 55%, #3b82f6 140%); color: #fff; padding: 40px 32px 32px; }
+  .hero .eyebrow { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #93c5fd; font-weight: 600; margin-bottom: 10px; }
+  .hero h1 { font-size: 27px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.35; margin-bottom: 14px; }
+  .hero .subtitle { font-size: 14px; color: #cbd5e1; }
+  .hero .subtitle b { color: #fff; }
+  .cat-chip { display: inline-block; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+
+  h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 46px 0 18px; padding-bottom: 10px; border-bottom: 2px solid #3b82f6; letter-spacing: -0.3px; }
+  h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 26px 0 10px; }
+  h4 { font-size: 15px; font-weight: 600; color: #334155; margin: 18px 0 8px; }
+  .section-num { color: #3b82f6; font-weight: 800; margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 10px 22px; }
+  li { margin: 6px 0; }
+  strong { color: #0f172a; }
+  code { font-family: 'SF Mono','Fira Code','Consolas',monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 13px; color: #b91c1c; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .stat-card .label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+  .badge-new { background: #dcfce7; color: #166534; }
+  .badge-edit { background: #dbeafe; color: #1e40af; }
+  .badge-required { background: #fee2e2; color: #991b1b; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .badge-review { background: #ede9fe; color: #5b21b6; }
+  .sev { display:inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .sev-high { background: #fee2e2; color: #991b1b; }
+  .sev-mid  { background: #fef3c7; color: #92400e; }
+  .sev-low  { background: #dcfce7; color: #166534; }
+
+  /* Callouts */
+  .note    { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #92400e; }
+  .info    { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #1e40af; }
+  .success { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #065f46; }
+  .danger  { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; color: #991b1b; }
+
+  /* TOC */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 26px 0; }
+  .toc h3 { margin: 0 0 10px; font-size: 15px; color: #334155; }
+  .toc ol { margin-left: 18px; }
+  .toc a { color: #3b82f6; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; margin: 16px 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; table-layout: auto; }
+  thead th { background: #f1f5f9; font-weight: 600; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; text-align: left; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Log box */
+  .logbox { background: #0f172a; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #e2e8f0; }
+  .logbox .ts { color: #64748b; }
+  .lv-error  { color: #f87171; font-weight: 700; }
+  .lv-warn   { color: #fbbf24; font-weight: 700; }
+  .lv-info   { color: #38bdf8; font-weight: 700; }
+  .lv-detect { color: #c084fc; font-weight: 700; }
+  .logbox .msg { color: #e2e8f0; }
+  .logbox .hl { color: #fca5a5; background: rgba(248,113,113,0.12); padding: 0 3px; border-radius: 3px; }
+
+  /* Flow / mock */
+  .flow-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.8; white-space: pre; overflow-x: auto; color: #14532d; }
+  .ui-mock  { background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin: 16px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.6; white-space: pre; overflow-x: auto; color: #334155; }
+
+  /* Code */
+  pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin: 14px 0; font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre; color: #334155; }
+  pre .key { color: #0369a1; } pre .string { color: #15803d; } pre .number { color: #b45309; }
+  pre .bool { color: #7c3aed; } pre .comment { color: #94a3b8; } pre .new { color: #be123c; font-weight: 600; }
+
+  /* Timeline */
+  .timeline { border-left: 2px solid #cbd5e1; margin: 18px 0 18px 8px; padding-left: 22px; }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 2px #cbd5e1; }
+  .tl-item.err::before { background: #ef4444; }
+  .tl-item.warn::before { background: #f59e0b; }
+  .tl-item.ok::before { background: #10b981; }
+  .tl-time { font-family: 'SF Mono','Consolas',monospace; font-size: 12px; color: #64748b; font-weight: 600; }
+  .tl-body { font-size: 14px; margin-top: 2px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 26px; position: relative; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+  .checklist li.done::before { content: '☑'; color: #10b981; }
+
+  .footer { margin-top: 50px; padding: 20px 32px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 13px; }
+
+  @media print { body { background: #fff; font-size: 12px; } .container { box-shadow: none; } .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="cat-chip">🔑 라이선스 · License</div>
+    <div class="eyebrow">기술지원 분석 보고서 · Technical Support Report</div>
+    <h1>SUP-154 — 라이선스 만료로 안전모드 전환,<br>검사·차단·정책 전면 비활성화</h1>
+    <p class="subtitle"><b>고객사 K</b> &nbsp;|&nbsp; 접수 2026-06-11 &nbsp;|&nbsp; 상태 <b>해결 완료</b> &nbsp;|&nbsp; 모듈 agent / license &nbsp;|&nbsp; 보고서 v1.0 · 2026-07-09</p>
+  </div>
+
+  <div class="inner">
+
+  <div class="toc">
+    <h3>목차</h3>
+    <ol>
+      <li><a href="#sec1">개요 (Context)</a></li>
+      <li><a href="#sec2">사건 요약 &amp; 심각도 평가</a></li>
+      <li><a href="#sec3">증상 요약</a></li>
+      <li><a href="#sec4">로그 포렌식 분석</a></li>
+      <li><a href="#sec5">근본 원인 분석 (RCA)</a></li>
+      <li><a href="#sec6">유사 사례 (Jira 매칭)</a></li>
+      <li><a href="#sec7">해결 방안</a></li>
+      <li><a href="#sec8">재발 방지 &amp; 모니터링 권고</a></li>
+      <li><a href="#sec9">영향 범위 평가</a></li>
+      <li><a href="#sec10">부록 A — 에이전트 분석 파이프라인</a></li>
+      <li><a href="#sec11">부록 B — PII 마스킹 처리 내역</a></li>
+    </ol>
+  </div>
+
+  <h2 id="sec1"><span class="section-num">1.</span>개요 (Context)</h2>
+  <p>고객사 K에서 <strong>특정 일자부터 에이전트의 검사·차단이 동작하지 않고 정책도 적용되지 않는다</strong>는 문의가 접수되었다. 본 보고서는 AnswerNI 자율 에이전트 파이프라인(<code>app.agent.run_agent</code>)이 <code>license.log</code>를 주근거로 <code>admin-approve.log</code>·<code>dlp-approve-api.log</code> 정황과 사내 Jira 이력을 교차 조회·대조하여 도출한 원인 분석과 조치 방안을 정리한 것이다.</p>
+  <div class="info"><strong>고객 문의 원문:</strong> "오늘부터 검사·차단이 동작을 안 하고 정책도 안 먹어요. 왜죠?"</div>
+  <div class="success"><strong>결론 (한 줄 요약):</strong> 제품 <strong>라이선스가 만료</strong>되어 에이전트가 <strong>안전모드(safe mode)로 전환</strong>, 검사·차단·정책 적용이 일괄 비활성화된 것이 원인(<code>license expired -&gt; entering safe mode (block/scan disabled)</code>). <strong>라이선스 갱신·재적용 + 정책 재동기화</strong>로 복구하며, 재발 방지를 위해 <strong>만료 30일 전 자동 알림</strong>을 권고한다.</div>
+
+  <h2 id="sec2"><span class="section-num">2.</span>사건 요약 &amp; 심각도 평가</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="label">카테고리</div><div class="value">라이선스</div></div>
+    <div class="stat-card"><div class="label">고객사</div><div class="value">고객사 K</div></div>
+    <div class="stat-card"><div class="label">접수일</div><div class="value">2026-06-11</div></div>
+    <div class="stat-card"><div class="label">처리 상태</div><div class="value">해결 완료</div></div>
+    <div class="stat-card"><div class="label">심각도</div><div class="value"><span class="sev sev-high">High</span></div></div>
+    <div class="stat-card"><div class="label">영향 기능</div><div class="value">검사·차단·정책</div></div>
+    <div class="stat-card"><div class="label">데이터 유실</div><div class="value">없음 (통제 공백)</div></div>
+    <div class="stat-card"><div class="label">복구 시점</div><div class="value">라이선스 갱신 후</div></div>
+  </div>
+  <table>
+    <thead><tr><th>평가 항목</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td>비즈니스 영향</td><td>제품 핵심 기능(개인정보 검사·유출 차단·정책 적용)이 <strong>전면 비활성화</strong>. 안전모드 기간 동안 DLP 통제가 사실상 부재 — <code>policy not applied</code>, <code>scan skipped</code>가 반복 관측.</td></tr>
+      <tr><td>보안 영향</td><td><span class="badge badge-required">중요</span> 검사·차단이 꺼진 상태이므로 <strong>유출 통제 공백(control gap)</strong>이 발생. 만료~갱신 사이 구간은 데이터 유출 탐지·차단이 이뤄지지 않는다.</td></tr>
+      <tr><td>긴급도</td><td>High — 보안 제품의 핵심 통제가 모두 꺼지는 사건이며, 라이선스 갱신 전까지 자력 회복이 불가능하다.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec3"><span class="section-num">3.</span>증상 요약</h2>
+  <table>
+    <thead><tr><th>구분</th><th>상세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-required">증상</span> 검사·차단 정지</td><td>에이전트가 안전모드로 전환되어 검사(scan)·차단(block)이 동작하지 않음(<code>block/scan disabled</code>).</td></tr>
+      <tr><td><span class="badge badge-required">증상</span> 정책 미적용</td><td>정책 배포가 반영되지 않음 — <code>policy not applied: license invalid</code>.</td></tr>
+      <tr><td><span class="badge badge-warn">전조</span> 만료 임박 경고</td><td>당일 <code>license expires today</code> WARN이 선행 기록됨.</td></tr>
+      <tr><td><span class="badge badge-new">범위</span> 처리 경로</td><td>라이선스로 게이팅되는 <strong>에이전트 전 기능</strong>(scan/block/policy)에 광범위 영향.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec4"><span class="section-num">4.</span>로그 포렌식 분석</h2>
+  <p>에이전트는 <strong>3개 로그</strong>를 교차 조회했다. <code>license.log</code>가 결정적 주근거이며, <code>admin-approve.log</code>·<code>dlp-approve-api.log</code>는 안전모드 기간에도 <strong>결재·승인 흐름이 통제 없이 계속 시도되는 정황</strong>을 뒷받침한다. 아래 로그는 로컬 에이전트가 <strong>PII를 토큰으로 치환한 뒤</strong> 회수한 것이다(원문 PII는 원격 LLM에 전달되지 않음 — 부록 B 참조).</p>
+
+  <h4>4-1. <code>license.log</code> — 결정적 주근거</h4>
+  <div class="logbox"><span class="ts">2026-07-09 00:00:05</span> <span class="lv-info">INFO</span>  <span class="msg">[lic] license check ok expire=2026-07-08</span>
+<span class="ts">2026-07-09 00:00:05</span> <span class="lv-warn">WARN</span>  <span class="msg">[lic] <span class="hl">license expires today</span></span>
+<span class="ts">2026-07-09 00:05:00</span> <span class="lv-error">ERROR</span> <span class="msg">[lic] <span class="hl">license expired -&gt; entering safe mode (block/scan disabled)</span></span>
+<span class="ts">2026-07-09 09:10:22</span> <span class="lv-warn">WARN</span>  <span class="msg">[agent] <span class="hl">policy not applied: license invalid</span> agent_id=PC-4410 user=[EMAIL_1]</span>
+<span class="ts">2026-07-09 09:40:15</span> <span class="lv-warn">WARN</span>  <span class="msg">[agent] <span class="hl">scan skipped: license invalid</span></span>
+<span class="ts">2026-07-09 13:20:00</span> <span class="lv-info">INFO</span>  <span class="msg">[lic] <span class="hl">license renewed</span> expire=2027-07-08 by=[EMAIL_5]</span>
+<span class="ts">2026-07-09 13:21:00</span> <span class="lv-info">INFO</span>  <span class="msg">[agent] <span class="hl">policy re-sync ok</span></span></div>
+  <p>00:05 만료와 동시에 <strong>안전모드 진입(block/scan disabled)</strong>, 이후 <code>policy not applied</code>·<code>scan skipped</code>가 이어진다. 13:20 <strong>라이선스 갱신</strong> 직후 <code>policy re-sync ok</code>로 정상화되는 <strong>인과의 시작–끝</strong>이 한 로그에 모두 담겨 있다.</p>
+
+  <h4>4-2. <code>admin-approve.log</code> — 정책·결재 흐름 영향 정황</h4>
+  <div class="logbox"><span class="ts">2026-07-09 14:18:02</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] approve console opened approver=[EMAIL_2] ip=[IP_1]</span>
+<span class="ts">2026-07-09 14:21:03</span> <span class="lv-detect">DEBUG</span> <span class="msg">[adm] opinion_raw="반려합니다 'A안'은 재검토 필요" approver=[EMAIL_3] contact=[PHONE_1]</span>
+<span class="ts">2026-07-09 14:25:12</span> <span class="lv-detect">DEBUG</span> <span class="msg">[adm] opinion_raw="'긴급' 승인 요청 반려" approver=[EMAIL_4]</span></div>
+  <p>안전모드 구간에도 관리자는 결재 콘솔을 열고 승인·반려 작업을 계속한다. 그러나 정책 적용이 무효화된 상태이므로 이 흐름은 <strong>DLP 검사·차단 통제 없이 진행</strong>된다. 아울러 결재자 이메일·연락처가 <strong>평문으로 로깅</strong>되어 로컬 에이전트가 <code>[EMAIL_2]·[EMAIL_3]·[EMAIL_4]·[PHONE_1]·[IP_1]</code>로 치환했다.</p>
+
+  <h4>4-3. <code>dlp-approve-api.log</code> — 클라이언트 승인 경로 정황</h4>
+  <div class="logbox"><span class="ts">2026-07-08 15:01:48</span> <span class="lv-info">INFO</span>  <span class="msg">"POST /client/v1/dlp/approve/CUST9931/2438/fileattach" <span class="lv-info">200</span> 81</span>
+<span class="ts">2026-07-08 15:02:33</span> <span class="lv-info">INFO</span>  <span class="msg">[adm] approve changed doc=2438 by=[EMAIL_5] ip=[IP_2] result=완료</span></div>
+  <p>클라이언트 DLP 승인/검사 요청은 <code>200</code>으로 처리되지만, 안전모드에서는 <strong>검사·차단 enforcement가 실제로 걸리지 않아</strong> 승인 경로가 통제 공백 상태로 흐른다. 이 경로에서도 관리자 이메일·IP가 평문으로 남아 <code>[EMAIL_5]·[IP_2]</code>로 마스킹 처리했다.</p>
+
+  <h4>로그 상관관계 표</h4>
+  <table>
+    <thead><tr><th>시각</th><th>로그</th><th>이벤트</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>00:00:05</td><td>license.log</td><td><code>license expires today</code></td><td><span class="badge badge-warn">전조</span> 만료 임박</td></tr>
+      <tr><td>00:05:00</td><td>license.log</td><td><code>entering safe mode</code></td><td><span class="badge badge-required">기점</span> 검사·차단 비활성</td></tr>
+      <tr><td>09:10~09:40</td><td>license.log</td><td><code>policy not applied</code> / <code>scan skipped</code></td><td><span class="badge badge-required">증상</span> 정책·검사 정지</td></tr>
+      <tr><td>14:18~14:25</td><td>admin-approve.log</td><td>결재 콘솔·승인 작업 지속</td><td><span class="badge badge-warn">정황</span> 통제 없이 흐름</td></tr>
+      <tr><td>13:20~13:21</td><td>license.log</td><td><code>license renewed</code> → <code>policy re-sync ok</code></td><td><span class="badge badge-done">복구</span> 정상화</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>주의:</strong> 세 로그 모두에서 이메일·연락처·IP가 <strong>평문</strong>으로 남아 있었다. 운영 로깅은 마스킹으로 전환하고, 안전모드 진입 이벤트는 별도 경보로 승격하는 것을 권장한다.</p></div>
+
+  <h2 id="sec5"><span class="section-num">5.</span>근본 원인 분석 (RCA)</h2>
+  <p>모든 증상의 기점은 <strong>라이선스 만료 → 안전모드 전환</strong> 단 하나의 사건이다. 안전모드는 라이선스가 유효하지 않을 때 제품이 취하는 보호 상태로, 이 상태에서는 검사(scan)·차단(block)·정책(policy) 적용이 일괄 중단된다. 따라서 개별 기능의 결함이 아니라 <strong>라이선스 게이팅에 의한 일괄 비활성화</strong>가 근본 원인이다.</p>
+
+  <div class="flow-box">[00:00 license expires today]  ← 만료 임박 경고(선행 신호)
+     |
+     v
+[00:05 license expired]  →  entering safe mode (block/scan disabled)  ❌
+     |
+     v
+[09:10 policy not applied: license invalid]  ·  [09:40 scan skipped: license invalid]
+     |
+     v
+[검사·차단·정책 전면 정지]  →  통제 공백 · 결재/승인 흐름만 무방비로 지속
+     |
+     v
+[13:20 license renewed]  →  [13:21 policy re-sync ok]  ✅  정상화</div>
+
+  <h4>원인 사슬 (Causal Chain)</h4>
+  <table>
+    <thead><tr><th>계층</th><th>원인</th></tr></thead>
+    <tbody>
+      <tr><td>직접 원인</td><td>라이선스 만료로 에이전트가 <strong>안전모드로 전환</strong>되어 <code>block/scan disabled</code> 상태가 됨.</td></tr>
+      <tr><td>근본 원인</td><td>라이선스가 갱신되지 않은 채 <strong>만료일(2026-07-08)을 경과</strong> — 유효 라이선스 부재로 모든 게이팅 기능이 무효화.</td></tr>
+      <tr><td>기여 요인</td><td>만료 사전 알림·자동 갱신 부재 · 안전모드 진입에 대한 경보 미설정 · 로그 PII 평문 적재.</td></tr>
+    </tbody>
+  </table>
+  <div class="danger"><strong>보안 관점:</strong> 안전모드는 제품을 "고장내지 않기 위한" 안전장치이지만, 그 대가로 <strong>DLP 통제가 전면 공백</strong>이 된다. 만료~갱신 사이 구간은 유출 탐지·차단이 이뤄지지 않으므로, 라이선스 수명 관리를 <strong>운영 리스크로 상시 관리</strong>해야 한다.</p></div>
+
+  <h2 id="sec6"><span class="section-num">6.</span>유사 사례 (Jira 매칭)</h2>
+  <p>에이전트의 첫 자연어 검색(<code>'검사 차단 안됨'</code>)은 0건이었으나, 로그에서 확인한 핵심어 <code>'라이선스 만료'</code>로 재검색해 <strong>동일 증상의 과거 이슈 SUP-146</strong>을 회수했다. 본 문의(SUP-154)와 합쳐 <strong>매칭 2건</strong>(SUP-154·146)으로 정리한다.</p>
+  <table>
+    <thead><tr><th>키</th><th>요약</th><th>고객사 / 등록</th><th>매칭도</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SUP-154</strong></td><td>라이선스 만료로 안전모드 전환되어 검사·차단·정책 비활성화</td><td>고객사 K · 2026-06-11</td><td><span class="badge badge-done">현재 건</span></td></tr>
+      <tr><td><strong>SUP-146</strong></td><td>라이선스 만료로 검사·차단 기능이 비활성화됨</td><td>고객사 A · 2026-01-30</td><td><span class="badge badge-done">완전 일치</span></td></tr>
+    </tbody>
+  </table>
+  <div class="card">
+    <h4>SUP-146 조치 이력(resolution)</h4>
+    <p>라이선스를 갱신·재적용하고 정책을 재동기화하여 정상화. 재발 방지를 위해 만료 30일 전 자동 알림 발송을 권고. 조치 후 <code>policy re-sync ok</code> 확인.</p>
+  </div>
+
+  <h2 id="sec7"><span class="section-num">7.</span>해결 방안</h2>
+  <h3>7-1. 근본 해결 — 라이선스 갱신·재적용 + 정책 재동기화 (권장)</h3>
+  <p>만료된 라이선스를 <strong>갱신·재적용</strong>하면 에이전트가 안전모드를 해제하고 검사·차단·정책이 복구된다. 갱신 직후 <strong>정책 재동기화(re-sync)</strong>를 수행해 만료 기간 동안 반영되지 못한 정책을 일괄 배포한다. 로그상 <code>license renewed</code> → <code>policy re-sync ok</code> 순으로 정상화가 확인된다.</p>
+  <div class="ui-mock">[관리 콘솔] 라이선스 &gt; 갱신
+   1) 신규 라이선스 키 등록 / 재적용
+   2) 에이전트 라이선스 재검증  →  safe mode 해제
+   3) 정책 재동기화(policy re-sync) 실행
+   4) 검사·차단 enforcement 복구 확인</div>
+
+  <h3>7-2. 즉시 조치 — 복구 확인</h3>
+  <p>갱신 후 <code>license.log</code>에서 <code>entering safe mode</code>·<code>license invalid</code>가 더 이상 발생하지 않고 <code>policy re-sync ok</code>가 기록되는지 확인한다. 에이전트 측에서 검사·차단이 실제로 동작하는지 표본 검증한다.</p>
+
+  <h3>7-3. 배포 체크리스트</h3>
+  <ul class="checklist">
+    <li class="done">근본 원인 규명 (라이선스 만료 → 안전모드 → 검사·차단·정책 비활성화)</li>
+    <li>신규 라이선스 키 갱신·재적용 후 안전모드 해제 확인</li>
+    <li>정책 재동기화 실행 및 <code>policy re-sync ok</code> 확인</li>
+    <li>검사·차단 enforcement 표본 검증(테스트 파일로 탐지·차단 재현)</li>
+    <li>만료 30일 전 자동 알림 · 안전모드 진입 경보 등록</li>
+  </ul>
+
+  <h2 id="sec8"><span class="section-num">8.</span>재발 방지 &amp; 모니터링 권고</h2>
+  <ul>
+    <li><strong>만료 사전 알림:</strong> 라이선스 만료 <strong>30일 전 자동 알림</strong>을 발송해 갱신 누락으로 인한 전면 비활성화를 원천 차단한다(SUP-146 권고와 동일).</li>
+    <li><strong>안전모드 경보:</strong> <code>entering safe mode</code> / <code>license invalid</code> / <code>scan skipped</code> 패턴을 알림 규칙으로 등록해 통제 공백을 즉시 감지한다.</li>
+    <li><strong>라이선스 대시보드:</strong> 잔여 유효기간을 지표화해 만료 임박을 상시 가시화한다.</li>
+    <li><strong>PII 로깅 정리:</strong> <code>license.log</code>·<code>admin-approve.log</code>·<code>dlp-approve-api.log</code>의 이메일·연락처·IP 평문 적재를 마스킹으로 전환한다.</li>
+    <li><strong>이슈 연계:</strong> 본 건을 SUP-146과 linked issue로 기록해 동일 증상 재문의 시 참조한다.</li>
+  </ul>
+
+  <h2 id="sec9"><span class="section-num">9.</span>영향 범위 평가</h2>
+  <table>
+    <thead><tr><th>영역</th><th>영향</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>개인정보 검사(scan)</td><td><span class="badge badge-required">직접</span></td><td>안전모드에서 스킵 — 갱신 후 복구</td></tr>
+      <tr><td>유출 차단(block)</td><td><span class="badge badge-required">직접</span></td><td>enforcement 정지 — 통제 공백</td></tr>
+      <tr><td>정책 적용(policy)</td><td><span class="badge badge-required">직접</span></td><td>미적용 — 재동기화로 복구</td></tr>
+      <tr><td>결재·승인 흐름</td><td><span class="badge badge-warn">정황</span></td><td>계속 시도되나 통제 없이 진행</td></tr>
+      <tr><td>데이터 정합성</td><td><span class="badge badge-done">영향 없음</span></td><td>기능 정지일 뿐 데이터 오염 아님</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="sec10"><span class="section-num">10.</span>부록 A — 에이전트 분석 파이프라인</h2>
+  <p>본 보고서는 로컬 데몬(도구 실행·PII 마스킹·SLM 요약)과 원격 LLM(Claude Code CLI, <code>claude-opus-4-8</code>)이 결합된 자율 tool-use 루프의 산출물이다. 누적 도구 호출 <strong>5회</strong>, 종료 사유 <code>end_turn</code>.</p>
+  <div class="timeline">
+    <div class="tl-item err"><div class="tl-time">21:07:22 · 도구</div><div class="tl-body">로그 조회 <code>license.log</code> (키워드 invalid) → 2줄 회수 (policy not applied · scan skipped = 라이선스 만료 안전모드 확인, PII 마스킹 적용)</div></div>
+    <div class="tl-item warn"><div class="tl-time">21:07:35 · 도구</div><div class="tl-body">로그 조회 <code>admin-approve.log</code> (키워드 approver) → 3줄 회수 (결재 흐름 지속 정황, 결재자 PII 마스킹)</div></div>
+    <div class="tl-item"><div class="tl-time">21:07:48 · 도구</div><div class="tl-body">로그 조회 <code>dlp-approve-api.log</code> (키워드 admin) → 1줄 회수 (클라이언트 승인 경로 정황, 관리자 PII 마스킹)</div></div>
+    <div class="tl-item"><div class="tl-time">21:07:50 · 도구</div><div class="tl-body">Jira 검색 <code>'검사 차단 안됨'</code> → 매치 0건</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:08:26 · 도구</div><div class="tl-body">Jira 검색 <code>'라이선스 만료'</code> → 매치 1건 (<strong>SUP-146</strong>)</div></div>
+    <div class="tl-item ok"><div class="tl-time">21:08:51 · 종료</div><div class="tl-body">보고서 생성 완료 (stop_reason=end_turn, 누적 도구 호출 5회)</div></div>
+  </div>
+  <div class="info"><strong>분석 특징:</strong> 자연어 검색은 0건이었으나 <strong>로그에서 추출한 핵심어(<code>라이선스 만료</code>)로 재검색</strong>해 정답 이슈(SUP-146)를 회수했다. 또한 3개 로그를 교차 조회하는 즉시 로컬 에이전트가 PII를 치환해, 원문 개인정보가 원격 LLM에 전달되지 않았다.</div>
+
+  <h2 id="sec11"><span class="section-num">11.</span>부록 B — PII 마스킹 처리 내역</h2>
+  <p>로컬 에이전트가 원격 LLM 전달 전 세 로그의 개인정보를 토큰으로 치환했다. <code>pii.reset()</code>은 케이스당 <strong>1회만</strong> 수행되며, 3개 로그를 <strong>한 세션에서 순서대로</strong> 마스킹해 토큰이 <strong>케이스 전역에서 유일</strong>하다(같은 원문 = 같은 토큰, 다른 원문 = 다른 토큰). <strong>원문 PII는 원격 LLM에 전달되지 않는다.</strong></p>
+  <table>
+    <thead><tr><th>토큰</th><th>원문 유형</th><th>원문</th><th>출처 로그</th></tr></thead>
+    <tbody>
+      <tr><td><code>[EMAIL_1]</code></td><td>사용자 이메일</td><td><code>jung@corp.example.com</code></td><td>license.log (policy not applied)</td></tr>
+      <tr><td><code>[EMAIL_2]</code></td><td>결재자 이메일</td><td><code>choi@corp.example.com</code></td><td>admin-approve.log (콘솔 오픈)</td></tr>
+      <tr><td><code>[EMAIL_3]</code></td><td>결재자 이메일</td><td><code>park@corp.example.com</code></td><td>admin-approve.log</td></tr>
+      <tr><td><code>[EMAIL_4]</code></td><td>결재자 이메일</td><td><code>kim@aaa.com</code></td><td>admin-approve.log</td></tr>
+      <tr><td><code>[EMAIL_5]</code></td><td>관리자 이메일</td><td><code>admin@corp.example.com</code></td><td>dlp-approve-api.log (approve changed) · license.log (renewed)</td></tr>
+      <tr><td><code>[IP_1]</code></td><td>접속 IP</td><td><code>192.168.10.12</code></td><td>admin-approve.log</td></tr>
+      <tr><td><code>[IP_2]</code></td><td>접속 IP</td><td><code>203.0.113.42</code></td><td>dlp-approve-api.log</td></tr>
+      <tr><td><code>[PHONE_1]</code></td><td>연락처</td><td><code>010-1234-5678</code></td><td>admin-approve.log</td></tr>
+    </tbody>
+  </table>
+  <div class="info">동일 원문 <code>admin@corp.example.com</code>은 license.log·dlp-approve-api.log 양쪽에서 모두 <strong>같은 토큰 <code>[EMAIL_5]</code></strong>로 매핑된다 — 한 세션·단일 <code>pii.reset()</code>로 치환한 결과다.</div>
+
+  </div><!-- /inner -->
+
+  <div class="footer">
+    AnswerNI 기술지원 분석 보고서 · SUP-154 · 생성일 2026-07-09 · 데이터셋 기반 자동 분석(합성 데이터) · 본 문서의 이메일·전화·주민번호·IP는 모두 가짜값입니다.
+  </div>
+
+</div>
+</body>
+</html>
