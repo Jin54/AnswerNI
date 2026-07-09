@@ -7,3 +7,6 @@ venv/
 
 # Claude Code 개인 설정
 .claude/settings.local.json
+
+# 사내 참고 문서 (push 금지)
+PCFILTER_*.html
