@@ -1,0 +1,242 @@
+2026-07-08 08:00:03 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:00:06 INFO  [auth] session validated user=park@corp.example.com
+2026-07-08 08:00:30 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:00:47 INFO  [auth] login success user=jung@corp.example.com session=sess_41931 ip=192.168.10.7
+2026-07-08 08:01:25 INFO  [auth] session validated user=jung@corp.example.com
+2026-07-08 08:01:54 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:02:26 INFO  [auth] token refresh user=yoon@corp.example.com ip=10.0.1.15
+2026-07-08 08:02:34 INFO  [http] POST /api/session 200 80ms
+2026-07-08 08:03:14 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:03:21 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:03:38 DEBUG [pool] db connection acquired active=17 idle=10
+2026-07-08 08:04:06 INFO  [auth] login success user=shin@corp.example.com session=sess_45640 ip=10.0.1.22
+2026-07-08 08:04:35 INFO  [auth] session validated user=lee@corp.example.com
+2026-07-08 08:04:43 INFO  [auth] logout user=lee@corp.example.com session=sess_39211
+2026-07-08 08:05:03 DEBUG [pool] db connection acquired active=6 idle=10
+2026-07-08 08:05:41 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:06:17 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:06:57 INFO  [auth] login success user=shin@corp.example.com session=sess_71954 ip=172.16.0.9
+2026-07-08 08:06:58 INFO  [http] POST /api/session 200 9ms
+2026-07-08 08:07:30 DEBUG [pool] db connection acquired active=9 idle=4
+2026-07-08 08:07:38 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:07:53 INFO  [auth] logout user=choi@corp.example.com session=sess_28796
+2026-07-08 08:08:28 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:08:49 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:09:07 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:09:26 INFO  [auth] logout user=seo@corp.example.com session=sess_69946
+2026-07-08 08:09:58 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:10:37 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:10:57 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:11:17 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:11:52 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:12:15 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:12:52 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:13:05 DEBUG [pool] db connection acquired active=8 idle=8
+2026-07-08 08:13:08 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:13:16 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:13:18 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:13:25 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:13:43 INFO  [auth] token refresh user=shin@corp.example.com ip=10.0.2.31
+2026-07-08 08:14:19 INFO  [auth] session validated user=oh@corp.example.com
+2026-07-08 08:14:48 INFO  [auth] login success user=lee@corp.example.com session=sess_71070 ip=10.0.1.22
+2026-07-08 08:14:52 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:15:19 INFO  [auth] session validated user=han@corp.example.com
+2026-07-08 08:15:42 INFO  [auth] token refresh user=oh@corp.example.com ip=10.0.1.15
+2026-07-08 08:15:58 INFO  [auth] logout user=shin@corp.example.com session=sess_82752
+2026-07-08 08:16:02 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:16:41 INFO  [auth] login success user=oh@corp.example.com session=sess_39657 ip=192.168.10.7
+2026-07-08 08:17:14 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:17:47 INFO  [http] POST /api/session 200 16ms
+2026-07-08 08:18:26 INFO  [auth] session validated user=oh@corp.example.com
+2026-07-08 08:18:37 INFO  [auth] login success user=choi@corp.example.com session=sess_25978 ip=192.168.10.4
+2026-07-08 08:19:13 INFO  [http] POST /api/login 200 64ms
+2026-07-08 08:19:35 INFO  [http] POST /api/session 200 72ms
+2026-07-08 08:20:05 INFO  [auth] logout user=choi@corp.example.com session=sess_93156
+2026-07-08 08:20:15 INFO  [auth] token refresh user=lee@corp.example.com ip=192.168.10.4
+2026-07-08 08:20:46 INFO  [auth] login success user=choi@corp.example.com session=sess_13647 ip=172.16.0.9
+2026-07-08 08:21:09 INFO  [auth] token issued user=yoon@corp.example.com ttl=3600s
+2026-07-08 08:21:30 INFO  [auth] login success user=park@corp.example.com session=sess_45559 ip=10.0.1.15
+2026-07-08 08:22:05 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:22:41 INFO  [auth] logout user=yoon@corp.example.com session=sess_37247
+2026-07-08 08:22:55 INFO  [auth] token refresh user=oh@corp.example.com ip=172.16.0.9
+2026-07-08 08:23:12 INFO  [auth] login success user=han@corp.example.com session=sess_71550 ip=10.0.1.22
+2026-07-08 08:23:47 INFO  [auth] token refresh user=shin@corp.example.com ip=10.0.2.31
+2026-07-08 08:23:49 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:24:18 DEBUG [pool] db connection acquired active=2 idle=3
+2026-07-08 08:24:37 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:24:52 INFO  [auth] session validated user=park@corp.example.com
+2026-07-08 08:25:28 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:26:03 INFO  [auth] login success user=park@corp.example.com session=sess_36265 ip=10.0.1.15
+2026-07-08 08:26:12 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:26:15 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:26:52 INFO  [auth] login success user=lee@corp.example.com session=sess_41402 ip=172.16.0.9
+2026-07-08 08:27:08 INFO  [auth] token refresh user=yoon@corp.example.com ip=10.0.1.15
+2026-07-08 08:27:36 INFO  [http] GET /api/login 200 35ms
+2026-07-08 08:28:01 INFO  [auth] logout user=park@corp.example.com session=sess_50732
+2026-07-08 08:28:03 INFO  [auth] logout user=lee@corp.example.com session=sess_86361
+2026-07-08 08:28:22 INFO  [auth] logout user=jung@corp.example.com session=sess_37139
+2026-07-08 08:29:00 DEBUG [pool] db connection acquired active=6 idle=8
+2026-07-08 08:29:01 INFO  [auth] logout user=lee@corp.example.com session=sess_16705
+2026-07-08 08:29:31 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:30:06 DEBUG [pool] db connection acquired active=12 idle=1
+2026-07-08 08:30:30 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:30:55 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:31:15 INFO  [auth] token issued user=jung@corp.example.com ttl=3600s
+2026-07-08 08:31:25 INFO  [auth] login success user=lee@corp.example.com session=sess_70286 ip=192.168.10.7
+2026-07-08 08:31:28 INFO  [auth] token issued user=han@corp.example.com ttl=3600s
+2026-07-08 08:32:06 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:32:36 INFO  [http] GET /api/login 200 76ms
+2026-07-08 08:32:54 INFO  [http] POST /api/user/me 200 19ms
+2026-07-08 08:33:33 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:33:47 INFO  [auth] token issued user=kang@corp.example.com ttl=3600s
+2026-07-08 08:34:21 INFO  [auth] session validated user=han@corp.example.com
+2026-07-08 08:34:54 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:35:25 INFO  [auth] token issued user=park@corp.example.com ttl=3600s
+2026-07-08 08:35:49 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:36:06 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:36:37 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:36:56 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:37:36 DEBUG [pool] db connection acquired active=16 idle=4
+2026-07-08 08:37:51 DEBUG [pool] db connection acquired active=20 idle=5
+2026-07-08 08:38:19 INFO  [auth] login success user=lee@corp.example.com session=sess_98136 ip=10.0.2.31
+2026-07-08 08:38:36 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:39:09 DEBUG [pool] db connection acquired active=16 idle=0
+2026-07-08 08:39:12 INFO  [http] GET /api/user/me 200 35ms
+2026-07-08 08:39:23 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:39:49 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:40:14 INFO  [auth] token issued user=seo@corp.example.com ttl=3600s
+2026-07-08 08:40:32 DEBUG [pool] db connection acquired active=20 idle=8
+2026-07-08 08:41:02 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:41:05 INFO  [auth] token issued user=kang@corp.example.com ttl=3600s
+2026-07-08 08:41:34 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:41:48 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:42:00 INFO  [auth] token issued user=han@corp.example.com ttl=3600s
+2026-07-08 08:42:15 INFO  [auth] session validated user=jung@corp.example.com
+2026-07-08 08:42:55 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:43:05 INFO  [auth] session validated user=shin@corp.example.com
+2026-07-08 08:43:16 INFO  [auth] login success user=han@corp.example.com session=sess_43158 ip=192.168.10.4
+2026-07-08 08:43:29 INFO  [auth] token refresh user=park@corp.example.com ip=10.0.1.15
+2026-07-08 08:43:39 INFO  [http] GET /api/health 200 22ms
+2026-07-08 08:43:56 INFO  [auth] token issued user=choi@corp.example.com ttl=3600s
+2026-07-08 08:44:31 INFO  [auth] session validated user=kang@corp.example.com
+2026-07-08 08:44:35 INFO  [auth] login success user=oh@corp.example.com session=sess_97582 ip=192.168.10.4
+2026-07-08 08:44:40 INFO  [auth] token issued user=yoon@corp.example.com ttl=3600s
+2026-07-08 08:45:16 INFO  [auth] token issued user=oh@corp.example.com ttl=3600s
+2026-07-08 08:45:43 DEBUG [pool] db connection acquired active=14 idle=5
+2026-07-08 08:46:04 DEBUG [pool] db connection acquired active=3 idle=9
+2026-07-08 08:46:34 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:46:51 INFO  [auth] logout user=lee@corp.example.com session=sess_53160
+2026-07-08 08:47:24 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:47:45 INFO  [auth] login success user=seo@corp.example.com session=sess_62244 ip=10.0.1.22
+2026-07-08 08:48:07 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:48:38 INFO  [http] POST /api/login 200 45ms
+2026-07-08 08:49:14 INFO  [auth] token refresh user=jung@corp.example.com ip=192.168.10.4
+2026-07-08 08:49:27 INFO  [auth] token refresh user=yoon@corp.example.com ip=192.168.10.4
+2026-07-08 08:50:05 INFO  [auth] logout user=shin@corp.example.com session=sess_23463
+2026-07-08 08:50:26 INFO  [auth] logout user=jung@corp.example.com session=sess_51847
+2026-07-08 08:51:02 INFO  [auth] session validated user=choi@corp.example.com
+2026-07-08 08:51:16 INFO  [auth] login success user=oh@corp.example.com session=sess_61887 ip=192.168.10.7
+2026-07-08 08:51:40 INFO  [auth] token issued user=han@corp.example.com ttl=3600s
+2026-07-08 08:52:12 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:52:47 INFO  [auth] session validated user=park@corp.example.com
+2026-07-08 08:53:11 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:53:21 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:53:58 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 08:54:27 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:54:30 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:54:54 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:55:14 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:55:34 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:56:01 INFO  [http] GET /api/health 200 2ms
+2026-07-08 08:56:13 INFO  [auth] token refresh user=park@corp.example.com ip=192.168.10.4
+2026-07-08 08:56:25 INFO  [http] POST /api/logout 200 24ms
+2026-07-08 08:56:54 INFO  [auth] token refresh user=shin@corp.example.com ip=10.0.2.31
+2026-07-08 08:57:19 INFO  [auth] token refresh user=shin@corp.example.com ip=10.0.1.22
+2026-07-08 08:57:36 INFO  [auth] token issued user=shin@corp.example.com ttl=3600s
+2026-07-08 08:57:54 DEBUG [pool] db connection acquired active=1 idle=10
+2026-07-08 08:58:09 INFO  [auth] token refresh user=seo@corp.example.com ip=172.16.0.9
+2026-07-08 08:58:24 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 08:58:49 INFO  [auth] login success user=shin@corp.example.com session=sess_44201 ip=10.0.2.31
+2026-07-08 08:59:27 INFO  [auth] token refresh user=park@corp.example.com ip=192.168.10.7
+2026-07-08 08:59:58 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:00:31 INFO  [http] GET /api/health 200 2ms
+2026-07-08 09:00:49 INFO  [auth] session validated user=yoon@corp.example.com
+2026-07-08 09:01:18 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:01:37 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:02:06 INFO  [auth] logout user=lee@corp.example.com session=sess_77992
+2026-07-08 09:02:09 DEBUG [pool] db connection acquired active=10 idle=9
+2026-07-08 09:02:40 INFO  [auth] session validated user=shin@corp.example.com
+2026-07-08 09:03:06 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:03:39 INFO  [auth] login success user=park@corp.example.com session=sess_25095 ip=172.16.0.9
+2026-07-08 09:04:08 DEBUG [pool] db connection acquired active=1 idle=6
+2026-07-08 09:04:42 DEBUG [pool] db connection acquired active=4 idle=6
+2026-07-08 09:04:52 INFO  [http] GET /api/logout 200 26ms
+2026-07-08 09:05:06 INFO  [auth] logout user=yoon@corp.example.com session=sess_31966
+2026-07-08 09:05:45 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:05:49 INFO  [auth] login success user=oh@corp.example.com session=sess_87209 ip=192.168.10.4
+2026-07-08 09:05:50 INFO  [auth] logout user=lee@corp.example.com session=sess_75761
+2026-07-08 09:06:04 INFO  [auth] login success user=park@corp.example.com session=sess_69282 ip=10.0.2.31
+2026-07-08 09:06:23 INFO  [http] GET /api/login 200 35ms
+2026-07-08 09:06:26 INFO  [auth] token issued user=oh@corp.example.com ttl=3600s
+2026-07-08 09:06:50 INFO  [auth] login success user=seo@corp.example.com session=sess_74340 ip=10.0.2.31
+2026-07-08 09:07:24 INFO  [auth] session validated user=oh@corp.example.com
+2026-07-08 09:07:43 INFO  [auth] login success user=choi@corp.example.com session=sess_64174 ip=192.168.10.7
+2026-07-08 09:08:23 INFO  [auth] token issued user=choi@corp.example.com ttl=3600s
+2026-07-08 09:08:33 INFO  [auth] logout user=choi@corp.example.com session=sess_67422
+2026-07-08 09:09:12 INFO  [auth] token issued user=choi@corp.example.com ttl=3600s
+2026-07-08 09:09:52 INFO  [http] GET /api/health 200 2ms
+2026-07-08 09:10:14 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:10:36 DEBUG [pool] db connection acquired active=17 idle=4
+2026-07-08 09:10:46 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:10:55 INFO  [auth] session validated user=seo@corp.example.com
+2026-07-08 09:10:59 INFO  [auth] session validated user=seo@corp.example.com
+2026-07-08 09:11:29 INFO  [auth] session validated user=kang@corp.example.com
+2026-07-08 09:12:00 INFO  [auth] session validated user=shin@corp.example.com
+2026-07-08 09:12:32 INFO  [auth] token issued user=han@corp.example.com ttl=3600s
+2026-07-08 09:12:44 ERROR [auth] SSL certificate verify failed: certificate has expired
+2026-07-08 09:12:45 WARN  [auth] login rejected user=kim@aaa.com ip=203.0.113.42 phone=010-1234-5678
+2026-07-08 09:12:46 ERROR [auth] SSL certificate expired for host auth.corp.example.com not renewed since 2026-06-30
+2026-07-08 09:13:02 WARN  [auth] login rejected user=kim@aaa.com ip=203.0.113.42 reason=cert_error retry=3
+2026-07-08 09:13:07 INFO  [auth] token refresh user=seo@corp.example.com ip=10.0.2.31
+2026-07-08 09:13:35 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:13:53 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:14:12 INFO  [http] GET /api/logout 200 32ms
+2026-07-08 09:14:34 INFO  [auth] session validated user=park@corp.example.com
+2026-07-08 09:14:35 INFO  [http] POST /api/logout 200 57ms
+2026-07-08 09:14:56 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:15:20 ERROR [tls] handshake failed: certificate has expired (SSL_ERROR_EXPIRED_CERT)
+2026-07-08 09:15:24 INFO  [auth] logout user=kang@corp.example.com session=sess_15416
+2026-07-08 09:15:37 INFO  [auth] token issued user=yoon@corp.example.com ttl=3600s
+2026-07-08 09:16:16 DEBUG [pool] db connection acquired active=5 idle=7
+2026-07-08 09:16:32 INFO  [http] POST /api/health 200 45ms
+2026-07-08 09:17:06 INFO  [auth] token refresh user=park@corp.example.com ip=10.0.1.22
+2026-07-08 09:17:24 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:17:30 INFO  [auth] token issued user=lee@corp.example.com ttl=3600s
+2026-07-08 09:18:01 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:18:40 INFO  [auth] logout user=oh@corp.example.com session=sess_42153
+2026-07-08 09:19:15 INFO  [auth] logout user=kang@corp.example.com session=sess_42152
+2026-07-08 09:19:31 INFO  [auth] session validated user=lee@corp.example.com
+2026-07-08 09:20:11 INFO  [auth] token issued user=shin@corp.example.com ttl=3600s
+2026-07-08 09:20:36 INFO  [http] GET /api/health 200 2ms
+2026-07-08 09:20:43 INFO  [http] GET /api/token/refresh 200 49ms
+2026-07-08 09:21:21 DEBUG [pool] db connection acquired active=14 idle=0
+2026-07-08 09:21:51 DEBUG [pool] db connection acquired active=2 idle=5
+2026-07-08 09:21:56 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:22:26 INFO  [auth] session validated user=han@corp.example.com
+2026-07-08 09:22:31 INFO  [health] readiness probe ok db=up cache=up
+2026-07-08 09:23:05 INFO  [auth] session validated user=lee@corp.example.com
+2026-07-08 09:23:29 INFO  [http] POST /api/session 200 49ms
+2026-07-08 09:23:38 INFO  [auth] token issued user=kang@corp.example.com ttl=3600s
+2026-07-08 09:24:18 INFO  [auth] token issued user=shin@corp.example.com ttl=3600s
+2026-07-08 09:24:25 INFO  [auth] token refresh user=yoon@corp.example.com ip=172.16.0.9
+2026-07-08 09:24:50 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:25:12 INFO  [auth] session validated user=lee@corp.example.com
+2026-07-08 09:25:15 DEBUG [jwt] signature verified kid=key-2026-01 alg=RS256
+2026-07-08 09:25:55 INFO  [auth] session validated user=yoon@corp.example.com
+2026-07-08 10:02:11 WARN  [auth] repeated failed logins user=park@corp.example.com ip=203.0.113.77 count=5
+2026-07-08 10:44:33 ERROR [db] connection timeout after 5000ms pool exhausted active=20
+2026-07-08 11:20:09 WARN  [ratelimit] client ip=198.51.100.23 exceeded 100 req/min throttled
+2026-07-08 13:05:41 ERROR [auth] login failure user=kim@aaa.com phone=010-1234-5678 reason=ssl_certificate_expired
+2026-07-08 14:37:52 WARN  [cache] redis latency spike 480ms key=session:sess_88213
+2026-07-08 15:10:04 ERROR [tls] certificate chain incomplete: unable to verify the first certificate
+2026-07-08 16:48:19 WARN  [auth] admin login from new device user=lee@corp.example.com ip=172.16.0.9
