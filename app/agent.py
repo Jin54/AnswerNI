@@ -50,8 +50,9 @@ _SYSTEM_PROMPT_TEMPLATE = """\
 - 어떤 문의든, 결론을 내리기 전에 **반드시 먼저 도구로 조사**하라. 도구를 한 번도 호출하지
   않은 채 최종 보고서를 작성하는 것은 **금지**된다. 즉 당신의 **첫 응답은 반드시 도구 호출
   (tool_use)** 이어야 하며, 곧바로 보고서를 쓰지 마라.
-- 최소 조사 절차: (1) read_file 로 {investigate_target} 를 읽어 ERROR/WARN 등
-  오류·경고 정황을 확인하고, (2) search_jira 로 문의의 핵심 키워드에 대한 유사 사례를 검색하라.
+- 최소 조사 절차: (1) search_logs 로 문의 핵심어가 **어느 로그 파일에 몰려 있는지 먼저 확인**한 뒤
+  read_file 로 {investigate_target} 를 읽어 ERROR/WARN 등 오류·경고 정황을 파고들고,
+  (2) search_jira 로 문의의 핵심 키워드에 대한 유사 사례를 검색하라.
 - 문의가 모호하거나 로그와 무관해 보여도 넘겨짚지 말고, 우선 로그의 오류·경고부터 조사한 뒤
   실제로 발견한 사실에 근거해 보고하라.
 - 단, 조사는 근거 날조를 강요하지 않는다. 조사 결과가 문의와 무관하면 보고서에
@@ -59,8 +60,16 @@ _SYSTEM_PROMPT_TEMPLATE = """\
   지어내지 마라).
 
 도구 사용 지침:
-- read_file: 지원 로그를 직접 읽어 근거를 확보하라. {log_reference}
+- search_logs: 로그 조사는 **search_logs 로 어느 파일에 단서가 있는지 먼저 확인**하라. 핵심어(오류
+  코드·증상어)로 전체 로그 파일을 횡단 검색해 파일별 매치 수를 훑은 뒤, 단서가 있는 파일을
+  read_file 로 파고들어라(무작정 파일부터 열지 마라).
+- read_file: search_logs 로 지목한 로그 파일을 직접 읽어 근거를 확보하라. {log_reference}
   keyword 인자로 ERROR, WARN 등 관심 줄만 추려 읽을 수 있다.
+- search_code / read_source: 로그에서 **오류 코드·함수명·모듈명**이 보이면 search_code 로 관련
+  소스를 찾고 read_source 로 해당 부분을 읽어 **원인 코드 위치를 보고서에 명시**하라. 단,
+  소스 미설정 에러("소스 디렉터리가 설정되지 않았습니다...")가 오면 코드 분석은 생략하고
+  로그 근거로만 보고하라. 코드 검색도 아래 '검색 규율'의 **핵심 식별어** 원칙을 적용해
+  함수명·모듈명 같은 고유 식별어로 좁혀 검색하고, 광범위 일반어 단독 검색은 피하라.
 - search_jira: 과거 유사 이슈와 해결 방법을 검색하라. 아래 '검색 규율'을 반드시 지켜라.
 - get_jira_issue: search_jira 로 찾은 이슈 중 **문의와 가장 관련 높은 1~2건은 get_jira_issue 로
   상세를 조회해 해결 방법·처리 코멘트를 확인**한 뒤 보고서에 인용하라. 상세 조회 없이 제목만 보고
@@ -274,6 +283,25 @@ def _humanize_request(name: str, tool_input) -> str:
         keyword = (tool_input or {}).get("keyword")
         kw = f"'{keyword}'" if keyword else "전체"
         return f"원격 LLM 요청 수행 → 로그 파일 조회: {fname} (키워드 {kw})"
+    if name == "search_logs":
+        keyword = (tool_input or {}).get("keyword", "")
+        return f"원격 LLM 요청 수행 → 전체 로그 검색: '{keyword}'"
+    if name == "search_code":
+        keyword = (tool_input or {}).get("keyword", "")
+        return f"원격 LLM 요청 수행 → 소스 코드 검색: '{keyword}'"
+    if name == "read_source":
+        ti = tool_input or {}
+        path = ti.get("path") or "(경로 없음)"
+        start, end = ti.get("start"), ti.get("end")
+        if start is not None and end is not None:
+            rng = f" ({start}~{end}줄)"
+        elif start is not None:
+            rng = f" ({start}줄~)"
+        elif end is not None:
+            rng = f" (~{end}줄)"
+        else:
+            rng = ""
+        return f"원격 LLM 요청 수행 → 소스 파일 조회: {path}{rng}"
     if name == "search_jira":
         query = (tool_input or {}).get("query", "")
         return f"원격 LLM 요청 수행 → Jira 검색: '{query}'"
@@ -297,8 +325,20 @@ def _tool_result_summary(name: str, raw: str, is_error: bool) -> str:
     """
     if is_error:
         return f"└ 결과: 실패 — {raw[:60]}"
-    if name == "read_file":
+    if name in ("read_file", "read_source"):
         return f"└ 결과: {len(raw.splitlines())}줄 / {len(raw)}자 반환"
+    if name == "search_logs":
+        # search_logs 는 파일별 매치 요약을 반환한다. 파일 헤더 줄은 로그 경로(".log")를
+        # 포함하므로 그 개수로 매치 파일 수를 센다(포맷 세부에 강결합하지 않는 단순 휴리스틱).
+        # 하나도 못 세면 글자수 폴백.
+        files = sum(1 for ln in raw.splitlines() if ".log" in ln)
+        if files:
+            return f"└ 결과: {files}개 파일에서 매치"
+        return f"└ 결과: {len(raw)}자 반환"
+    if name == "search_code":
+        # "경로:줄번호: 내용" 목록 — 비어있지 않은 줄 수가 곧 매치 줄 수.
+        matches = sum(1 for ln in raw.splitlines() if ln.strip())
+        return f"└ 결과: 매치 {matches}줄"
     if name == "get_jira_issue":
         try:
             issue = json.loads(raw)
