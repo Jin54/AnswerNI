@@ -126,5 +126,53 @@
     "resolution": "누수 모듈 패치를 적용하고, 임시로 에이전트 서비스 재기동 스케줄을 운영. 메모리 사용량 임계치 모니터링을 추가해 조기 감지. 재기동 후 RSS 190MB로 회복 확인.",
     "customer": "고객사 F",
     "created": "2026-06-18"
+  },
+  {
+    "key": "SUP-151",
+    "summary": "SSL 인증서 만료로 로그인 전건 실패(TLS handshake expired)",
+    "description": "고객사 H 환경에서 다수 사용자가 로그인에 실패한다는 문의. auth-server.log 에 'SSL certificate verify failed: certificate has expired', 'SSL certificate expired for host auth.corp.example.com not renewed since 2026-06-30', '[tls] handshake failed: certificate has expired (SSL_ERROR_EXPIRED_CERT)' 가 반복 기록되고, login rejected(WARN, reason=cert_error) 가 연쇄됨. network.log 에는 인증 실패 연쇄로 'falling back to offline policy cache' 폴백이 관측됨. 원인은 auth.corp.example.com 서버 SSL 인증서가 2026-06-30 이후 갱신되지 않아 만료된 것.",
+    "resolution": "만료된 서버 인증서를 재발급·교체(풀체인 포함)하고 auth-server를 재시작해 로그인 복구. 만료 30일 전 알림 자동화(cron + monitoring)로 재발 방지.",
+    "customer": "고객사 H",
+    "created": "2026-04-22"
+  },
+  {
+    "key": "SUP-152",
+    "summary": "DB 행 잠금 대기 타임아웃으로 결재 저장 지연·실패",
+    "description": "고객사 I에서 결재 저장이 자꾸 실패하고 느리다는 문의. db 로그에 'slow query 30021ms UPDATE policy ... (T1 holds row lock)', 'tx T2 lock wait timeout exceeded', 'approve save failed doc=3120 ... reason=lock_wait_timeout', '6 transactions waiting on row lock (table=approve)'이 기록됨. 나아가 webhook.log에는 같은 계열의 'HikariPool-1 - Connection is not available, request timed out', 'active=20 idle=0 waiting=14 (pool exhausted)'가 관측되어, 행 잠금 장기 점유로 커넥션 반환이 지연되고 커넥션 풀 고갈로 확산되는 연쇄가 확인됨. 장기 실행 트랜잭션(T1, policy_save)이 행 잠금을 300초간 점유해 후속 결재 저장(T2)이 락 대기 끝에 타임아웃되는 것이 근본 원인.",
+    "resolution": "장기 실행 쿼리(policy_save UPDATE)를 튜닝하고 장기 트랜잭션을 분할해 잠금 점유 시간을 단축. 락 대기·커넥션 풀 타임아웃을 조정하고 슬로우 쿼리 모니터링을 추가. 조치 후 'lock contention cleared' 확인 및 결재 저장 정상화, 커넥션 풀 고갈 해소.",
+    "customer": "고객사 I",
+    "created": "2026-05-08"
+  },
+  {
+    "key": "SUP-153",
+    "summary": "방화벽 8443 아웃바운드 차단으로 에이전트-관리서버 통신 실패",
+    "description": "고객사 J의 신규 지사(부산) PC들이 관리서버에 연결되지 않는다는 문의. network 로그에 'connect to mgmt 198.51.100.8:8443 failed: connection timed out'이 반복되고 'falling back to offline policy cache', 'traceroute mgmt: blocked after gateway 192.168.20.1'이 기록됨. 고객사 방화벽 정책 변경으로 관리서버 포트(8443) 아웃바운드가 차단되어 에이전트 연결이 타임아웃되는 것이 원인. 차단 기간 동안 auth-server 로그인 실패·오프라인 정책 미적용 정황이 함께 관측되었고, 해당 보조 로그에는 이메일·IP·전화번호 등 PII가 평문으로 남아 있었다.",
+    "resolution": "방화벽에 관리서버 IP(198.51.100.8):8443 아웃바운드 예외를 등록하여 통신 복구. 예외 등록 후 'connect to mgmt 198.51.100.8:8443 ok' 및 정책 재동기화 확인. 재발 방지를 위해 신규 지사 배포 전 필요한 포트 목록(8443 등)을 고객사 네트워크 담당자에게 사전 공유하도록 온보딩 절차를 보완. 조사 중 교차 조회한 auth-server/license 로그의 평문 PII는 로컬 에이전트가 마스킹 처리해 원격 LLM에 원문 미전달.",
+    "customer": "고객사 J",
+    "created": "2026-03-27"
+  },
+  {
+    "key": "SUP-154",
+    "summary": "라이선스 만료로 안전모드 전환되어 검사·차단·정책 비활성화",
+    "description": "고객사 K에서 특정 일자부터 검사·차단이 동작하지 않고 정책도 적용되지 않는다는 문의. license 로그에 'license expires today'(WARN), 'license expired -> entering safe mode (block/scan disabled)'(ERROR), 'policy not applied: license invalid agent_id=PC-4410 user=...', 'scan skipped: license invalid'가 기록됨. 제품 라이선스가 만료되어 에이전트가 안전모드로 전환, 검사·차단·정책 적용이 일괄 비활성화된 것이 원인. admin-approve/dlp-approve-api 로그상 안전모드 구간에도 결재·승인 흐름이 통제 없이 계속 시도됨.",
+    "resolution": "라이선스를 갱신·재적용하고 정책을 재동기화하여 정상화. 갱신 직후 'license renewed' → 'policy re-sync ok'로 검사·차단·정책 복구 확인. 재발 방지를 위해 만료 30일 전 자동 알림과 안전모드 진입 경보 등록을 권고. 로그의 이메일·연락처·IP 평문 적재는 마스킹으로 전환 권고.",
+    "customer": "고객사 K",
+    "created": "2026-06-11"
+  },
+  {
+    "key": "SUP-155",
+    "summary": "복합 장애(행 잠금·디스크 포화·메모리 증가·통신 차단)로 관리서버 전반 저하",
+    "description": "고객사 L에서 관리서버가 전반적으로 느리고 결재 저장이 실패하며 일부 PC는 통신도 되지 않는다는 문의. 다중 로그를 순회 조사한 결과 네 갈래의 독립 원인이 겹친 복합 장애로 확인됨. db 로그에 'slow query 30021ms ... holds row lock'과 'lock wait timeout exceeded' 및 결재 저장 실패(reason=lock_wait_timeout), system 로그에 'disk usage /var/log at 100%'·'No space left on device'·'503 Service Unavailable', network 로그에 'connect to mgmt 198.51.100.8:8443 failed: connection timed out'(반복), agent-perf 로그에 RSS 1180MB→1890MB 증가(growing) 및 후속 'high memory: rss=2360MB', auth-server 로그에 'certificate has expired'와 'login rejected'(반복)가 기록됨. 행 잠금 경합·디스크 포화·메모리 누수·통신/인증 차단이 같은 기간에 겹쳐 관리서버 전반 저하로 체감된 것이 원인.",
+    "resolution": "원인별로 분리해 우선순위 기반 복합 준용으로 해결. P1) 락 경합은 SUP-148 준용 — 장기 트랜잭션 종료·락/커넥션 풀 타임아웃 조정·장기 쿼리 튜닝·트랜잭션 분할·슬로우 쿼리 모니터링(lock contention cleared 확인). P1) 디스크 포화는 SUP-145 준용 — 오래된 로그 정리(약 18GB 확보)·logrotate(일 단위·보관 14일)·사용률 85% 임계 알림(41%로 정상화). P2) 메모리 증가는 SUP-149 준용 — 누수 모듈 패치·에이전트 서비스 재기동(임시)·RSS 임계 모니터링(RSS 190MB 회복). P2) 통신 이상은 방화벽 관리서버 8443 아웃바운드 예외 등록·서버 인증서 재발급으로 신규 조치(connect ok·로그인 정상). 부가로 db·auth-server 로그의 PII 평문 적재를 마스킹으로 전환. 본 건을 SUP-148·145·149와 linked issue로 기록.",
+    "customer": "고객사 L",
+    "created": "2026-06-25"
+  },
+  {
+    "key": "SUP-156",
+    "summary": "로그인·인증 전반의 산발적 이상 — 광역 유사 사례 종합 대응",
+    "description": "고객사 M에서 로그인·세션·계정·본인확인 전반에 걸쳐 여러 증상이 겹쳐 산발적으로 발생한다는 문의. auth-server 로그에 'SSL certificate verify failed: certificate has expired'와 'login rejected ... reason=cert_error'가 기록되어 서버 인증서 만료(auth.corp.example.com, 2026-06-30 이후 미갱신)로 로그인이 거부됨. 아울러 db 로그에 'lock wait timeout exceeded'와 'approve save failed ... reason=lock_wait_timeout'(결재 저장 실패), license 로그에 'license expired -> entering safe mode'와 'policy not applied: license invalid'(정책 미적용)가 함께 확인됨. 단일 근본원인이 아니라 인증서·세션·계정/락·라이선스·본인확인·메일·푸시 등 인증 스택 전반이 동시에 열화된 광역 이슈로, 광역 검색으로 과거 유사 사례 8건을 회수해 종합 대응함. 실패/거부 로그에 이메일·IP·휴대폰·결재자 이메일이 평문으로 적재되는 PII 로깅 문제도 확인됨.",
+    "resolution": "단일 조치가 아니라 영역별 병렬 점검으로 대응. 1) 인증서: 만료된 서버 인증서 재발급·교체 후 auth-server 재시작, 만료 30일 전 알림 자동화(SUP-123 이력). 2) 세션: 세션 TTL 설정값 점검·복원(SUP-101). 3) 메일: 발신 도메인 SPF/DKIM 확인(SUP-108). 4) 본인확인: 제공사 apiKey/토큰 유효성 확인·재발급 및 오류 로그 PII 마스킹(SUP-150). 5) 라이선스: 라이선스 갱신·재적용 후 정책 재동기화(SUP-146). 6) 푸시: APNs 인증 키(.p8) 만료 확인·재발급(SUP-131). 7) DB락: 장기 실행 쿼리 튜닝·트랜잭션 분할, 락/커넥션 풀 타임아웃 조정·슬로우 쿼리 모니터링(SUP-148). 공통으로 만료성 자산(인증서·라이선스·토큰·APNs 키) 만료 30일 전 알림 통합과 auth/db/license 로그의 PII 마스킹 표준화를 재발 방지로 권고. 영역별 점검 체크리스트로 정리 후 정상화 확인.",
+    "customer": "고객사 M",
+    "created": "2026-07-02"
   }
 ]
