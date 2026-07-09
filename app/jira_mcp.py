@@ -31,9 +31,15 @@ import shlex
 import threading
 import time
 
+from . import rerank
+
 # uvx 는 mcp-atlassian 패키지를 온디맨드로 받아 실행한다 (requirements 불포함 — .env.example 참고).
 DEFAULT_MCP_COMMAND = "uvx mcp-atlassian"
 TIMEOUT_SECONDS = 15.0  # 시도 1회의 상한 (첫 호출은 spawn+initialize, 이후는 검색 왕복)
+
+# 리랭킹 후보 풀 기본 크기. 전역 검색은 특정 프로젝트가 상위를 도배할 수 있어(예: YKM31),
+# top_k(=limit) 보다 넓게 받아 로컬 유사도(rerank)로 재정렬한 뒤 top_k 만 남긴다.
+DEFAULT_SEARCH_POOL = 25
 
 # 우리 이슈 스키마 (demo/jira/issues.json · agent._JIRA_FIELDS 와 동일 계약)
 ISSUE_FIELDS = ("key", "summary", "description", "resolution", "customer", "created")
@@ -60,8 +66,7 @@ def search_issues(query: str, limit: int = 5) -> "list[dict] | None":
     if not query or not is_configured():
         return None
     try:
-        jql = f'text ~ "{_escape_jql(query)}"'
-        result = _MANAGER.call({"jql": jql, "limit": limit})
+        result = _MANAGER.call({"jql": _build_jql(query), "limit": _pool_size(limit)})
     except (Exception, asyncio.CancelledError):
         # 서버 crash·커맨드 부재·프로토콜 오류·타임아웃(재시도 포함) 전부 여기로 — 조용히 폴백 유도.
         return None
@@ -70,7 +75,47 @@ def search_issues(query: str, limit: int = 5) -> "list[dict] | None":
     issues = _extract_issues(result)
     if issues is None:
         return None
-    return [_map_issue(i) for i in issues[:limit] if isinstance(i, dict)]
+    # 넓게 받은 후보를 우리 스키마로 매핑한 뒤, 쿼리 유사도로 재정렬해 top_k(=limit)만 반환.
+    mapped = [_map_issue(i) for i in issues if isinstance(i, dict)]
+    return rerank.rerank(query, mapped, top_k=limit)
+
+
+def _pool_size(limit: int) -> int:
+    """리랭킹 후보 풀 크기 — env JIRA_SEARCH_POOL > 기본값, 단 limit 미만은 방지."""
+    env = os.environ.get("JIRA_SEARCH_POOL")
+    if env:
+        try:
+            n = int(env)
+            if n > 0:
+                return max(n, limit)
+        except ValueError:
+            pass
+    return max(DEFAULT_SEARCH_POOL, limit)
+
+
+def _build_jql(query: str) -> str:
+    """검색 JQL 조립: text 매칭 + (선택)프로젝트 제한 + 최신순 정렬.
+
+    - ORDER BY updated DESC: 정렬을 명시하지 않으면 특정 프로젝트가 상위를 독점해
+      후보 풀 다양성이 무너진다(실측: YKM31 도배). 최신순으로 받아 풀 다양성을 확보하고,
+      실제 관련성 순위는 rerank(로컬 유사도)에 맡긴다.
+    - 프로젝트 제한은 기본 없음(여러 제품 계열을 넓게 검색). env JIRA_PROJECTS 에
+      쉼표목록(예: "PF3,PF3JP,PF3CG")을 주면 그 프로젝트들로만 좁힌다.
+    """
+    return f'text ~ "{_escape_jql(query)}"{_project_clause()} ORDER BY updated DESC'
+
+
+def _project_clause() -> str:
+    """env JIRA_PROJECTS(쉼표목록) → ' AND project in (...)'. 미설정이면 빈 문자열(제한 없음)."""
+    raw = os.environ.get("JIRA_PROJECTS", "").strip()
+    if not raw:
+        return ""
+    # 프로젝트 키는 영숫자/언더스코어만 — JQL 인젝션 방지 위해 화이트리스트 필터.
+    safe = [p.strip() for p in raw.split(",")
+            if re.fullmatch(r"[A-Za-z0-9_]+", p.strip())]
+    if not safe:
+        return ""
+    return " AND project in ({})".format(", ".join(safe))
 
 
 # ── 상주 세션 관리 ─────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ is_error 로 감싸 LLM 이 스스로 우회하게 한다 (PLAN.md 8절).
 import json
 from pathlib import Path
 
-from . import jira_mcp
+from . import jira_mcp, rerank
 
 TOOLS = [
     {"name": "read_file",
@@ -83,4 +83,6 @@ def _search_jira(query: str | None) -> str:
     ]
     if not matched:
         return f"'{query}' 에 매칭되는 Jira 이슈가 없습니다."
+    # 실 Jira 경로와 동일하게 유사도로 재정렬해 top 5 만 반환(경로 간 UX 일관).
+    matched = rerank.rerank(query, matched, top_k=5)
     return json.dumps(matched, ensure_ascii=False, indent=2)
