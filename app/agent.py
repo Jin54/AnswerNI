@@ -164,10 +164,6 @@ def run_agent(user_query: str, emit, client=None) -> str:
         else:
             from .llm_cli import ClaudeCLIClient
             client = ClaudeCLIClient()
-            emit({"type": "log",
-                  "message": "ℹ️ 원격 LLM 백엔드: Claude Code CLI "
-                             "(ANTHROPIC_API_KEY 미설정 — .env 추가 시 실 API 자동 전환)",
-                  "source": "local"})
 
     messages = [{"role": "user", "content": mask(user_query)}]
     tool_calls = 0  # 누적 도구 호출 수 (종료 로그용 + 조사 없이 결론 감지용)
