@@ -5,22 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AnswerNI — 두 LLM이 스스로 대화하며 답을 찾습니다</title>
 <!--
-  AnswerNI Float 랜딩 + 라이브 데모.
+  AnswerNI Float 랜딩 (정적 쇼케이스).
   원본: "AnswerNI Float.standalone.html" (디자인 툴 내보내기 번들)에서 템플릿·에셋을
-  추출해 재구성. React/번들러 런타임 제거(원본 로직은 stage 스케일링뿐이라 vanilla 로 충분),
+  추출해 재구성. React/번들러 런타임 제거(남은 로직은 stage 스케일링뿐이라 vanilla 로 충분),
   폰트는 실사용 굵기(woff2)만 동봉 — 런타임 외부 네트워크 의존 0건(오프라인 데모 안전).
 
-  히어로 "floating stage"를 실 백엔드에 연결:
-    POST /ask {"query"} → GET /events/{task_id} SSE
-    log(source=local)   → 왼쪽 PC(내부 LLM · 로컬) 말풍선
-    log(source=remote)  → 오른쪽 PC(외부 LLM · 원격) 말풍선
-    mask_diff           → 왼쪽 PC 마스킹 diff 말풍선 (원본 PII 빨강 / 토큰 초록)
-    slm_compress        → 왼쪽 PC 압축 말풍선
-    jira_results        → 중앙 보고서 "01 유사 대응 이력" 카드 (key 누적·중복 제거)
-    report              → 중앙 보고서 본문 (마크다운, 전량 이스케이프)
-    error / done        → 상태 뱃지·상태줄
-  초기 stage 는 "예시 미리보기"(정적) — 첫 실행 시 전부 비우고 라이브 데이터로 교체.
-  모든 서버 텍스트는 textContent 또는 escapeHtml 경유(XSS 방어, index.html 과 동일 원칙).
+  히어로 "floating stage"는 동작 방식을 보여주는 정적 "(예시)" 화면이다.
+  실제 라이브 실행(POST /ask → SSE)은 /demo 전용 페이지로 일원화 — 랜딩은 실행 배선 없음.
+  히어로의 CTA·나브·하단 CTA 모두 /demo 로 연결한다.
 -->
 <style>
 /*
@@ -77,12 +69,6 @@ input{font:inherit}
 .live-dots.on span:nth-child(2){animation-delay:.18s}
 .live-dots.on span:nth-child(3){animation-delay:.36s}
 
-#query{flex:1; min-width:0; border:1px solid var(--line); border-radius:12px; padding:13px 16px; font-size:15px; background:#fff; color:var(--ink); outline:none; font-family:inherit;}
-#query:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(234,91,26,0.12);}
-#runBtn{background:var(--accent); color:#fff; border:0; border-radius:12px; padding:13px 22px; font-size:15px; font-weight:800; white-space:nowrap; transition:background .15s;}
-#runBtn:hover{background:var(--accent-deep);}
-#runBtn:disabled{background:#D9D4CE; cursor:not-allowed;}
-
 .report-body{padding:22px 30px 26px; display:flex; flex-direction:column; gap:20px; font-family:'Pretendard',sans-serif; color:#1a1a1a; max-height:470px; overflow-y:auto; scrollbar-width:thin;}
 .jira-card{border:1px solid #E7EAEE; border-radius:8px; padding:11px 13px;}
 .jira-card .row1{display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;}
@@ -112,11 +98,6 @@ input{font:inherit}
 #reportMd strong{font-weight:800; color:#0f172a}
 .report-error{background:#FEF2F2; border-left:3px solid #EF4444; border-radius:0 8px 8px 0; padding:12px 14px; font-size:12.5px; line-height:1.6; color:#991B1B;}
 .report-wait{color:#94a3b8; font-size:12.5px; display:flex; align-items:center; gap:8px;}
-
-@media (max-width:760px){
-  #askForm{flex-direction:column;}
-  #runBtn{width:100%;}
-}
 </style>
 </head>
 <body>
@@ -131,7 +112,6 @@ input{font:inherit}
         <span>Answer<span style="color:var(--accent);">NI</span></span>
       </a>
       <div style="display:flex; align-items:center; gap:18px; font-size:15px; color:var(--muted); font-weight:500;">
-        <a href="/demo" style="font-size:14px;">콘솔 버전 UI</a>
         <a href="/demo" style="display:inline-flex; align-items:center; gap:7px; background:var(--ink); color:#fff; padding:10px 18px; border-radius:10px; font-weight:600;">라이브 데모 <span style="font-size:13px;">→</span></a>
       </div>
     </nav>
@@ -146,14 +126,10 @@ input{font:inherit}
       문의 한 건이 들어오면 로컬 LLM과 원격 LLM이 서로 주고받으며 <br>내용을 읽고, 사례를 찾고, 원인을 진단해 보고서로 돌려줍니다.
     </p>
 
-    <!-- LIVE DEMO INPUT -->
-    <div id="demo" style="animation:rise .6s ease .18s both; scroll-margin-top:90px;">
-      <form id="askForm" style="display:flex; gap:10px; width:100%; max-width:680px; margin:0 auto;">
-        <input id="query" type="text" autocomplete="off"
-               placeholder="예: 고객사 A 로그인 실패 — kim@aaa.com 계정이 로그인되지 않습니다. 원인 분석해주세요.">
-        <button id="runBtn" type="submit">분석 실행</button>
-      </form>
-      <div id="statusText" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-top:12px; min-height:17px;">문의를 입력하면 아래 화면이 실시간 분석으로 전환됩니다 · 아래는 예시 미리보기</div>
+    <!-- LIVE DEMO CTA (실행 동선은 /demo 로 일원화 — 아래 스테이지는 정적 쇼케이스) -->
+    <div style="animation:rise .6s ease .18s both;">
+      <a href="/demo" style="display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; padding:14px 26px; border-radius:12px; font-weight:800; font-size:16px;">라이브 데모에서 직접 실행 →</a>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-top:14px;">아래는 동작 방식을 보여주는 예시 화면입니다</div>
     </div>
 
     <!-- FLOATING STAGE -->
@@ -376,6 +352,7 @@ input{font:inherit}
   'use strict';
 
   // ── stage 반응형 스케일 (원본 DCLogic._fit 이식) ─────────────────────────
+  // 히어로 스테이지는 정적 쇼케이스 — 라이브 실행 동선은 /demo 로 일원화됨.
   var stage = document.getElementById('stage');
   var scene = document.getElementById('scene');
   function fit() {
@@ -387,389 +364,6 @@ input{font:inherit}
   }
   window.addEventListener('resize', fit);
   fit();
-
-  // ── XSS 안전 유틸 (index.html 과 동일 계약) ───────────────────────────────
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // 서버 pii.py / index.html 과 동기화된 PII 하이라이트 패턴 (EMAIL→RRN→PHONE→IP).
-  var PII_PATTERN = new RegExp([
-    /[\p{L}\p{N}_.+-]{1,64}@[\p{L}\p{N}_-]{1,255}(?:\.[\p{L}\p{N}_-]+)+/.source,
-    /(?<!\d)\d{6}-?[1-4]\d{6}(?!\d)/.source,
-    /(?<!\d)01[016789]-?\d{3,4}-?\d{4}(?!\d)/.source,
-    /(?<!\d)(?:\d{1,3}\.){3}\d{1,3}(?!\d)/.source
-  ].join('|'), 'gu');
-
-  function highlightPII(escaped) {
-    return escaped.replace(PII_PATTERN, function (match) {
-      if (match.indexOf('@') === -1 && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(match)) {
-        var ok = match.split('.').every(function (o) { return o.length > 0 && Number(o) <= 255; });
-        if (!ok) { return match; }
-      }
-      return '<span class="pii-raw">' + match + '</span>';
-    });
-  }
-  function highlightTokens(escaped) {
-    return escaped.replace(/\[[A-Z]+_\d+\]/g, function (m) {
-      return '<span class="pii-masked">' + m + '</span>';
-    });
-  }
-
-  // 최소 마크다운 렌더러 (index.html 이식 — 모든 텍스트 이스케이프 후 삽입).
-  function renderInline(text) {
-    var s = escapeHtml(text);
-    s = s.replace(/`([^`]+)`/g, function (_, c) { return '<code>' + c + '</code>'; });
-    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    return s;
-  }
-  function renderMarkdown(md) {
-    var lines = String(md).replace(/\r\n/g, '\n').split('\n');
-    var html = [];
-    var i = 0;
-    var listType = null;
-    function closeList() { if (listType) { html.push('</' + listType + '>'); listType = null; } }
-    while (i < lines.length) {
-      var line = lines[i];
-      var fence = line.match(/^\s*```(.*)$/);
-      if (fence) {
-        closeList();
-        var buf = [];
-        i++;
-        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { buf.push(escapeHtml(lines[i])); i++; }
-        i++;
-        html.push('<pre><code>' + buf.join('\n') + '</code></pre>');
-        continue;
-      }
-      var heading = line.match(/^(#{1,3})\s+(.*)$/);
-      if (heading) {
-        closeList();
-        var level = heading[1].length;
-        html.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
-        i++;
-        continue;
-      }
-      var ul = line.match(/^\s*[-*]\s+(.*)$/);
-      if (ul) {
-        if (listType !== 'ul') { closeList(); html.push('<ul>'); listType = 'ul'; }
-        html.push('<li>' + renderInline(ul[1]) + '</li>');
-        i++;
-        continue;
-      }
-      var ol = line.match(/^\s*\d+\.\s+(.*)$/);
-      if (ol) {
-        if (listType !== 'ol') { closeList(); html.push('<ol>'); listType = 'ol'; }
-        html.push('<li>' + renderInline(ol[1]) + '</li>');
-        i++;
-        continue;
-      }
-      if (/^\s*$/.test(line)) { closeList(); i++; continue; }
-      closeList();
-      var para = [line];
-      i++;
-      while (i < lines.length && !/^\s*$/.test(lines[i]) &&
-             !/^\s*```/.test(lines[i]) && !/^#{1,3}\s/.test(lines[i]) &&
-             !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i])) {
-        para.push(lines[i]);
-        i++;
-      }
-      html.push('<p>' + para.map(renderInline).join('<br>') + '</p>');
-    }
-    closeList();
-    return html.join('\n');
-  }
-
-  function networkErrorMessage(err) {
-    if (err && err.name === 'TypeError') { return '서버에 연결할 수 없습니다. 서버 실행 여부를 확인해주세요.'; }
-    var msg = err && err.message ? String(err.message) : '';
-    if (/^서버 응답/.test(msg)) { return msg; }
-    return '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.';
-  }
-
-  // ── DOM refs ─────────────────────────────────────────────────────────────
-  var form = document.getElementById('askForm');
-  var queryEl = document.getElementById('query');
-  var runBtn = document.getElementById('runBtn');
-  var statusEl = document.getElementById('statusText');
-  var localBody = document.getElementById('localBody');
-  var remoteBody = document.getElementById('remoteBody');
-  var localStatus = document.getElementById('localStatus');
-  var remoteStatus = document.getElementById('remoteStatus');
-  var localDots = document.getElementById('localDots');
-  var remoteDots = document.getElementById('remoteDots');
-  var caseNo = document.getElementById('caseNo');
-  var caseDate = document.getElementById('caseDate');
-  var caseBadge = document.getElementById('caseBadge');
-  var caseSub = document.getElementById('caseSub');
-  var jiraCount = document.getElementById('jiraCount');
-  var jiraCards = document.getElementById('jiraCards');
-  var mockSections = document.getElementById('mockSections');
-  var reportLive = document.getElementById('reportLive');
-  var reportMd = document.getElementById('reportMd');
-  var reportSub = document.getElementById('reportSub');
-  var reportSheet = document.getElementById('reportSheet');
-
-  var es = null;            // 현재 EventSource
-  var jiraIssues = [];      // 누적 이슈 (key 중복 제거)
-  var retryCount = 0;
-  var MAX_RETRIES = 5;
-  var JIRA_MAX_CARDS = 3;   // 시트 공간상 카드 3장 + "+N건" 표기
-
-  function setStatus(text) { statusEl.textContent = text; }
-  function setBusy(busy) {
-    runBtn.disabled = busy;
-    runBtn.textContent = busy ? '분석 중...' : '분석 실행';
-    localDots.classList.toggle('on', busy);
-    remoteDots.classList.toggle('on', busy);
-    localStatus.textContent = busy ? '대화 중' : localStatus.textContent;
-    remoteStatus.textContent = busy ? '대화 중' : remoteStatus.textContent;
-  }
-  function setBadge(text, cls) {
-    caseBadge.textContent = text;
-    caseBadge.className = 'badge-status' + (cls ? ' ' + cls : '');
-  }
-  function scrollBottom(el) { el.scrollTop = el.scrollHeight; }
-
-  // 라이브 세션 시작/SSE replay(onopen) 때 stage 를 리셋 — 예시 미리보기 제거 + 중복 방지.
-  function resetLive(query, taskId) {
-    localBody.textContent = '';
-    remoteBody.textContent = '';
-    var lh = document.createElement('div');
-    lh.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--muted); font-weight:700;";
-    lh.textContent = '요약 · 마스킹';
-    localBody.appendChild(lh);
-    var rh = document.createElement('div');
-    rh.style.cssText = "font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--accent-deep); font-weight:700;";
-    rh.textContent = '추론 · 지시';
-    remoteBody.appendChild(rh);
-
-    jiraIssues = [];
-    jiraCards.textContent = '';
-    var waiting = document.createElement('div');
-    waiting.className = 'report-wait';
-    waiting.id = 'jiraWait';
-    waiting.textContent = '유사 사례 검색 대기 중...';
-    jiraCards.appendChild(waiting);
-    jiraCount.textContent = 'JIRA · 0건';
-
-    mockSections.style.display = 'none';
-    reportLive.style.display = 'block';
-    reportMd.textContent = '두 LLM이 분석 중입니다...';
-    reportSub.textContent = '분석 중';
-    caseSub.textContent = query;                       // textContent → XSS 안전
-    caseNo.textContent = 'CASE-' + String(taskId).slice(0, 8).toUpperCase();
-    caseDate.textContent = new Date().toISOString().slice(0, 10);
-    setBadge('분석 중', 'busy');
-    localStatus.textContent = '대화 중';
-    remoteStatus.textContent = '대화 중';
-  }
-
-  function addBubble(side, build) {
-    var el = document.createElement('div');
-    el.className = side === 'remote' ? 'bubble bubble-remote' : 'bubble';
-    build(el);
-    (side === 'remote' ? remoteBody : localBody).appendChild(el);
-    scrollBottom(side === 'remote' ? remoteBody : localBody);
-  }
-
-  function onLog(message, source) {
-    var side = source === 'remote' ? 'remote' : 'local'; // system/미지정 → 로컬 활동
-    addBubble(side, function (el) { el.textContent = message; });
-  }
-
-  function onMaskDiff(raw, masked) {
-    addBubble('local', function (el) {
-      var label = document.createElement('div');
-      label.className = 'bubble-label';
-      label.textContent = 'PII 마스킹 — 원본은 로컬에만';
-      el.appendChild(label);
-      var rawEl = document.createElement('div');
-      rawEl.className = 'diff-block';
-      rawEl.innerHTML = highlightPII(escapeHtml(raw));       // 이스케이프 후 하이라이트만 주입
-      el.appendChild(rawEl);
-      var maskedEl = document.createElement('div');
-      maskedEl.className = 'diff-block';
-      maskedEl.innerHTML = highlightTokens(escapeHtml(masked));
-      el.appendChild(maskedEl);
-    });
-  }
-
-  function onCompress(before, after) {
-    addBubble('local', function (el) {
-      var label = document.createElement('div');
-      label.className = 'bubble-label';
-      label.textContent = 'SLM 압축';
-      el.appendChild(label);
-      var span = document.createElement('span');
-      span.textContent = Number(before).toLocaleString() + '자 → ' + Number(after).toLocaleString() + '자 ';
-      el.appendChild(span);
-      var check = document.createElement('span');
-      check.style.color = '#1F8A5B';
-      check.textContent = '✓';
-      el.appendChild(check);
-    });
-  }
-
-  function renderJiraCards() {
-    jiraCards.textContent = '';
-    if (jiraIssues.length === 0) {
-      var waiting = document.createElement('div');
-      waiting.className = 'report-wait';
-      waiting.textContent = '유사 사례 검색 대기 중...';
-      jiraCards.appendChild(waiting);
-      jiraCount.textContent = 'JIRA · 0건';
-      return;
-    }
-    jiraCount.textContent = 'JIRA · ' + jiraIssues.length + '건';
-    var shown = jiraIssues.slice(0, JIRA_MAX_CARDS);
-    shown.forEach(function (issue) {
-      var card = document.createElement('div');
-      card.className = 'jira-card';
-      var row1 = document.createElement('div');
-      row1.className = 'row1';
-      var key = document.createElement('span');
-      key.className = 'key';
-      key.textContent = issue.key || '';
-      row1.appendChild(key);
-      if (issue.resolution) {
-        var res = document.createElement('span');
-        res.className = 'res';
-        res.textContent = issue.resolution;
-        row1.appendChild(res);
-      }
-      card.appendChild(row1);
-      var sum = document.createElement('div');
-      sum.className = 'sum';
-      sum.textContent = issue.summary || '';
-      card.appendChild(sum);
-      var meta = document.createElement('div');
-      meta.className = 'meta';
-      var cust = document.createElement('span');
-      cust.style.cssText = 'font-weight:600; color:#475569;';
-      cust.textContent = issue.customer || '';
-      var created = document.createElement('span');
-      created.textContent = issue.created || '';
-      meta.appendChild(cust);
-      meta.appendChild(created);
-      card.appendChild(meta);
-      jiraCards.appendChild(card);
-    });
-    if (jiraIssues.length > JIRA_MAX_CARDS) {
-      var more = document.createElement('div');
-      more.className = 'section-sub';
-      more.style.textAlign = 'right';
-      more.textContent = '+' + (jiraIssues.length - JIRA_MAX_CARDS) + '건 더 발견됨';
-      jiraCards.appendChild(more);
-    }
-  }
-
-  function onJiraResults(issues) {
-    var list = Array.isArray(issues) ? issues : [];
-    var seen = {};
-    jiraIssues.forEach(function (it) { if (it && it.key != null) { seen[it.key] = true; } });
-    list.forEach(function (issue) {
-      if (!issue || issue.key == null || issue.key === '' || seen[issue.key]) { return; }
-      seen[issue.key] = true;
-      jiraIssues.push(issue);
-    });
-    renderJiraCards();
-  }
-
-  function onReport(markdown) {
-    reportMd.innerHTML = renderMarkdown(markdown);   // renderMarkdown 내부에서 전량 이스케이프
-    reportSub.textContent = '발행 완료';
-    setBadge('발행 완료', '');
-    if (typeof reportSheet.scrollIntoView === 'function') {
-      reportSheet.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-
-  function onError(message) {
-    reportMd.textContent = '';
-    var box = document.createElement('div');
-    box.className = 'report-error';
-    box.textContent = '오류: ' + message;
-    reportMd.appendChild(box);
-    reportSub.textContent = '오류';
-    setBadge('오류', 'error');
-  }
-
-  function finish(errored) {
-    if (es) { es.close(); es = null; }
-    setBusy(false);
-    localStatus.textContent = errored ? '오류로 종료' : '완료 ✓';
-    remoteStatus.textContent = errored ? '오류로 종료' : '완료 ✓';
-    setStatus(errored ? '오류로 종료되었습니다. 다시 시도해주세요.' : '분석 완료 — 보고서가 발행되었습니다.');
-  }
-
-  function handleEvent(data, sawError) {
-    switch (data.type) {
-      case 'log':          onLog(data.message, data.source); break;
-      case 'mask_diff':    onMaskDiff(data.raw, data.masked); break;
-      case 'slm_compress': onCompress(data.before, data.after); break;
-      case 'jira_results': onJiraResults(data.issues); break;
-      case 'report':       onReport(data.markdown); break;
-      case 'error':        onError(data.message); break;
-      case 'done':         finish(sawError.value); break;
-    }
-    if (data.type === 'error') { sawError.value = true; }
-  }
-
-  form.addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    var q = queryEl.value.trim();
-    if (!q) { queryEl.focus(); return; }
-    if (es) { es.close(); es = null; }   // 이전 스트림 정리(재실행)
-
-    setBusy(true);
-    setStatus('요청 전송 중...');
-    retryCount = 0;
-
-    fetch('/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q })
-    }).then(function (res) {
-      if (!res.ok) { throw new Error('서버 응답 ' + res.status); }
-      return res.json();
-    }).then(function (body) {
-      var taskId = body.task_id;
-      var sawError = { value: false };
-      es = new EventSource('/events/' + encodeURIComponent(taskId));
-      es.onopen = function () {
-        // 서버는 재연결 시 history 전체를 replay → 매 연결마다 리셋해 중복 표시 방지.
-        retryCount = 0;
-        sawError.value = false;
-        resetLive(q, taskId);
-        setStatus('두 LLM이 대화 중입니다...');
-      };
-      es.onmessage = function (msg) {
-        var data;
-        try { data = JSON.parse(msg.data); } catch (e) { return; }
-        handleEvent(data, sawError);
-      };
-      es.onerror = function () {
-        if (!es) { return; }
-        retryCount++;
-        if (retryCount > MAX_RETRIES) {
-          es.close();
-          es = null;
-          setBusy(false);
-          setStatus('연결이 끊어졌습니다. 다시 시도해주세요.');
-          return;
-        }
-        setStatus('연결 재시도 중... (' + retryCount + '/' + MAX_RETRIES + ')');
-      };
-    }).catch(function (err) {
-      setBusy(false);
-      setStatus(networkErrorMessage(err));
-    });
-  });
 })();
 </script>
 </body>

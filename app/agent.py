@@ -154,7 +154,7 @@ def run_agent(user_query: str, emit, client=None) -> str:
         # LLM 응답 대기(CLI 백엔드 최대 180초/호출)가 화면 정지처럼 보이지 않게,
         # 각 _create 직전에 진행 신호를 1건 남긴다 (기존 log 타입 재사용 — 스키마 불변).
         emit({"type": "log",
-              "message": f"원격 LLM 분석 중... ({i + 1}번째 판단)",
+              "message": "원격 LLM 분석 중...",
               "source": "remote"})
         response = _create(client, messages)
         stop = response.stop_reason
